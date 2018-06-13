@@ -25,27 +25,28 @@
   <ItemGroup>
     <ClInclude Include="application.hpp" />
     <ClInclude Include="cube_data.hpp" />
+    <ClInclude Include="instance.hpp" />
   </ItemGroup>
   <ItemGroup>
     <CustomBuild Include="shaders\shader.vert">
       <FileType>Document</FileType>
-      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">glslangValidator.exe -V -o $(ProjectDir)\shaders\shader.vert.bin $(ProjectDir)\shaders\shader.vert</Command>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">glslangValidator.exe -V -o $(ProjectDir)\shaders\shader.vert.spv $(ProjectDir)\shaders\shader.vert </Command>
       <Message Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Compiling vertex shader</Message>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(ProjectDir)\shaders\shader.vert.bin</Outputs>
-      <Command Condition="'$(Configuration)|$(Platform)'=='Release|x64'">glslangValidator.exe -V -o $(ProjectDir)\shaders\shader.vert.bin $(ProjectDir)\shaders\shader.vert</Command>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(ProjectDir)\shaders\shader.vert.spv</Outputs>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Release|x64'">glslangValidator.exe -V -o $(ProjectDir)\shaders\shader.vert.spv $(ProjectDir)\shaders\shader.vert </Command>
       <Message Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Compiling vertex shader</Message>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(ProjectDir)\shaders\shader.vert.bin</Outputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(ProjectDir)\shaders\shader.vert.spv</Outputs>
     </CustomBuild>
   </ItemGroup>
   <ItemGroup>
     <CustomBuild Include="shaders\shader.frag">
       <FileType>Document</FileType>
-      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">glslangValidator.exe -V -o $(ProjectDir)\shaders\shader.fragbin $(ProjectDir)\shaders\shader.frag</Command>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">glslangValidator.exe -V -o $(ProjectDir)\shaders\shader.frag.spv $(ProjectDir)\shaders\shader.frag </Command>
       <Message Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Compiling fragment shader</Message>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(ProjectDir)\shaders\shader.fragbin</Outputs>
-      <Command Condition="'$(Configuration)|$(Platform)'=='Release|x64'">glslangValidator.exe -V -o $(ProjectDir)\shaders\shader.fragbin $(ProjectDir)\shaders\shader.frag</Command>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(ProjectDir)\shaders\shader.frag.spv</Outputs>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Release|x64'">glslangValidator.exe -V -o $(ProjectDir)\shaders\shader.frag.spv $(ProjectDir)\shaders\shader.frag </Command>
       <Message Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Compiling fragment shader</Message>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(ProjectDir)\shaders\shader.fragbin</Outputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(ProjectDir)\shaders\shader.frag.spv</Outputs>
     </CustomBuild>
   </ItemGroup>
   <PropertyGroup Label="Globals">

@@ -1,10 +1,11 @@
 #include "application.hpp"
 
-#include "cube_data.hpp"
+//#include "cube_data.hpp"
 
 #include <cassert>
 #include <cstdlib>
 #include <array>
+#include <memory>
 #include <vector>
 #include <string>
 #include <iostream>
@@ -20,19 +21,46 @@
 
 namespace
 {
-  /*
-  struct Vertex2
+  
+  struct Vertex
   {
     glm::vec2 pos;
     glm::vec3 color;
-  }; 
-  static std::vector<Vertex2> const c_vertices =
-  {
-    { { -0.5f, 0.5f },{ 0.0f, 0.0f, 1.0f } },
-    { { 0.0f, -0.5f },{ 1.0f, 0.0f, 0.0f } },
-    { { 0.5f, 0.5f },{ 0.0f, 1.0f, 0.0f } },
+
+    static auto get_binding_description()
+    {
+      VkVertexInputBindingDescription l_binding_description {};
+      l_binding_description.binding = 0;
+      l_binding_description.stride = sizeof(Vertex);
+      l_binding_description.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
+
+      return l_binding_description;
+    }
+
+    static auto get_attribute_descriptions() 
+    {
+      std::array<VkVertexInputAttributeDescription, 2> l_attribute_descriptions = {};
+      l_attribute_descriptions[0].binding = 0;
+      l_attribute_descriptions[0].location = 0;
+      l_attribute_descriptions[0].format = VK_FORMAT_R32G32_SFLOAT;
+      l_attribute_descriptions[0].offset = offsetof(Vertex, pos);
+
+      l_attribute_descriptions[1].binding = 0;
+      l_attribute_descriptions[1].location = 1;
+      l_attribute_descriptions[1].format = VK_FORMAT_R32G32B32_SFLOAT;
+      l_attribute_descriptions[1].offset = offsetof(Vertex, color);
+
+      return l_attribute_descriptions;
+    }
   };
 
+  static std::vector<Vertex> const c_vertices =
+  {
+    { { 0.0f, -0.5f },{ 1.0f, 0.0f, 1.0f } },
+    { { 0.5f, 0.5f },{ 0.0f, 1.0f, 0.0f } },
+    { { -0.5f, 0.5f },{ 0.0f, 0.0f, 1.0f } }
+  };
+  /*
   struct UniformBufferObject 
   {
     glm::mat4 model;
@@ -89,6 +117,11 @@ namespace
   constexpr bool c_enable_validation_layers = true;
 #endif
 
+  constexpr size_t c_frames_in_flight{ 2 };
+  constexpr uint32_t c_start_width{ 800 };
+  constexpr uint32_t c_start_height{ 600 };
+
+
 }
 
 #define LOCAL_VULKAN_INTANCE_FUNC(_name) PFN_##_name l_##_name = (PFN_##_name)(m_get_instance_func(m_instance, #_name));
@@ -114,6 +147,8 @@ namespace sdlxvulkan
 
   // These relate to an instance
   DECLARE_VULKAN_FUNC(vkCreateDevice)
+  DECLARE_VULKAN_FUNC(vkCreateDebugReportCallbackEXT)
+  DECLARE_VULKAN_FUNC(vkDestroyDebugReportCallbackEXT)
   DECLARE_VULKAN_FUNC(vkDestroyInstance)
   DECLARE_VULKAN_FUNC(vkDestroySurfaceKHR)
   DECLARE_VULKAN_FUNC(vkEnumerateDeviceExtensionProperties)
@@ -127,80 +162,70 @@ namespace sdlxvulkan
   DECLARE_VULKAN_FUNC(vkGetPhysicalDeviceSurfaceFormatsKHR)
   DECLARE_VULKAN_FUNC(vkGetPhysicalDeviceSurfacePresentModesKHR)
   DECLARE_VULKAN_FUNC(vkGetPhysicalDeviceSurfaceSupportKHR)
-
-  DECLARE_VULKAN_FUNC(vkCreateDebugReportCallbackEXT)
-  DECLARE_VULKAN_FUNC(vkDestroyDebugReportCallbackEXT)
-  
-
+    
   // These relate to a device
   DECLARE_VULKAN_FUNC(vkAcquireNextImageKHR)
   DECLARE_VULKAN_FUNC(vkAllocateCommandBuffers)
-  DECLARE_VULKAN_FUNC(vkBeginCommandBuffer)
-  DECLARE_VULKAN_FUNC(vkCmdClearColorImage)
-  DECLARE_VULKAN_FUNC(vkCmdPipelineBarrier)
-  DECLARE_VULKAN_FUNC(vkCreateCommandPool)
-  DECLARE_VULKAN_FUNC(vkCreateFence)
-  DECLARE_VULKAN_FUNC(vkCreateImageView)
-  DECLARE_VULKAN_FUNC(vkCreateSemaphore)
-  DECLARE_VULKAN_FUNC(vkCreateSwapchainKHR)
-  DECLARE_VULKAN_FUNC(vkDestroyCommandPool)
-  DECLARE_VULKAN_FUNC(vkDestroyDevice)
-  DECLARE_VULKAN_FUNC(vkDestroyFence)
-  DECLARE_VULKAN_FUNC(vkDestroyImageView)
-  DECLARE_VULKAN_FUNC(vkDestroySemaphore)
-  DECLARE_VULKAN_FUNC(vkDestroySwapchainKHR)
-  DECLARE_VULKAN_FUNC(vkDeviceWaitIdle)
-  DECLARE_VULKAN_FUNC(vkEndCommandBuffer)
-  DECLARE_VULKAN_FUNC(vkFreeCommandBuffers)
-  DECLARE_VULKAN_FUNC(vkGetDeviceQueue)
-  DECLARE_VULKAN_FUNC(vkGetFenceStatus)
-  DECLARE_VULKAN_FUNC(vkGetSwapchainImagesKHR)
-  DECLARE_VULKAN_FUNC(vkQueuePresentKHR)
-  DECLARE_VULKAN_FUNC(vkQueueSubmit)
-  DECLARE_VULKAN_FUNC(vkResetCommandBuffer)
-  DECLARE_VULKAN_FUNC(vkResetFences)
-  DECLARE_VULKAN_FUNC(vkWaitForFences)
-
-  DECLARE_VULKAN_FUNC(vkGetImageMemoryRequirements)
-  DECLARE_VULKAN_FUNC(vkAllocateMemory)
-  DECLARE_VULKAN_FUNC(vkFreeMemory)
-  DECLARE_VULKAN_FUNC(vkBindImageMemory)
-
-  DECLARE_VULKAN_FUNC(vkMapMemory)
-  DECLARE_VULKAN_FUNC(vkUnmapMemory)
-  DECLARE_VULKAN_FUNC(vkBindBufferMemory)
-  DECLARE_VULKAN_FUNC(vkDestroyBuffer)
-
-  DECLARE_VULKAN_FUNC(vkCreateDescriptorSetLayout)
-  DECLARE_VULKAN_FUNC(vkCreatePipelineLayout)
-  DECLARE_VULKAN_FUNC(vkDestroyDescriptorSetLayout)
-  DECLARE_VULKAN_FUNC(vkDestroyPipelineLayout)
-
-  DECLARE_VULKAN_FUNC(vkCreateDescriptorPool)
   DECLARE_VULKAN_FUNC(vkAllocateDescriptorSets)
-  DECLARE_VULKAN_FUNC(vkUpdateDescriptorSets)
-  DECLARE_VULKAN_FUNC(vkDestroyDescriptorPool)
-
-  DECLARE_VULKAN_FUNC(vkCreateRenderPass)
-  DECLARE_VULKAN_FUNC(vkDestroyRenderPass)
-
-  DECLARE_VULKAN_FUNC(vkCreateShaderModule)
-  DECLARE_VULKAN_FUNC(vkDestroyShaderModule)
-  DECLARE_VULKAN_FUNC(vkCreateFramebuffer)
-  DECLARE_VULKAN_FUNC(vkDestroyFramebuffer)
-
-  DECLARE_VULKAN_FUNC(vkCreateBuffer)
-  DECLARE_VULKAN_FUNC(vkGetBufferMemoryRequirements)
-  DECLARE_VULKAN_FUNC(vkDestroyPipeline)
-  DECLARE_VULKAN_FUNC(vkCreateGraphicsPipelines)
+  DECLARE_VULKAN_FUNC(vkAllocateMemory)
+  DECLARE_VULKAN_FUNC(vkBeginCommandBuffer)
+  DECLARE_VULKAN_FUNC(vkBindBufferMemory)
+  DECLARE_VULKAN_FUNC(vkBindImageMemory)
   DECLARE_VULKAN_FUNC(vkCmdBeginRenderPass)
   DECLARE_VULKAN_FUNC(vkCmdBindPipeline)
   DECLARE_VULKAN_FUNC(vkCmdBindDescriptorSets)
   DECLARE_VULKAN_FUNC(vkCmdBindVertexBuffers)
-  DECLARE_VULKAN_FUNC(vkCmdSetViewport)
-  DECLARE_VULKAN_FUNC(vkCmdSetScissor)
+  DECLARE_VULKAN_FUNC(vkCmdClearColorImage)
   DECLARE_VULKAN_FUNC(vkCmdDraw)
   DECLARE_VULKAN_FUNC(vkCmdEndRenderPass)
+  DECLARE_VULKAN_FUNC(vkCmdPipelineBarrier)
+  DECLARE_VULKAN_FUNC(vkCmdSetViewport)
+  DECLARE_VULKAN_FUNC(vkCmdSetScissor)
+  DECLARE_VULKAN_FUNC(vkCreateBuffer)
+  DECLARE_VULKAN_FUNC(vkCreateCommandPool)
+  DECLARE_VULKAN_FUNC(vkCreateDescriptorPool)
+  DECLARE_VULKAN_FUNC(vkCreateDescriptorSetLayout)
+  DECLARE_VULKAN_FUNC(vkCreateFence)
+  DECLARE_VULKAN_FUNC(vkCreateFramebuffer)
+  DECLARE_VULKAN_FUNC(vkCreateGraphicsPipelines)
+  DECLARE_VULKAN_FUNC(vkCreateImageView)
+  DECLARE_VULKAN_FUNC(vkCreatePipelineLayout)
+  DECLARE_VULKAN_FUNC(vkCreateRenderPass)
+  DECLARE_VULKAN_FUNC(vkCreateSemaphore)
+  DECLARE_VULKAN_FUNC(vkCreateShaderModule)
+  DECLARE_VULKAN_FUNC(vkCreateSwapchainKHR)
+  DECLARE_VULKAN_FUNC(vkDestroyBuffer)
+  DECLARE_VULKAN_FUNC(vkDestroyCommandPool)
+  DECLARE_VULKAN_FUNC(vkDestroyDescriptorPool)
+  DECLARE_VULKAN_FUNC(vkDestroyDescriptorSetLayout)
+  DECLARE_VULKAN_FUNC(vkDestroyDevice)
+  DECLARE_VULKAN_FUNC(vkDestroyFence)
+  DECLARE_VULKAN_FUNC(vkDestroyFramebuffer)
+  DECLARE_VULKAN_FUNC(vkDestroyImageView)
+  DECLARE_VULKAN_FUNC(vkDestroyPipeline)
+  DECLARE_VULKAN_FUNC(vkDestroyPipelineLayout)
+  DECLARE_VULKAN_FUNC(vkDestroyRenderPass)
+  DECLARE_VULKAN_FUNC(vkDestroySemaphore)
+  DECLARE_VULKAN_FUNC(vkDestroyShaderModule)
+  DECLARE_VULKAN_FUNC(vkDestroySwapchainKHR)
+  DECLARE_VULKAN_FUNC(vkDeviceWaitIdle)
+  DECLARE_VULKAN_FUNC(vkEndCommandBuffer)
+  DECLARE_VULKAN_FUNC(vkFreeCommandBuffers)
+  DECLARE_VULKAN_FUNC(vkFreeMemory)
+  DECLARE_VULKAN_FUNC(vkGetBufferMemoryRequirements)
+  DECLARE_VULKAN_FUNC(vkGetDeviceQueue)
+  DECLARE_VULKAN_FUNC(vkGetFenceStatus)
+  DECLARE_VULKAN_FUNC(vkGetImageMemoryRequirements)
+  DECLARE_VULKAN_FUNC(vkGetSwapchainImagesKHR)
+  DECLARE_VULKAN_FUNC(vkMapMemory)
+  DECLARE_VULKAN_FUNC(vkQueuePresentKHR)
+  DECLARE_VULKAN_FUNC(vkQueueSubmit)
+  DECLARE_VULKAN_FUNC(vkResetCommandBuffer)
+  DECLARE_VULKAN_FUNC(vkResetFences)
+  DECLARE_VULKAN_FUNC(vkUnmapMemory)
+  DECLARE_VULKAN_FUNC(vkUpdateDescriptorSets)
+  DECLARE_VULKAN_FUNC(vkWaitForFences)
+
   
 
   void init_vulkan_get_proc(PFN_vkGetInstanceProcAddr a_getter);
@@ -233,6 +258,8 @@ void sdlxvulkan::init_vulkan_global_functions()
 void sdlxvulkan::init_vulkan_instance_functions(VkInstance a_instance)
 {
   INIT_VULKAN_INSTANCE_FUNC(vkCreateDevice)
+  INIT_VULKAN_INSTANCE_FUNC(vkCreateDebugReportCallbackEXT)
+  INIT_VULKAN_INSTANCE_FUNC(vkDestroyDebugReportCallbackEXT)
   INIT_VULKAN_INSTANCE_FUNC(vkDestroyInstance)
   INIT_VULKAN_INSTANCE_FUNC(vkDestroySurfaceKHR)
   INIT_VULKAN_INSTANCE_FUNC(vkEnumerateDeviceExtensionProperties)
@@ -246,9 +273,6 @@ void sdlxvulkan::init_vulkan_instance_functions(VkInstance a_instance)
   INIT_VULKAN_INSTANCE_FUNC(vkGetPhysicalDeviceSurfaceFormatsKHR)
   INIT_VULKAN_INSTANCE_FUNC(vkGetPhysicalDeviceSurfacePresentModesKHR)
   INIT_VULKAN_INSTANCE_FUNC(vkGetPhysicalDeviceSurfaceSupportKHR)
-
-  INIT_VULKAN_INSTANCE_FUNC(vkCreateDebugReportCallbackEXT)
-  INIT_VULKAN_INSTANCE_FUNC(vkDestroyDebugReportCallbackEXT)
 }
 
 #undef INIT_VULKAN_INSTANCE_FUNC
@@ -259,72 +283,65 @@ void sdlxvulkan::init_vulkan_device_functions(VkDevice a_device)
 {
   INIT_VULKAN_DEVICE_FUNC(vkAcquireNextImageKHR)
   INIT_VULKAN_DEVICE_FUNC(vkAllocateCommandBuffers)
-  INIT_VULKAN_DEVICE_FUNC(vkBeginCommandBuffer)
-  INIT_VULKAN_DEVICE_FUNC(vkCmdClearColorImage)
-  INIT_VULKAN_DEVICE_FUNC(vkCmdPipelineBarrier)
-  INIT_VULKAN_DEVICE_FUNC(vkCreateCommandPool)
-  INIT_VULKAN_DEVICE_FUNC(vkCreateFence)
-  INIT_VULKAN_DEVICE_FUNC(vkCreateImageView)
-  INIT_VULKAN_DEVICE_FUNC(vkCreateSemaphore)
-  INIT_VULKAN_DEVICE_FUNC(vkCreateSwapchainKHR)
-  INIT_VULKAN_DEVICE_FUNC(vkDestroyCommandPool)
-  INIT_VULKAN_DEVICE_FUNC(vkDestroyDevice)
-  INIT_VULKAN_DEVICE_FUNC(vkDestroyFence)
-  INIT_VULKAN_DEVICE_FUNC(vkDestroyImageView)
-  INIT_VULKAN_DEVICE_FUNC(vkDestroySemaphore)
-  INIT_VULKAN_DEVICE_FUNC(vkDestroySwapchainKHR)
-  INIT_VULKAN_DEVICE_FUNC(vkDeviceWaitIdle)
-  INIT_VULKAN_DEVICE_FUNC(vkEndCommandBuffer)
-  INIT_VULKAN_DEVICE_FUNC(vkFreeCommandBuffers)
-  INIT_VULKAN_DEVICE_FUNC(vkGetDeviceQueue)
-  INIT_VULKAN_DEVICE_FUNC(vkGetFenceStatus)
-  INIT_VULKAN_DEVICE_FUNC(vkGetSwapchainImagesKHR)
-  INIT_VULKAN_DEVICE_FUNC(vkQueuePresentKHR)
-  INIT_VULKAN_DEVICE_FUNC(vkQueueSubmit)
-  INIT_VULKAN_DEVICE_FUNC(vkResetCommandBuffer)
-  INIT_VULKAN_DEVICE_FUNC(vkResetFences)
-  INIT_VULKAN_DEVICE_FUNC(vkWaitForFences)
-
-  INIT_VULKAN_DEVICE_FUNC(vkGetImageMemoryRequirements)
-  INIT_VULKAN_DEVICE_FUNC(vkAllocateMemory)
-  INIT_VULKAN_DEVICE_FUNC(vkFreeMemory)
-  INIT_VULKAN_DEVICE_FUNC(vkBindImageMemory)
-
-  INIT_VULKAN_DEVICE_FUNC(vkMapMemory)
-  INIT_VULKAN_DEVICE_FUNC(vkUnmapMemory)
-  INIT_VULKAN_DEVICE_FUNC(vkBindBufferMemory)
-  INIT_VULKAN_DEVICE_FUNC(vkDestroyBuffer)
-
-  INIT_VULKAN_DEVICE_FUNC(vkCreateDescriptorSetLayout)
-  INIT_VULKAN_DEVICE_FUNC(vkCreatePipelineLayout)
-  INIT_VULKAN_DEVICE_FUNC(vkDestroyDescriptorSetLayout)
-  INIT_VULKAN_DEVICE_FUNC(vkDestroyPipelineLayout)
-
-  INIT_VULKAN_DEVICE_FUNC(vkCreateDescriptorPool)
   INIT_VULKAN_DEVICE_FUNC(vkAllocateDescriptorSets)
-  INIT_VULKAN_DEVICE_FUNC(vkUpdateDescriptorSets)
-  INIT_VULKAN_DEVICE_FUNC(vkDestroyDescriptorPool)
-
-  INIT_VULKAN_DEVICE_FUNC(vkCreateRenderPass)
-  INIT_VULKAN_DEVICE_FUNC(vkDestroyRenderPass)
-
-  INIT_VULKAN_DEVICE_FUNC(vkCreateShaderModule)
-  INIT_VULKAN_DEVICE_FUNC(vkDestroyShaderModule)
-  INIT_VULKAN_DEVICE_FUNC(vkCreateFramebuffer)
-  INIT_VULKAN_DEVICE_FUNC(vkDestroyFramebuffer)
-    
-  INIT_VULKAN_DEVICE_FUNC(vkCreateBuffer)
-  INIT_VULKAN_DEVICE_FUNC(vkGetBufferMemoryRequirements)
-  INIT_VULKAN_DEVICE_FUNC(vkDestroyPipeline)
-  INIT_VULKAN_DEVICE_FUNC(vkCreateGraphicsPipelines)
+  INIT_VULKAN_DEVICE_FUNC(vkAllocateMemory)
+  INIT_VULKAN_DEVICE_FUNC(vkBeginCommandBuffer)
+  INIT_VULKAN_DEVICE_FUNC(vkBindBufferMemory)
+  INIT_VULKAN_DEVICE_FUNC(vkBindImageMemory)
   INIT_VULKAN_DEVICE_FUNC(vkCmdBeginRenderPass)
   INIT_VULKAN_DEVICE_FUNC(vkCmdBindPipeline)
   INIT_VULKAN_DEVICE_FUNC(vkCmdBindDescriptorSets)
   INIT_VULKAN_DEVICE_FUNC(vkCmdBindVertexBuffers)
-  INIT_VULKAN_DEVICE_FUNC(vkCmdSetViewport)
-  INIT_VULKAN_DEVICE_FUNC(vkCmdSetScissor)
+  INIT_VULKAN_DEVICE_FUNC(vkCmdClearColorImage)
   INIT_VULKAN_DEVICE_FUNC(vkCmdDraw)
   INIT_VULKAN_DEVICE_FUNC(vkCmdEndRenderPass)
+  INIT_VULKAN_DEVICE_FUNC(vkCmdPipelineBarrier)
+  INIT_VULKAN_DEVICE_FUNC(vkCmdSetViewport)
+  INIT_VULKAN_DEVICE_FUNC(vkCmdSetScissor)
+  INIT_VULKAN_DEVICE_FUNC(vkCreateBuffer)
+  INIT_VULKAN_DEVICE_FUNC(vkCreateCommandPool)
+  INIT_VULKAN_DEVICE_FUNC(vkCreateDescriptorPool)
+  INIT_VULKAN_DEVICE_FUNC(vkCreateDescriptorSetLayout)
+  INIT_VULKAN_DEVICE_FUNC(vkCreateFence)
+  INIT_VULKAN_DEVICE_FUNC(vkCreateFramebuffer)
+  INIT_VULKAN_DEVICE_FUNC(vkCreateGraphicsPipelines)
+  INIT_VULKAN_DEVICE_FUNC(vkCreateImageView)
+  INIT_VULKAN_DEVICE_FUNC(vkCreatePipelineLayout)
+  INIT_VULKAN_DEVICE_FUNC(vkCreateRenderPass)
+  INIT_VULKAN_DEVICE_FUNC(vkCreateSemaphore)
+  INIT_VULKAN_DEVICE_FUNC(vkCreateShaderModule)
+  INIT_VULKAN_DEVICE_FUNC(vkCreateSwapchainKHR)
+  INIT_VULKAN_DEVICE_FUNC(vkDestroyBuffer)
+  INIT_VULKAN_DEVICE_FUNC(vkDestroyCommandPool)
+  INIT_VULKAN_DEVICE_FUNC(vkDestroyDescriptorPool)
+  INIT_VULKAN_DEVICE_FUNC(vkDestroyDescriptorSetLayout)
+  INIT_VULKAN_DEVICE_FUNC(vkDestroyDevice)
+  INIT_VULKAN_DEVICE_FUNC(vkDestroyFence)
+  INIT_VULKAN_DEVICE_FUNC(vkDestroyFramebuffer)
+  INIT_VULKAN_DEVICE_FUNC(vkDestroyImageView)
+  INIT_VULKAN_DEVICE_FUNC(vkDestroyPipeline)
+  INIT_VULKAN_DEVICE_FUNC(vkDestroyPipelineLayout)
+  INIT_VULKAN_DEVICE_FUNC(vkDestroyRenderPass)
+  INIT_VULKAN_DEVICE_FUNC(vkDestroySemaphore)
+  INIT_VULKAN_DEVICE_FUNC(vkDestroyShaderModule)
+  INIT_VULKAN_DEVICE_FUNC(vkDestroySwapchainKHR)
+  INIT_VULKAN_DEVICE_FUNC(vkDeviceWaitIdle)
+  INIT_VULKAN_DEVICE_FUNC(vkEndCommandBuffer)
+  INIT_VULKAN_DEVICE_FUNC(vkFreeCommandBuffers)
+  INIT_VULKAN_DEVICE_FUNC(vkFreeMemory)
+  INIT_VULKAN_DEVICE_FUNC(vkGetBufferMemoryRequirements)
+  INIT_VULKAN_DEVICE_FUNC(vkGetDeviceQueue)
+  INIT_VULKAN_DEVICE_FUNC(vkGetFenceStatus)
+  INIT_VULKAN_DEVICE_FUNC(vkGetImageMemoryRequirements)
+  INIT_VULKAN_DEVICE_FUNC(vkGetSwapchainImagesKHR)
+  INIT_VULKAN_DEVICE_FUNC(vkMapMemory)
+  INIT_VULKAN_DEVICE_FUNC(vkQueuePresentKHR)
+  INIT_VULKAN_DEVICE_FUNC(vkQueueSubmit)
+  INIT_VULKAN_DEVICE_FUNC(vkResetCommandBuffer)
+  INIT_VULKAN_DEVICE_FUNC(vkResetFences)
+  INIT_VULKAN_DEVICE_FUNC(vkUnmapMemory)
+  INIT_VULKAN_DEVICE_FUNC(vkUpdateDescriptorSets)
+  INIT_VULKAN_DEVICE_FUNC(vkWaitForFences)
 }
 
 #undef INIT_VULKAN_DEVICE_FUNC
@@ -423,15 +440,108 @@ namespace sdlxvulkan
 
 namespace sdlxvulkan
 {
+  
+  static_assert(std::is_pointer_v<VkInstance>, "VkInstance is not a pointer type, don't do the next thing.");
+  using Instance_Type = std::remove_pointer_t<VkInstance>;
+  using Instance_Pointer = std::add_pointer_t<Instance_Type>;
+  static_assert(std::is_same_v<VkInstance, Instance_Pointer>, "VkInstance is not the same type as deduced Instance_Pointer.");
+
+  class Instance_Destroyer
+  {
+  public:
+    void operator()(Instance_Pointer a_ptr)
+    {
+      vkDestroyInstance(a_ptr, nullptr);
+    }
+  };
+
+  using Instance = std::unique_ptr<Instance_Type, Instance_Destroyer>;
+
+
+  void f()
+  {
+    VkInstance l_input{VK_NULL_HANDLE};
+    Instance l_smart_instance{ l_input };
+    VkInstance l_instance = l_smart_instance.get();
+  }
+
+
+  class Physical_Device
+  {
+  public:
+    VkPhysicalDevice m_physical_device;
+    VkPhysicalDeviceProperties m_properties;
+    VkPhysicalDeviceMemoryProperties m_memory_properties;
+    std::vector<VkExtensionProperties> m_extension_properties;
+        
+    Physical_Device(VkInstance a_instance, uint32_t a_index);
+    ~Physical_Device();
+
+    void refresh_surface(VkInstance a_instance, VkSurfaceKHR a_surface);
+  };
+
+  class Surface_Data
+  {
+  public:
+    VkSurfaceCapabilitiesKHR m_surface_cababilites;
+    std::vector<VkSurfaceFormatKHR> m_surface_formats;
+    std::vector<VkPresentModeKHR> m_present_modes;
+
+    Surface_Data(VkInstance a_instance, VkPhysicalDevice a_device, VkSurfaceKHR a_surface);
+  };
+
+  class Device
+  {
+  public:
+    VkDevice m_device;
+    VkCommandPool m_command_pool;
+
+    Device(VkInstance a_instance, VkPhysicalDevice a_physical_device);
+    ~Device();
+  };
+
+  class Swapchain
+  {
+  public:
+    VkFormat m_format;
+    VkPresentModeKHR m_present_mode;
+    VkExtent2D m_extent;
+    uint32_t m_image_count;
+    VkSwapchainKHR m_swapchain;
+    std::vector<VkImage> m_images;
+    std::vector<VkImageView> m_image_views;
+
+    // Render Pass
+    VkRenderPass m_render_pass;
+
+    // Pipeline
+    VkViewport m_viewport;
+    VkRect2D m_scissor;
+    VkPipelineLayout m_pipeline_layout;
+    VkPipeline m_pipeline;
+
+    // Framebuffers
+    std::vector<VkFramebuffer> m_swapchain_framebuffers;
+    
+    // Command Buffer(s)
+    std::vector<VkCommandBuffer> m_command_buffers;
+
+    Swapchain(VkDevice a_device, Surface_Data const& a_surface_data, uint32_t a_width, uint32_t a_height);
+    ~Swapchain();
+  };
+
+
   class Application::Implementation
   {
   private:
     std::vector<std::string> m_args;
-    uint32_t m_width;
-    uint32_t m_height;
 
     // Window
     SDL_Window* m_window;
+    static_assert(std::is_same_v<Uint32, uint32_t>, "SDL::Uint32 is not ::uint32_t");
+    uint32_t m_window_id;
+    uint32_t m_width;
+    uint32_t m_height;
 
     // Instance
     VkInstance m_instance;
@@ -449,6 +559,20 @@ namespace sdlxvulkan
 
     // Logical Device
     VkDevice m_device;
+
+    // Command Pool
+    VkCommandPool m_command_pool;
+
+    // Vertex Buffer
+    VkBuffer m_vertex_buffer;
+    VkDeviceMemory m_vertex_buffer_memory;
+
+    // Shaders
+    VkShaderModule m_fragment_shader_module;
+    VkShaderModule m_vertex_shader_module;
+    VkPipelineShaderStageCreateInfo m_fragment_shader_stage_info;
+    VkPipelineShaderStageCreateInfo m_vertex_shader_stage_info;
+    std::array<VkPipelineShaderStageCreateInfo, 2> m_shader_stage_infos;
 
     // Graphics Queue
     uint32_t m_graphics_qf_index;
@@ -474,14 +598,7 @@ namespace sdlxvulkan
     // Swapchain Images
     std::vector<VkImage> m_swapchain_images;
     std::vector<VkImageView> m_swapchain_image_views;
-
-    // Shaders
-    VkShaderModule m_fragment_shader_module;
-    VkShaderModule m_vertex_shader_module;
-    VkPipelineShaderStageCreateInfo m_fragment_shader_stage_info;
-    VkPipelineShaderStageCreateInfo m_vertex_shader_stage_info;
-    std::array<VkPipelineShaderStageCreateInfo,2> m_shader_stage_infos;
-
+    
     // Render Pass
     VkRenderPass m_render_pass;
 
@@ -493,17 +610,15 @@ namespace sdlxvulkan
 
     // Framebuffers
     std::vector<VkFramebuffer> m_swapchain_framebuffers;
-
-    // Command Pool
-    VkCommandPool m_command_pool;
-
+    
     // Command Buffer(s)
     std::vector<VkCommandBuffer> m_command_buffers;
-    VkCommandBuffer m_command_buffer;
 
-    // Semaphores
-    VkSemaphore m_image_available_semaphore;
-    VkSemaphore m_render_finished_semaphore;
+    // Sync Objects
+    std::vector<VkSemaphore> m_image_available_semaphores;
+    std::vector<VkSemaphore> m_render_finished_semaphores;
+    std::vector<VkFence> m_fences;
+    size_t m_current_frame;
 
     /*
     VkSampleCountFlagBits m_sample_count;
@@ -591,6 +706,15 @@ namespace sdlxvulkan
     void init_logical_device();
     void quit_logical_device();
 
+    void init_command_pool();
+    void quit_command_pool();
+
+    void init_vertex_buffer();
+    void quit_vertex_buffer();
+
+    void init_shader_modules();
+    void quit_shader_modules();
+
     void init_graphics_queue();
     void quit_graphics_queue();
 
@@ -600,14 +724,12 @@ namespace sdlxvulkan
     void init_present_queue();
     void quit_present_queue();
 
-    void init_swapchain();
+    void init_swapchain(VkSwapchainKHR a_old_swapchain = VK_NULL_HANDLE);
+    void recreate_swapchain();
     void quit_swapchain();
     
     void init_swapchain_image_views();
     void quit_swapchain_image_views();
-
-    void init_shader_modules();
-    void quit_shader_modules();
 
     void init_render_pass();
     void quit_render_pass();
@@ -617,17 +739,14 @@ namespace sdlxvulkan
 
     void init_framebuffer();
     void quit_framebuffer();
-
-    void init_command_pool();
-    void quit_command_pool();
-
+    
     void init_command_buffers();
     void quit_command_buffers();
     
     void do_commands();
 
-    void init_semaphores();
-    void quit_semaphores();
+    void init_sync_objects();
+    void quit_sync_objects();
 
     void draw_frame();
   };
@@ -663,10 +782,11 @@ namespace
 //============================================================
 sdlxvulkan::Application::Implementation::Implementation(int argc, char** argv) :
   m_args{ make_arg_vector(argc, argv) },
-  m_width{ 800 },
-  m_height{ 600 },
 
-  m_window{ nullptr },
+  m_window{ nullptr }, 
+  m_window_id{ 0 },
+  m_width{ 0 },
+  m_height{ 0 },
 
   m_instance{ VK_NULL_HANDLE },
 
@@ -681,11 +801,22 @@ sdlxvulkan::Application::Implementation::Implementation(int argc, char** argv) :
 
   m_device{ VK_NULL_HANDLE },
 
+  m_command_pool{},
+
+  m_vertex_buffer{}, 
+  m_vertex_buffer_memory{},
+
+  m_fragment_shader_module{},
+  m_vertex_shader_module{},
+  m_fragment_shader_stage_info{},
+  m_vertex_shader_stage_info{},
+  m_shader_stage_infos{},
+
   m_graphics_qf_index{ UINT32_MAX },
   m_present_qf_index{ UINT32_MAX },
   m_graphics_queue{},
   m_present_queue{},
-
+  
   m_swapchain_surface_cababilites{},
   m_swapchain_surface_formats{},
   m_swapchain_present_modes{},
@@ -698,11 +829,6 @@ sdlxvulkan::Application::Implementation::Implementation(int argc, char** argv) :
   m_swapchain_images{},
   m_swapchain_image_views{},
 
-  m_fragment_shader_module{},
-  m_vertex_shader_module{},
-  m_fragment_shader_stage_info{},
-  m_vertex_shader_stage_info{},
-  m_shader_stage_infos{},
 
   // Render Pass
   m_render_pass{},
@@ -714,15 +840,14 @@ sdlxvulkan::Application::Implementation::Implementation(int argc, char** argv) :
   m_pipeline{},
 
   m_swapchain_framebuffers{},
-
-  m_command_pool{},
-
+  
   m_command_buffers{},
-  m_command_buffer{},
 
-  // Semaphores
-  m_image_available_semaphore{},
-  m_render_finished_semaphore{}
+  // Sync Objects
+  m_image_available_semaphores{},
+  m_render_finished_semaphores{},
+  m_fences{},
+  m_current_frame{}
   /*
   m_sample_count{ VK_SAMPLE_COUNT_1_BIT },
   m_depth_format{},
@@ -808,18 +933,19 @@ void sdlxvulkan::Application::Implementation::init()
   init_surface();
   init_queue_families();
   init_logical_device();
+  init_command_pool();
+  init_vertex_buffer();
+  init_shader_modules();
   init_graphics_queue();
   init_surface();
   init_present_queue();
   init_swapchain();
   init_swapchain_image_views();
-  init_shader_modules();
   init_render_pass();
   init_pipeline();
   init_framebuffer();
-  init_command_pool();
   init_command_buffers();
-  init_semaphores();
+  init_sync_objects();
 
   do_commands();
 }
@@ -1371,117 +1497,8 @@ void sdlxvulkan::Application::Implementation::ignore_init()
   }
   //------------------------------------------------------------------------------------------------------------------------
 
-  {
-    // Framebuffers
-    //-------------
-
-    
-    VkImageView l_attachments[2];
-    l_attachments[1] = m_depth_image_view;
-
-    VkFramebufferCreateInfo l_framebuffer_info {};
-    l_framebuffer_info.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
-    l_framebuffer_info.pNext = NULL;
-    l_framebuffer_info.renderPass = m_render_pass;
-    l_framebuffer_info.attachmentCount = 2;
-    l_framebuffer_info.pAttachments = l_attachments;
-    l_framebuffer_info.width = m_width;
-    l_framebuffer_info.height = m_height;
-    l_framebuffer_info.layers = 1;
-
-    m_framebuffers.resize(m_swapchain_image_count);
-    // Make a frame buffer for each swapchain image
-    for (uint32_t i = 0; i != m_swapchain_image_count; i++) 
-    {
-      l_attachments[0] = m_swapchain_image_views[i];
-      if (vkCreateFramebuffer(m_device, &l_framebuffer_info, NULL, &m_framebuffers[i]) != VK_SUCCESS)
-      {
-        throw std::runtime_error{ "Vulkan: Failed to create framebuffer." };
-      }
-    }
-  }
   //------------------------------------------------------------------------------------------------------------------------
   
-  {
-    // Vertex Buffer
-    //-------------
-
-    VkBufferCreateInfo l_buffer_info = {};
-    l_buffer_info.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-    l_buffer_info.pNext = NULL;
-    l_buffer_info.usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
-    //l_buffer_info.size = sizeof(g_vertex_buffer_solid_face_colors_data);
-    l_buffer_info.size = static_cast<uint32_t>(c_vertices.size());
-    l_buffer_info.queueFamilyIndexCount = 0;
-    l_buffer_info.pQueueFamilyIndices = NULL;
-    l_buffer_info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-    l_buffer_info.flags = 0;
-
-    if (vkCreateBuffer(m_device, &l_buffer_info, NULL, &m_vertex_buffer) != VK_SUCCESS)
-    {
-      throw std::runtime_error{ "Vulkan: Failed to create vertex buffer." };
-    }
-
-    VkMemoryRequirements l_mem_reqs{};
-    vkGetBufferMemoryRequirements(m_device, m_vertex_buffer, &l_mem_reqs);
-
-
-    VkMemoryAllocateInfo l_alloc_info = {};
-    l_alloc_info.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
-    l_alloc_info.pNext = NULL;
-    l_alloc_info.memoryTypeIndex = 0;
-
-    l_alloc_info.allocationSize = l_mem_reqs.size;
-
-    if (!set_memory_type_from_properties(m_physical_device_mem_properties, l_mem_reqs.memoryTypeBits, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, &l_alloc_info.memoryTypeIndex))
-    {
-      throw std::runtime_error{ "Vulkan: Failed to find matching memory type on the phyisical device to allocate the vertex buffer." };
-    }
-
-    if (vkAllocateMemory(m_device, &l_alloc_info, NULL, &m_vertex_buffer_memory) != VK_SUCCESS)
-    {
-      throw std::runtime_error{ "Vulkan: Failed to allocate vertex buffer memory." };
-    }
-
-    m_vertex_buffer_info.buffer = m_vertex_buffer;
-    m_vertex_buffer_info.range = l_mem_reqs.size;
-    m_vertex_buffer_info.offset = 0;
-
-
-    void *l_data{ nullptr };
-    if (vkMapMemory(m_device, m_vertex_buffer_memory, 0, l_buffer_info.size, 0, &l_data) != VK_SUCCESS)
-    {
-      throw std::runtime_error{ "Vulkan: Failed to map the uniform buffer." };
-    }
-
-    //memcpy(l_data, g_vertex_buffer_solid_face_colors_data, sizeof(g_vertex_buffer_solid_face_colors_data));
-    memcpy(l_data, c_vertices.data(), l_buffer_info.size);
-
-    // unmap the memory after we have used it.
-    vkUnmapMemory(m_device, m_vertex_buffer_memory);
-
-    if (vkBindBufferMemory(m_device, m_vertex_buffer, m_vertex_buffer_memory, 0) != VK_SUCCESS)
-    {
-      throw std::runtime_error{ "Vulkan: Failed to bind the vertex buffer." };
-    }
-
-    // These are all used in the pipeline setup
-
-    m_vertex_input_binding_desc.binding = 0;
-    m_vertex_input_binding_desc.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
-    m_vertex_input_binding_desc.stride = sizeof(Vertex2);
-
-
-    m_vertex_input_attributes_descs[0].binding = 0;
-    m_vertex_input_attributes_descs[0].location = 0;
-    m_vertex_input_attributes_descs[0].format = VK_FORMAT_R32G32_SFLOAT;
-    m_vertex_input_attributes_descs[0].offset = offsetof(Vertex2, pos);
-
-    m_vertex_input_attributes_descs[1].binding = 0;
-    m_vertex_input_attributes_descs[1].location = 1;
-    m_vertex_input_attributes_descs[1].format = VK_FORMAT_R32G32B32_SFLOAT;
-    m_vertex_input_attributes_descs[1].offset = offsetof(Vertex2, color);
-  }
   //----------------------------------------------------------------------------------------------------------------------
   {
     
@@ -1543,130 +1560,10 @@ void sdlxvulkan::Application::Implementation::ignore_init()
     vkCmdBindVertexBuffers(m_command_buffer, 0, 1, l_vertex_buffers, l_offsets);
 
 
-    {
-      // viewports
-      m_viewport.height = (float)m_height;
-      m_viewport.width = (float)m_width;
-      m_viewport.minDepth = (float)0.0f;
-      m_viewport.maxDepth = (float)1.0f;
-      m_viewport.x = 0;
-      m_viewport.y = 0;
-
-      vkCmdSetViewport(m_command_buffer, 0, m_num_viewports, &m_viewport);
-    }
-
-    {
-      // scissors
-      m_scissor.extent.width = m_width;
-      m_scissor.extent.height = m_height;
-      m_scissor.offset.x = 0;
-      m_scissor.offset.y = 0;
-
-      vkCmdSetScissor(m_command_buffer, 0, m_num_scissors, &m_scissor);
-    }
-
-
-    vkCmdDraw(m_command_buffer, static_cast<uint32_t>(c_vertices.size()), 1, 0, 0);
-
-    // End the render pass
-    vkCmdEndRenderPass(m_command_buffer);
-
     std::cout << "END" << std::endl;
   }
   //------------------------------------------------------------------------------------------------------------------------
-  {
-    // Submit the command buffer
-    //-------------
-
-    // Everything we have submitted to the command buffer has been recorded. Now we tell it
-    // do use them.
-
-    // First we end it.
-    if (vkEndCommandBuffer(m_command_buffer) != VK_SUCCESS)
-    {
-      throw std::runtime_error{ "Vulkan: Failed to end command buffer." };
-    }
-      
-    // Queue the command buffer for execution 
-
-    VkFenceCreateInfo l_fence_info{};
-    l_fence_info.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
-    l_fence_info.pNext = NULL;
-    l_fence_info.flags = 0;
-
-    VkFence l_draw_fence{};
-
-    if (vkCreateFence(m_device, &l_fence_info, NULL, &l_draw_fence) != VK_SUCCESS)
-    {
-      throw std::runtime_error{ "Vulkan: Failed to create fence." };
-    }
-    
-    VkPipelineStageFlags l_pipe_stage_flags = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-
-    VkCommandBuffer const l_cmd_bufs[]{ m_command_buffer };
-
-    VkSubmitInfo l_submit_info[1] = {};
-    l_submit_info[0].pNext = NULL;
-    l_submit_info[0].sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-    l_submit_info[0].waitSemaphoreCount = 0;
-    l_submit_info[0].pWaitSemaphores = NULL;
-    l_submit_info[0].pWaitDstStageMask = &l_pipe_stage_flags;
-    l_submit_info[0].commandBufferCount = 1;
-    l_submit_info[0].pCommandBuffers = l_cmd_bufs;
-    l_submit_info[0].signalSemaphoreCount = 0;
-    l_submit_info[0].pSignalSemaphores = NULL;
-    
-
-    std::cout << "Submit Queue" << std::endl;
-
-    // Finally we send the commands off to be done
-    if (vkQueueSubmit(m_graphics_queue, 1, l_submit_info, l_draw_fence) != VK_SUCCESS)
-    {
-      throw std::runtime_error{ "Vulkan: Failed to submit command queue." };
-    }
-    
-    VkResult l_result{};
-    
-
-    std::cout << "Wait on Fence" << std::endl;
-
-    // in nanoseconds
-    static uint64_t const c_fence_timeout{ 100000000 };
-    do 
-    {
-      l_result = vkWaitForFences(m_device, 1, &l_draw_fence, VK_TRUE, c_fence_timeout);
-    } while (l_result == VK_TIMEOUT); 
-    
-    if (l_result != VK_SUCCESS)
-    {
-      throw std::runtime_error{ "Vulkan: Something broke waiting on the fence." };
-    }
-    
-    // Done with this now
-    vkDestroyFence(m_device, l_draw_fence, NULL);
-
-    std::cout << "done with Fence" << std::endl;
-  }
-
-  //------------------------------------------------------------------------------------------------------------------------
-  {
-    // Present the swapchain image
-    //-------------
-
-    VkPresentInfoKHR l_present_info{};
-    l_present_info.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
-    l_present_info.pNext = NULL;
-    l_present_info.swapchainCount = 1;
-    l_present_info.pSwapchains = &m_swapchain;
-    l_present_info.pImageIndices = &m_current_buffer;
-    l_present_info.pWaitSemaphores = NULL;
-    l_present_info.waitSemaphoreCount = 0;
-    l_present_info.pResults = NULL;
-
-    if (vkQueuePresentKHR(m_present_queue, &l_present_info) != VK_SUCCESS)
-    {
-      throw std::runtime_error{ "Vulkan: Failed to present image." };
-    }
+  
   }
   //------------------------------------------------------------------------------------------------------------------------
   */
@@ -1721,18 +1618,19 @@ void sdlxvulkan::Application::Implementation::ignore_quit()
 
 void sdlxvulkan::Application::Implementation::quit()
 {
-  quit_semaphores();
+  quit_sync_objects();
   quit_command_buffers();
-  quit_command_pool();
   quit_framebuffer();
   quit_pipeline();
   quit_render_pass();
-  quit_shader_modules();
   quit_swapchain_image_views();
   quit_swapchain();
   quit_present_queue();
   quit_surface();
   quit_graphics_queue();
+  quit_shader_modules();
+  quit_vertex_buffer();
+  quit_command_pool();
   quit_logical_device();
   quit_queue_families();
   quit_physical_device();
@@ -1742,11 +1640,78 @@ void sdlxvulkan::Application::Implementation::quit()
   quit_system();
 }
 
+namespace
+{
+#define CASE_ENUM_STRING(a_arg) case a_arg: return u8###a_arg;
+
+  char const* sdl_event_c_string(SDL_EventType a_event_type)
+  {
+    switch (a_event_type)
+    {
+    CASE_ENUM_STRING(SDL_QUIT)
+    CASE_ENUM_STRING(SDL_APP_TERMINATING)
+    CASE_ENUM_STRING(SDL_APP_LOWMEMORY)
+    CASE_ENUM_STRING(SDL_APP_WILLENTERBACKGROUND)
+    CASE_ENUM_STRING(SDL_APP_DIDENTERBACKGROUND)
+    CASE_ENUM_STRING(SDL_APP_WILLENTERFOREGROUND)
+    CASE_ENUM_STRING(SDL_APP_DIDENTERFOREGROUND)
+    CASE_ENUM_STRING(SDL_WINDOWEVENT)
+    CASE_ENUM_STRING(SDL_SYSWMEVENT)
+
+    default: return u8"Bad SDL_EventType";
+    }
+  }
+  std::string sdl_event_string(SDL_EventType a_event_type)
+  {
+    return std::string{ sdl_event_c_string(a_event_type) };
+  }
+
+  char const* sdl_window_event_c_string(SDL_WindowEventID a_event_id)
+  {
+    switch (a_event_id)
+    {
+    CASE_ENUM_STRING(SDL_WINDOWEVENT_NONE)
+    CASE_ENUM_STRING(SDL_WINDOWEVENT_SHOWN)
+    CASE_ENUM_STRING(SDL_WINDOWEVENT_HIDDEN)
+    CASE_ENUM_STRING(SDL_WINDOWEVENT_EXPOSED)
+    CASE_ENUM_STRING(SDL_WINDOWEVENT_MOVED)
+    CASE_ENUM_STRING(SDL_WINDOWEVENT_RESIZED)
+    CASE_ENUM_STRING(SDL_WINDOWEVENT_SIZE_CHANGED)
+    CASE_ENUM_STRING(SDL_WINDOWEVENT_MINIMIZED)
+    CASE_ENUM_STRING(SDL_WINDOWEVENT_MAXIMIZED)
+    CASE_ENUM_STRING(SDL_WINDOWEVENT_RESTORED)
+    CASE_ENUM_STRING(SDL_WINDOWEVENT_ENTER)
+    CASE_ENUM_STRING(SDL_WINDOWEVENT_LEAVE)
+    CASE_ENUM_STRING(SDL_WINDOWEVENT_FOCUS_GAINED)
+    CASE_ENUM_STRING(SDL_WINDOWEVENT_FOCUS_LOST)
+    CASE_ENUM_STRING(SDL_WINDOWEVENT_CLOSE)
+    CASE_ENUM_STRING(SDL_WINDOWEVENT_TAKE_FOCUS)
+    CASE_ENUM_STRING(SDL_WINDOWEVENT_HIT_TEST)
+
+    default: return u8"Bad SDL_WindowEventID";
+    }
+  }
+  std::string sdl_window_event_string(SDL_WindowEventID a_event_id)
+  {
+    return std::string{ sdl_window_event_c_string(a_event_id) };
+  }
+}
+
 
 void sdlxvulkan::Application::Implementation::main_loop()
 {
   std::cout << "Application::Implementation::main_loop()" << std::endl;
-  
+  {
+    int l_window_width{ 0 };
+    int l_window_height{ 0 };
+    SDL_GetWindowSize(m_window, &l_window_width, &l_window_height);
+    std::cout << "window = " << l_window_width << "x" << l_window_height << std::endl;
+    int l_draw_width{ 0 };
+    int l_draw_height{ 0 };
+    SDL_Vulkan_GetDrawableSize(m_window, &l_draw_width, &l_draw_height);
+    std::cout << "draw = " << l_window_width << "x" << l_window_height << std::endl;
+  }
+
   // a really basic render loop...
   SDL_Event l_event{};
   bool l_quit{ false };
@@ -1757,6 +1722,28 @@ void sdlxvulkan::Application::Implementation::main_loop()
       if (l_event.type == SDL_QUIT)
       {
         l_quit = true;
+      }
+      if (l_event.type == SDL_WINDOWEVENT && l_event.window.windowID == m_window_id)
+      {
+        std::cout << sdl_window_event_string(static_cast<SDL_WindowEventID>(l_event.window.event)) << std::endl;
+        if (l_event.window.event == SDL_WINDOWEVENT_RESIZED) // everytime the user resizes the window
+        {
+          int l_window_width{ l_event.window.data1 };
+          int l_window_height{ l_event.window.data2 };
+        
+          int l_draw_width{ 0 };
+          int l_draw_height{ 0 };
+
+          SDL_Vulkan_GetDrawableSize(m_window, &l_draw_width, &l_draw_height);
+
+          m_width = l_draw_width;
+          m_height = l_draw_height;
+          std::cout << "Window Resized:" << std::endl;
+          std::cout << "window = " << l_window_width << "x" << l_window_height << std::endl;
+          std::cout << "draw = " << l_window_width << "x" << l_window_height << std::endl;
+
+          recreate_swapchain();
+        }
       }
     }
     draw_frame();
@@ -1818,12 +1805,21 @@ void sdlxvulkan::Application::Implementation::init_window()
   // SDL Window
   //-------------
 
-  m_window = SDL_CreateWindow("SDL x Vulkan", 100, 100, m_width, m_height, SDL_WINDOW_SHOWN | SDL_WINDOW_VULKAN | SDL_WINDOW_RESIZABLE);
+  m_window = SDL_CreateWindow("SDL x Vulkan", 100, 100, c_start_width, c_start_height, SDL_WINDOW_VULKAN | SDL_WINDOW_RESIZABLE | SDL_WINDOW_SHOWN);
   if (m_window == nullptr)
   {
     throw std::runtime_error("SDL: Failed to create window.");
   }
-  std::cout << "Window initialised." << std::endl;
+  m_window_id = SDL_GetWindowID(m_window);
+
+  int l_width{0};
+  int l_height{0};
+  SDL_Vulkan_GetDrawableSize(m_window, &l_width, &l_height);
+
+  m_width = static_cast<uint32_t>(l_width);
+  m_height = static_cast<uint32_t>(l_height);
+
+  std::cout << "Window initialised: id=" << m_window_id << " w=" << m_width << " h=" << m_height << std::endl;
 }
 
 void sdlxvulkan::Application::Implementation::quit_window()
@@ -1998,8 +1994,6 @@ void sdlxvulkan::Application::Implementation::init_physical_device()
   //-------------
 
   uint32_t l_device_count{ 0 };
-  // Get the gpu count
-  //auto l_vkEnumeratePhysicalDevices = (PFN_vkEnumeratePhysicalDevices)(m_get_instance_func(m_instance, "vkEnumeratePhysicalDevices"));
   if (vkEnumeratePhysicalDevices(m_instance, &l_device_count, nullptr) != VK_SUCCESS)
   {
     throw std::runtime_error("Vulkan: Could not get physical device count.");
@@ -2050,6 +2044,31 @@ void sdlxvulkan::Application::Implementation::init_physical_device()
 
   // Stash its memory properties
   vkGetPhysicalDeviceMemoryProperties(l_devices[0], &m_physical_device_mem_properties);
+
+
+
+  // For giggles, query and output the device extensions
+  uint32_t l_extension_count{0};
+  if (vkEnumerateDeviceExtensionProperties(m_physical_device, nullptr, &l_extension_count, nullptr)!= VK_SUCCESS)
+  {
+    throw std::runtime_error("Vulkan: Could not get physical device extension count.");
+  }
+  std::vector<VkExtensionProperties> l_extension_properties{};
+  l_extension_properties.resize(l_extension_count);
+  if (vkEnumerateDeviceExtensionProperties(m_physical_device, nullptr, &l_extension_count, l_extension_properties.data()) != VK_SUCCESS)
+  {
+    throw std::runtime_error("Vulkan: Could not get physical device extensions.");
+  }
+
+  std::cout << "Device Extensions:" << std::endl;
+  for (auto const& l_extension : l_extension_properties)
+  {
+    std::cout << "\"" << l_extension.extensionName << "\" version=\"" << l_extension.specVersion << "\"" << std::endl;
+  }
+  std::cout << std::endl;
+
+  // Proper device selection will require looking at these to find any required - like the swapchain
+
 
   std::cout << "Physical Device initialised, count = " << l_devices.size() << std::endl;
 }
@@ -2124,6 +2143,7 @@ void sdlxvulkan::Application::Implementation::init_logical_device()
   // Logical Device
   //-------------
 
+
   float l_queue_priorities[1] = { 0.0 };
   // Configure our queue info
   VkDeviceQueueCreateInfo l_queue_info{};
@@ -2148,7 +2168,6 @@ void sdlxvulkan::Application::Implementation::init_logical_device()
   l_device_info.ppEnabledLayerNames = NULL;
   l_device_info.pEnabledFeatures = NULL;
 
-  //auto l_vkCreateDevice = (PFN_vkCreateDevice)(m_get_instance_func(m_instance, "vkCreateDevice"));
 
   // Create the device
   if (vkCreateDevice(m_physical_device, &l_device_info, NULL, &m_device) != VK_SUCCESS)
@@ -2166,6 +2185,186 @@ void sdlxvulkan::Application::Implementation::quit_logical_device()
 {
   // Destroy the logical device.
   vkDestroyDevice(m_device, nullptr);
+}
+
+
+void sdlxvulkan::Application::Implementation::init_command_pool()
+{
+  // Command Buffer Pool
+  //-------------
+
+  // Initialise some creation info
+  VkCommandPoolCreateInfo l_command_pool_info{};
+  l_command_pool_info.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
+  l_command_pool_info.pNext = NULL;
+  l_command_pool_info.flags = 0; // optional
+                                 //l_command_pool_info.flags = VK_COMMAND_POOL_CREATE_TRANSIENT_BIT;             // hint that this is often used.
+                                 //l_command_pool_info.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;  // allow buffers to be rerecorded individually (uh?)
+  l_command_pool_info.queueFamilyIndex = m_graphics_qf_index;
+
+  // Make the pool using the device.
+  if (vkCreateCommandPool(m_device, &l_command_pool_info, nullptr, &m_command_pool) != VK_SUCCESS)
+  {
+    throw std::runtime_error("Vulkan: Failed to create command pool.");
+  }
+  std::cout << "Command Pool initialised." << std::endl;
+}
+
+void sdlxvulkan::Application::Implementation::quit_command_pool()
+{
+  // Destroy the command pool
+  vkDestroyCommandPool(m_device, m_command_pool, nullptr);
+}
+
+void sdlxvulkan::Application::Implementation::init_vertex_buffer()
+{
+  VkBufferCreateInfo l_buffer_info {};
+  l_buffer_info.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+  l_buffer_info.pNext = nullptr;
+  l_buffer_info.flags = 0;
+  l_buffer_info.size = sizeof(c_vertices[0]) * c_vertices.size();
+  l_buffer_info.usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
+  l_buffer_info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+  l_buffer_info.queueFamilyIndexCount = 0;
+  l_buffer_info.pQueueFamilyIndices = nullptr;
+
+  if (vkCreateBuffer(m_device, &l_buffer_info, nullptr, &m_vertex_buffer) != VK_SUCCESS)
+  {
+    throw std::runtime_error("Vulkan: failed to create vertex buffer");
+  }
+
+  VkMemoryRequirements l_mem_reqs{};
+  vkGetBufferMemoryRequirements(m_device, m_vertex_buffer, &l_mem_reqs);
+
+
+  VkMemoryAllocateInfo l_alloc_info = {};
+  l_alloc_info.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+  l_alloc_info.pNext = NULL;
+  l_alloc_info.memoryTypeIndex = 0;
+
+  l_alloc_info.allocationSize = l_mem_reqs.size;
+
+  if (!set_memory_type_from_properties(m_physical_device_mem_properties, l_mem_reqs.memoryTypeBits, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, &l_alloc_info.memoryTypeIndex))
+  {
+    throw std::runtime_error{ "Vulkan: Failed to find matching memory type on the phyisical device to allocate the vertex buffer." };
+  }
+
+  // Allocate the memory
+  if (vkAllocateMemory(m_device, &l_alloc_info, NULL, &m_vertex_buffer_memory) != VK_SUCCESS)
+  {
+    throw std::runtime_error{ "Vulkan: Failed to allocate vertex buffer memory." };
+  }
+
+  // Bind it
+  if (vkBindBufferMemory(m_device, m_vertex_buffer, m_vertex_buffer_memory, 0) != VK_SUCCESS)
+  {
+    throw std::runtime_error{ "Vulkan: Failed to bind the vertex buffer." };
+  }
+
+
+  /*
+
+  m_vertex_buffer_info.buffer = m_vertex_buffer;
+  m_vertex_buffer_info.range = l_mem_reqs.size;
+  m_vertex_buffer_info.offset = 0;
+  */
+
+  // Map data to it
+  void *l_data{ nullptr };
+  if (vkMapMemory(m_device, m_vertex_buffer_memory, 0, l_buffer_info.size, 0, &l_data) != VK_SUCCESS)
+  {
+    throw std::runtime_error{ "Vulkan: Failed to map the uniform buffer." };
+  }
+
+  //memcpy(l_data, g_vertex_buffer_solid_face_colors_data, sizeof(g_vertex_buffer_solid_face_colors_data));
+  memcpy(l_data, c_vertices.data(), l_buffer_info.size);
+
+  // unmap the memory after we have used it.
+  vkUnmapMemory(m_device, m_vertex_buffer_memory);
+  
+}
+
+void sdlxvulkan::Application::Implementation::quit_vertex_buffer()
+{
+  vkDestroyBuffer(m_device, m_vertex_buffer, nullptr);
+  vkFreeMemory(m_device, m_vertex_buffer_memory, nullptr);
+}
+
+void sdlxvulkan::Application::Implementation::init_shader_modules()
+{
+  // Shaders
+  //-------------
+  // Going to deviate from the example in a big way here. In it they make the shaders entirely in the program,
+  // but we are going to use externally compiled ones because it won't need to include god knows what to do,
+  // and will probably match what we'll do in other projects.
+
+  // Have 2 shaders that are built and copied to the target directory:
+  // frag.spv
+  // vert.spv
+
+  VkShaderModuleCreateInfo l_module_Info{};
+
+  auto make_shader_module = [this](VkDevice a_device, std::string const& a_filepath) -> VkShaderModule
+  {
+    auto l_path = get_shader_filepath(this->m_args[0], a_filepath);
+    auto l_spv_data = get_file_bytes(l_path);
+
+    VkShaderModuleCreateInfo l_module_info;
+    l_module_info.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
+    l_module_info.pNext = NULL;
+    l_module_info.flags = 0;
+    l_module_info.codeSize = l_spv_data.size();
+    l_module_info.pCode = reinterpret_cast<uint32_t const*>(l_spv_data.data());
+
+    VkShaderModule l_result{};
+    if (vkCreateShaderModule(a_device, &l_module_info, nullptr, &l_result) != VK_SUCCESS)
+    {
+      throw std::runtime_error{ std::string{ "Vulkan: Failed create shader module: " } +a_filepath };
+    }
+    std::cout << "Created shader module for " << l_path << std::endl;
+    return l_result;
+  };
+
+  // Make the vertex shader
+  char const c_vertex_shader_file[]{ "shader.vert.spv" };
+
+  m_vertex_shader_module = make_shader_module(m_device, c_vertex_shader_file);
+
+
+  // Make the fragment shader
+  char const c_fragment_shader_file[]{ "shader.frag.spv" };
+
+  m_fragment_shader_module = make_shader_module(m_device, c_fragment_shader_file);
+
+
+  m_fragment_shader_stage_info.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+  m_fragment_shader_stage_info.pNext = NULL;
+  m_fragment_shader_stage_info.flags = 0;
+  m_fragment_shader_stage_info.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
+  m_fragment_shader_stage_info.module = m_fragment_shader_module;
+  m_fragment_shader_stage_info.pName = "main";
+  m_fragment_shader_stage_info.pSpecializationInfo = NULL;
+
+  m_vertex_shader_stage_info.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+  m_vertex_shader_stage_info.pNext = NULL;
+  m_vertex_shader_stage_info.flags = 0;
+  m_vertex_shader_stage_info.stage = VK_SHADER_STAGE_VERTEX_BIT;
+  m_vertex_shader_stage_info.module = m_vertex_shader_module;
+  m_vertex_shader_stage_info.pName = "main";
+  m_vertex_shader_stage_info.pSpecializationInfo = NULL;
+
+  // Pack them
+  m_shader_stage_infos[0] = m_fragment_shader_stage_info;
+  m_shader_stage_infos[1] = m_vertex_shader_stage_info;
+
+  std::cout << "Shaders initialised." << std::endl;
+}
+
+void sdlxvulkan::Application::Implementation::quit_shader_modules()
+{
+  // Destroy the shaders
+  vkDestroyShaderModule(m_device, m_fragment_shader_module, nullptr);
+  vkDestroyShaderModule(m_device, m_vertex_shader_module, nullptr);
 }
 
 void sdlxvulkan::Application::Implementation::init_graphics_queue()
@@ -2246,6 +2445,8 @@ void sdlxvulkan::Application::Implementation::init_present_queue()
 
   std::cout << "Present Queue = " << m_present_qf_index << std::endl;
 
+  // Do we really need to bother with this check?
+  // Could just get the queue regardless
   if (m_graphics_qf_index == m_present_qf_index)
   {
     m_present_queue = m_graphics_queue;
@@ -2262,7 +2463,7 @@ void sdlxvulkan::Application::Implementation::quit_present_queue()
   // Do nothing
 }
 
-void sdlxvulkan::Application::Implementation::init_swapchain()
+void sdlxvulkan::Application::Implementation::init_swapchain(VkSwapchainKHR a_old_swapchain)
 {
   // Surface Capabilities
   //-------------
@@ -2451,7 +2652,7 @@ void sdlxvulkan::Application::Implementation::init_swapchain()
 
   VkSwapchainCreateInfoKHR l_swapchain_info = {};
   l_swapchain_info.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
-  l_swapchain_info.pNext = NULL;
+  l_swapchain_info.pNext = nullptr;
   l_swapchain_info.flags = 0;
   l_swapchain_info.surface = m_surface;
   l_swapchain_info.minImageCount = m_swapchain_image_count;
@@ -2483,8 +2684,8 @@ void sdlxvulkan::Application::Implementation::init_swapchain()
   l_swapchain_info.preTransform = l_pre_transform;
   l_swapchain_info.compositeAlpha = l_composite_alpha;
   l_swapchain_info.presentMode = m_swapchain_present_mode;
-  l_swapchain_info.oldSwapchain = VK_NULL_HANDLE; // you would pass in the old swapchain if you were remaking it
   l_swapchain_info.clipped = VK_TRUE;
+  l_swapchain_info.oldSwapchain = a_old_swapchain;
 
 
   // Now do the actual making.
@@ -2514,10 +2715,33 @@ void sdlxvulkan::Application::Implementation::init_swapchain()
   std::cout << "Swapchain Image initialised, count = " << m_swapchain_images.size() << std::endl;
 }
 
+void sdlxvulkan::Application::Implementation::recreate_swapchain()
+{
+  vkDeviceWaitIdle(m_device);
+
+  quit_command_buffers();
+  quit_framebuffer();
+  quit_pipeline();
+  quit_render_pass();
+  quit_swapchain_image_views();
+
+  VkSwapchainKHR l_old_swapchain{ m_swapchain };
+  init_swapchain(l_old_swapchain); 
+  vkDestroySwapchainKHR(m_device, l_old_swapchain, nullptr);
+
+  init_swapchain_image_views();
+  init_render_pass();
+  init_pipeline();
+  init_framebuffer();
+  init_command_buffers();
+
+  do_commands();
+}
+
 void sdlxvulkan::Application::Implementation::quit_swapchain()
 {
   // Destroy the swapchain
-  vkDestroySwapchainKHR(m_device, m_swapchain, NULL);
+  vkDestroySwapchainKHR(m_device, m_swapchain, nullptr);
 }
 
 void sdlxvulkan::Application::Implementation::init_swapchain_image_views()
@@ -2571,81 +2795,6 @@ void sdlxvulkan::Application::Implementation::quit_swapchain_image_views()
   {
     vkDestroyImageView(m_device, l_image_view, nullptr);
   }
-}
-
-void sdlxvulkan::Application::Implementation::init_shader_modules()
-{
-  // Shaders
-  //-------------
-  // Going to deviate from the example in a big way here. In it they make the shaders entirely in the program,
-  // but we are going to use externally compiled ones because it won't need to include god knows what to do,
-  // and will probably match what we'll do in other projects.
-
-  // Have 2 shaders that are built and copied to the target directory:
-  // frag.spv
-  // vert.spv
-
-  VkShaderModuleCreateInfo l_module_Info{};
-
-  auto make_shader_module = [this](VkDevice a_device, std::string const& a_filepath) -> VkShaderModule
-  {
-    auto l_spv_data = get_file_bytes(get_shader_filepath(this->m_args[0], a_filepath));
-
-    VkShaderModuleCreateInfo l_module_info;
-    l_module_info.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
-    l_module_info.pNext = NULL;
-    l_module_info.flags = 0;
-    l_module_info.codeSize = l_spv_data.size();
-    l_module_info.pCode = reinterpret_cast<uint32_t const*>(l_spv_data.data());
-
-    VkShaderModule l_result{};
-    if (vkCreateShaderModule(a_device, &l_module_info, nullptr, &l_result) != VK_SUCCESS)
-    {
-      throw std::runtime_error{ std::string{ "Vulkan: Failed create shader module: " } +a_filepath };
-    }
-    return l_result;
-  };
-
-  // Make the vertex shader
-  char const c_vertex_shader_file[]{ "vert.spv" };
-
-  m_vertex_shader_module = make_shader_module(m_device, c_vertex_shader_file);
-
-
-  // Make the fragment shader
-  char const c_fragment_shader_file[]{ "frag.spv" };
-
-  m_fragment_shader_module = make_shader_module(m_device, c_fragment_shader_file);
-
-
-  m_fragment_shader_stage_info.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-  m_fragment_shader_stage_info.pNext = NULL;
-  m_fragment_shader_stage_info.flags = 0;
-  m_fragment_shader_stage_info.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
-  m_fragment_shader_stage_info.module = m_fragment_shader_module;
-  m_fragment_shader_stage_info.pName = "main";
-  m_fragment_shader_stage_info.pSpecializationInfo = NULL;
-
-  m_vertex_shader_stage_info.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-  m_vertex_shader_stage_info.pNext = NULL;
-  m_vertex_shader_stage_info.flags = 0;
-  m_vertex_shader_stage_info.stage = VK_SHADER_STAGE_VERTEX_BIT;
-  m_vertex_shader_stage_info.module = m_vertex_shader_module;
-  m_vertex_shader_stage_info.pName = "main";
-  m_vertex_shader_stage_info.pSpecializationInfo = NULL;
-
-  // Pack them
-  m_shader_stage_infos[0] = m_fragment_shader_stage_info;
-  m_shader_stage_infos[1] = m_vertex_shader_stage_info;
-  
-  std::cout << "Shaders initialised." << std::endl;
-}
-
-void sdlxvulkan::Application::Implementation::quit_shader_modules()
-{
-  // Destroy the shaders
-  vkDestroyShaderModule(m_device, m_fragment_shader_module, nullptr);
-  vkDestroyShaderModule(m_device, m_vertex_shader_module, nullptr);
 }
 
 void sdlxvulkan::Application::Implementation::init_render_pass()
@@ -2718,15 +2867,21 @@ void sdlxvulkan::Application::Implementation::init_pipeline()
   //-------------
 
   // Vertex Input
+  auto l_binding_description = Vertex::get_binding_description();
+  auto l_attribute_descriptions = Vertex::get_attribute_descriptions();
 
   VkPipelineVertexInputStateCreateInfo l_vertex_input_state{};
   l_vertex_input_state.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
   l_vertex_input_state.pNext = NULL;
   l_vertex_input_state.flags = 0;
-  l_vertex_input_state.vertexBindingDescriptionCount = 0;
-  l_vertex_input_state.pVertexBindingDescriptions = nullptr; // optional
-  l_vertex_input_state.vertexAttributeDescriptionCount = 0;
-  l_vertex_input_state.pVertexAttributeDescriptions = nullptr; // optional
+  //l_vertex_input_state.vertexBindingDescriptionCount = 0;
+  //l_vertex_input_state.pVertexBindingDescriptions = nullptr;
+  //l_vertex_input_state.vertexAttributeDescriptionCount = 0;
+  //l_vertex_input_state.pVertexAttributeDescriptions = nullptr;
+  l_vertex_input_state.vertexBindingDescriptionCount = 1;
+  l_vertex_input_state.pVertexBindingDescriptions = &l_binding_description; // optional
+  l_vertex_input_state.vertexAttributeDescriptionCount = 2;
+  l_vertex_input_state.pVertexAttributeDescriptions = l_attribute_descriptions.data(); // optional
 
 
   //Input Assembly
@@ -2775,7 +2930,8 @@ void sdlxvulkan::Application::Implementation::init_pipeline()
   l_rasterization_state.rasterizerDiscardEnable = VK_FALSE;
   l_rasterization_state.polygonMode = VK_POLYGON_MODE_FILL;
   l_rasterization_state.cullMode = VK_CULL_MODE_BACK_BIT;
-  l_rasterization_state.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
+  l_rasterization_state.frontFace = VK_FRONT_FACE_CLOCKWISE;
+  //l_rasterization_state.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
   l_rasterization_state.depthBiasEnable = VK_FALSE; // optional
   l_rasterization_state.depthBiasConstantFactor = 0.0f; // optional
   l_rasterization_state.depthBiasClamp = 0.0f; // optional
@@ -2950,35 +3106,6 @@ void sdlxvulkan::Application::Implementation::quit_framebuffer()
 }
 
 
-void sdlxvulkan::Application::Implementation::init_command_pool()
-{
-  // Command Buffer Pool
-  //-------------
-
-  // Initialise some creation info
-  VkCommandPoolCreateInfo l_command_pool_info{};
-  l_command_pool_info.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
-  l_command_pool_info.pNext = NULL;
-  l_command_pool_info.flags = 0; // optional
-  //l_command_pool_info.flags = VK_COMMAND_POOL_CREATE_TRANSIENT_BIT;             // hint that this is often used.
-  //l_command_pool_info.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;  // allow buffers to be rerecorded individually (uh?)
-  l_command_pool_info.queueFamilyIndex = m_graphics_qf_index;
-  
-  // Make the pool using the device.
-  if (vkCreateCommandPool(m_device, &l_command_pool_info, nullptr, &m_command_pool) != VK_SUCCESS)
-  {
-    throw std::runtime_error("Vulkan: Failed to create command pool.");
-  }
-  std::cout << "Command Pool initialised." << std::endl;
-}
-
-void sdlxvulkan::Application::Implementation::quit_command_pool()
-{
-  // Destroy the command pool
-  vkDestroyCommandPool(m_device, m_command_pool, nullptr);
-}
-
-
 void sdlxvulkan::Application::Implementation::init_command_buffers()
 {
   // one per swapchain image
@@ -3040,7 +3167,13 @@ void sdlxvulkan::Application::Implementation::do_commands()
 
     vkCmdBindPipeline(m_command_buffers[l_index], VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipeline);
 
-    vkCmdDraw(m_command_buffers[l_index], 3, 1, 0, 0);
+    //vkCmdDraw(m_command_buffers[l_index], 3, 1, 0, 0);
+
+    VkBuffer l_vertex_buffers[] { m_vertex_buffer };
+    VkDeviceSize l_offsets[] = { 0 };
+    vkCmdBindVertexBuffers(m_command_buffers[l_index], 0, 1, l_vertex_buffers, l_offsets);
+
+    vkCmdDraw(m_command_buffers[l_index], static_cast<uint32_t>(c_vertices.size()), 1, 0, 0);
 
     vkCmdEndRenderPass(m_command_buffers[l_index]);
 
@@ -3053,40 +3186,76 @@ void sdlxvulkan::Application::Implementation::do_commands()
   }
 }
 
-void sdlxvulkan::Application::Implementation::init_semaphores()
+void sdlxvulkan::Application::Implementation::init_sync_objects()
 {
-  VkSemaphoreCreateInfo l_semaphore_info = {};
+  m_render_finished_semaphores.resize(c_frames_in_flight);
+  m_image_available_semaphores.resize(c_frames_in_flight);
+  m_fences.resize(c_frames_in_flight);
+
+  VkSemaphoreCreateInfo l_semaphore_info {};
   l_semaphore_info.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
   l_semaphore_info.pNext = nullptr;
   l_semaphore_info.flags = 0;
 
-  if (vkCreateSemaphore(m_device, &l_semaphore_info, nullptr, &m_image_available_semaphore) != VK_SUCCESS ||
-    vkCreateSemaphore(m_device, &l_semaphore_info, nullptr, &m_render_finished_semaphore) != VK_SUCCESS) {
+  VkFenceCreateInfo l_fence_info {};
+  l_fence_info.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
+  l_fence_info.pNext = nullptr;
+  l_fence_info.flags = VK_FENCE_CREATE_SIGNALED_BIT;
 
-    throw std::runtime_error("Vulkan: Failed to create semaphores.");
+  for (size_t l_index = 0; l_index != c_frames_in_flight; ++l_index)
+  {
+    if (vkCreateSemaphore(m_device, &l_semaphore_info, nullptr, &m_image_available_semaphores[l_index]) != VK_SUCCESS ||
+      vkCreateSemaphore(m_device, &l_semaphore_info, nullptr, &m_render_finished_semaphores[l_index]) != VK_SUCCESS ||
+      vkCreateFence(m_device, &l_fence_info, nullptr, &m_fences[l_index]) != VK_SUCCESS)
+    {
+
+      throw std::runtime_error("Vulkan: Failed to create sync objects for a frame.");
+    }
   }
-  std::cout << "Semaphores initialised." << std::endl;
+  std::cout << "Sync objects initialised." << std::endl;
 }
 
-void sdlxvulkan::Application::Implementation::quit_semaphores()
+void sdlxvulkan::Application::Implementation::quit_sync_objects()
 {
-  vkDestroySemaphore(m_device, m_render_finished_semaphore, nullptr);
-  vkDestroySemaphore(m_device, m_image_available_semaphore, nullptr);
+  for (size_t l_index = 0; l_index != c_frames_in_flight; ++l_index)
+  {
+    vkDestroyFence(m_device, m_fences[l_index], nullptr);
+    vkDestroySemaphore(m_device, m_render_finished_semaphores[l_index], nullptr);
+    vkDestroySemaphore(m_device, m_image_available_semaphores[l_index], nullptr);
+  }  
 }
 
 void sdlxvulkan::Application::Implementation::draw_frame()
 {
+  //std::cout << "Draw Frame Start" << std::endl;
+  vkWaitForFences(m_device, 1, &m_fences[m_current_frame], VK_TRUE, std::numeric_limits<uint64_t>::max());
+  //std::cout << "waiting for fence "<< m_fences[m_current_frame] << std::endl;
+  //vkResetFences(m_device, 1, &m_fences[m_current_frame]);
+  if (vkResetFences(m_device, 1, &m_fences[m_current_frame]) != VK_SUCCESS)
+  {
+    throw std::runtime_error{ "Vulkan: Failed to reset fence." };
+  }
+  //std::cout << "fence done" << std::endl;
+
   uint32_t l_image_index{0};
-  vkAcquireNextImageKHR(m_device, m_swapchain, std::numeric_limits<uint64_t>::max(), m_image_available_semaphore, VK_NULL_HANDLE, &l_image_index);
+  VkResult l_result = vkAcquireNextImageKHR(m_device, m_swapchain, std::numeric_limits<uint64_t>::max(), m_image_available_semaphores[m_current_frame], VK_NULL_HANDLE, &l_image_index);
+  if (l_result != VK_SUCCESS)
+  {
+    std::cout << vulkan_result_string(l_result) << std::endl;
+    if (l_result != VK_SUBOPTIMAL_KHR)
+    {
+      throw std::runtime_error("Vulkan:: Failed to acquire swap chain image.");
+    }
+  }
 
-
+  //std::cout << "current frame = " << m_current_frame << " aquired = " << l_image_index << std::endl;
   // Submit the command quue
 
   // going to use semaphores to synchronise
 
-  VkSemaphore l_wait_semaphores[] = { m_image_available_semaphore };
+  VkSemaphore l_wait_semaphores[] = { m_image_available_semaphores[m_current_frame] };
   VkPipelineStageFlags l_wait_stages[] = { VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT }; 
-  VkSemaphore l_signal_semaphores[] = { m_render_finished_semaphore };
+  VkSemaphore l_signal_semaphores[] = { m_render_finished_semaphores[m_current_frame] };
 
   VkSubmitInfo l_submit_info {};
   l_submit_info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
@@ -3101,10 +3270,11 @@ void sdlxvulkan::Application::Implementation::draw_frame()
 
 
   // Finally we send the commands off to be done
-  if (vkQueueSubmit(m_graphics_queue, 1, &l_submit_info, VK_NULL_HANDLE) != VK_SUCCESS)
+  if (vkQueueSubmit(m_graphics_queue, 1, &l_submit_info, m_fences[m_current_frame]) != VK_SUCCESS)
   {
-    //throw std::runtime_error{ "Vulkan: Failed to submit command queue." };
+    throw std::runtime_error{ "Vulkan: Failed to submit command queue." };
   }
+  //std::cout << "queue submitted" << std::endl;
 
 
   // Present the swapchain image
@@ -3124,9 +3294,13 @@ void sdlxvulkan::Application::Implementation::draw_frame()
 
   if (vkQueuePresentKHR(m_present_queue, &l_present_info) != VK_SUCCESS)
   {
-    //throw std::runtime_error{ "Vulkan: Failed to present image." };
+    throw std::runtime_error{ "Vulkan: Failed to present image." };
   }
+  //std::cout << "image presented" << std::endl;
 
+  //std::cout << "frame: " << m_current_frame;
+  m_current_frame = (m_current_frame + 1) % c_frames_in_flight;
+  //std::cout << "->" << m_current_frame << std::endl;
 }
 
 
