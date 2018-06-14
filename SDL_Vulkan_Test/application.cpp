@@ -11,6 +11,7 @@
 #include <iostream>
 #include <fstream>
 #include <filesystem>
+#include <chrono>
 
 #include <SDL.h>
 #include <SDL_vulkan.h>
@@ -53,13 +54,26 @@ namespace
       return l_attribute_descriptions;
     }
   };
-
+  /*
   static std::vector<Vertex> const c_vertices =
   {
     { { 0.0f, -0.5f },{ 1.0f, 0.0f, 1.0f } },
     { { 0.5f, 0.5f },{ 0.0f, 1.0f, 0.0f } },
     { { -0.5f, 0.5f },{ 0.0f, 0.0f, 1.0f } }
   };
+  */
+  static std::vector<Vertex> const c_vertices = 
+  {
+    { { -0.5f, -0.5f },{ 1.0f, 0.0f, 0.0f } },
+    { { 0.5f, -0.5f },{ 0.0f, 1.0f, 0.0f } },
+    { { 0.5f, 0.5f },{ 0.0f, 0.0f, 1.0f } },
+    { { -0.5f, 0.5f },{ 1.0f, 1.0f, 1.0f } }
+  };
+  static std::vector<uint16_t> const c_indices = 
+  {
+    0, 1, 2, 2, 3, 0
+  };
+
   /*
   struct UniformBufferObject 
   {
@@ -67,43 +81,6 @@ namespace
     glm::mat4 view;
     glm::mat4 proj;
   };*/
-
-  std::string vulkan_result_string(VkResult a_value)
-  {
-    switch (a_value)
-    {
-    case(VK_SUCCESS): return "VK_SUCCESS";
-    case(VK_NOT_READY): return "VK_NOT_READY ";
-    case(VK_TIMEOUT): return "VK_TIMEOUT ";
-    case(VK_EVENT_SET): return "VK_EVENT_SET ";
-    case(VK_EVENT_RESET): return "VK_EVENT_RESET ";
-    case(VK_INCOMPLETE): return "VK_INCOMPLETE ";
-    case(VK_ERROR_OUT_OF_HOST_MEMORY): return "VK_ERROR_OUT_OF_HOST_MEMORY ";
-    case(VK_ERROR_OUT_OF_DEVICE_MEMORY): return "VK_ERROR_OUT_OF_DEVICE_MEMORY ";
-    case(VK_ERROR_INITIALIZATION_FAILED): return "VK_ERROR_INITIALIZATION_FAILED ";
-    case(VK_ERROR_DEVICE_LOST): return "VK_ERROR_DEVICE_LOST ";
-    case(VK_ERROR_MEMORY_MAP_FAILED): return "VK_ERROR_MEMORY_MAP_FAILED ";
-    case(VK_ERROR_LAYER_NOT_PRESENT): return "VK_ERROR_LAYER_NOT_PRESENT ";
-    case(VK_ERROR_EXTENSION_NOT_PRESENT): return "VK_ERROR_EXTENSION_NOT_PRESENT ";
-    case(VK_ERROR_FEATURE_NOT_PRESENT): return "VK_ERROR_FEATURE_NOT_PRESENT ";
-    case(VK_ERROR_INCOMPATIBLE_DRIVER): return "VK_ERROR_INCOMPATIBLE_DRIVER ";
-    case(VK_ERROR_TOO_MANY_OBJECTS): return "VK_ERROR_TOO_MANY_OBJECTS ";
-    case(VK_ERROR_FORMAT_NOT_SUPPORTED): return "VK_ERROR_FORMAT_NOT_SUPPORTED ";
-    case(VK_ERROR_FRAGMENTED_POOL): return "VK_ERROR_FRAGMENTED_POOL ";
-    case(VK_ERROR_OUT_OF_POOL_MEMORY): return "VK_ERROR_OUT_OF_POOL_MEMORY ";
-    case(VK_ERROR_INVALID_EXTERNAL_HANDLE): return "VK_ERROR_INVALID_EXTERNAL_HANDLE ";
-    case(VK_ERROR_SURFACE_LOST_KHR): return "VK_ERROR_SURFACE_LOST_KHR ";
-    case(VK_ERROR_NATIVE_WINDOW_IN_USE_KHR): return "VK_ERROR_NATIVE_WINDOW_IN_USE_KHR ";
-    case(VK_SUBOPTIMAL_KHR): return "VK_SUBOPTIMAL_KHR ";
-    case(VK_ERROR_OUT_OF_DATE_KHR): return "VK_ERROR_OUT_OF_DATE_KHR ";
-    case(VK_ERROR_INCOMPATIBLE_DISPLAY_KHR): return "VK_ERROR_INCOMPATIBLE_DISPLAY_KHR ";
-    case(VK_ERROR_VALIDATION_FAILED_EXT): return "VK_ERROR_VALIDATION_FAILED_EXT ";
-    case(VK_ERROR_INVALID_SHADER_NV): return "VK_ERROR_INVALID_SHADER_NV ";
-    case(VK_ERROR_FRAGMENTATION_EXT): return "VK_ERROR_FRAGMENTATION_EXT ";
-    case(VK_ERROR_NOT_PERMITTED_EXT): return "VK_ERROR_NOT_PERMITTED_EXT ";
-    default: return "BAD VKRESULT";
-    }
-  }
 
 
   // Make sure environment variable VK_LAYER_PATH is set to the Vulkan binary path
@@ -120,8 +97,70 @@ namespace
   constexpr size_t c_frames_in_flight{ 2 };
   constexpr uint32_t c_start_width{ 800 };
   constexpr uint32_t c_start_height{ 600 };
+  
+  static VKAPI_ATTR VkBool32 VKAPI_CALL debug_callback(VkDebugReportFlagsEXT a_flags, VkDebugReportObjectTypeEXT a_obj_type, uint64_t a_obj, size_t a_location, int32_t a_code, const char* a_layer_prefix, const char* a_msg, void* a_user_data)
+  {
+    std::cerr << "[validation layer] " << a_msg << std::endl << std::endl;
 
+    return VK_FALSE;
+  }
+}
 
+namespace
+{
+#define CASE_ENUM_STRING(a_arg) case a_arg: return u8###a_arg;
+
+  char const* sdl_event_c_string(SDL_EventType a_event_type)
+  {
+    switch (a_event_type)
+    {
+      CASE_ENUM_STRING(SDL_QUIT)
+        CASE_ENUM_STRING(SDL_APP_TERMINATING)
+        CASE_ENUM_STRING(SDL_APP_LOWMEMORY)
+        CASE_ENUM_STRING(SDL_APP_WILLENTERBACKGROUND)
+        CASE_ENUM_STRING(SDL_APP_DIDENTERBACKGROUND)
+        CASE_ENUM_STRING(SDL_APP_WILLENTERFOREGROUND)
+        CASE_ENUM_STRING(SDL_APP_DIDENTERFOREGROUND)
+        CASE_ENUM_STRING(SDL_WINDOWEVENT)
+        CASE_ENUM_STRING(SDL_SYSWMEVENT)
+
+    default: return u8"Bad SDL_EventType";
+    }
+  }
+  std::string sdl_event_string(SDL_EventType a_event_type)
+  {
+    return std::string{ sdl_event_c_string(a_event_type) };
+  }
+
+  char const* sdl_window_event_c_string(SDL_WindowEventID a_event_id)
+  {
+    switch (a_event_id)
+    {
+      CASE_ENUM_STRING(SDL_WINDOWEVENT_NONE)
+        CASE_ENUM_STRING(SDL_WINDOWEVENT_SHOWN)
+        CASE_ENUM_STRING(SDL_WINDOWEVENT_HIDDEN)
+        CASE_ENUM_STRING(SDL_WINDOWEVENT_EXPOSED)
+        CASE_ENUM_STRING(SDL_WINDOWEVENT_MOVED)
+        CASE_ENUM_STRING(SDL_WINDOWEVENT_RESIZED)
+        CASE_ENUM_STRING(SDL_WINDOWEVENT_SIZE_CHANGED)
+        CASE_ENUM_STRING(SDL_WINDOWEVENT_MINIMIZED)
+        CASE_ENUM_STRING(SDL_WINDOWEVENT_MAXIMIZED)
+        CASE_ENUM_STRING(SDL_WINDOWEVENT_RESTORED)
+        CASE_ENUM_STRING(SDL_WINDOWEVENT_ENTER)
+        CASE_ENUM_STRING(SDL_WINDOWEVENT_LEAVE)
+        CASE_ENUM_STRING(SDL_WINDOWEVENT_FOCUS_GAINED)
+        CASE_ENUM_STRING(SDL_WINDOWEVENT_FOCUS_LOST)
+        CASE_ENUM_STRING(SDL_WINDOWEVENT_CLOSE)
+        CASE_ENUM_STRING(SDL_WINDOWEVENT_TAKE_FOCUS)
+        CASE_ENUM_STRING(SDL_WINDOWEVENT_HIT_TEST)
+
+    default: return u8"Bad SDL_WindowEventID";
+    }
+  }
+  std::string sdl_window_event_string(SDL_WindowEventID a_event_id)
+  {
+    return std::string{ sdl_window_event_c_string(a_event_id) };
+  }
 }
 
 #define LOCAL_VULKAN_INTANCE_FUNC(_name) PFN_##_name l_##_name = (PFN_##_name)(m_get_instance_func(m_instance, #_name));
@@ -176,6 +215,7 @@ namespace sdlxvulkan
   DECLARE_VULKAN_FUNC(vkCmdBindDescriptorSets)
   DECLARE_VULKAN_FUNC(vkCmdBindVertexBuffers)
   DECLARE_VULKAN_FUNC(vkCmdClearColorImage)
+  DECLARE_VULKAN_FUNC(vkCmdCopyBuffer)
   DECLARE_VULKAN_FUNC(vkCmdDraw)
   DECLARE_VULKAN_FUNC(vkCmdEndRenderPass)
   DECLARE_VULKAN_FUNC(vkCmdPipelineBarrier)
@@ -293,6 +333,7 @@ void sdlxvulkan::init_vulkan_device_functions(VkDevice a_device)
   INIT_VULKAN_DEVICE_FUNC(vkCmdBindDescriptorSets)
   INIT_VULKAN_DEVICE_FUNC(vkCmdBindVertexBuffers)
   INIT_VULKAN_DEVICE_FUNC(vkCmdClearColorImage)
+  INIT_VULKAN_DEVICE_FUNC(vkCmdCopyBuffer)
   INIT_VULKAN_DEVICE_FUNC(vkCmdDraw)
   INIT_VULKAN_DEVICE_FUNC(vkCmdEndRenderPass)
   INIT_VULKAN_DEVICE_FUNC(vkCmdPipelineBarrier)
@@ -349,6 +390,43 @@ void sdlxvulkan::init_vulkan_device_functions(VkDevice a_device)
 
 namespace sdlxvulkan
 {
+  std::string vulkan_result_string(VkResult a_value)
+  {
+    switch (a_value)
+    {
+    case(VK_SUCCESS): return "VK_SUCCESS";
+    case(VK_NOT_READY): return "VK_NOT_READY ";
+    case(VK_TIMEOUT): return "VK_TIMEOUT ";
+    case(VK_EVENT_SET): return "VK_EVENT_SET ";
+    case(VK_EVENT_RESET): return "VK_EVENT_RESET ";
+    case(VK_INCOMPLETE): return "VK_INCOMPLETE ";
+    case(VK_ERROR_OUT_OF_HOST_MEMORY): return "VK_ERROR_OUT_OF_HOST_MEMORY ";
+    case(VK_ERROR_OUT_OF_DEVICE_MEMORY): return "VK_ERROR_OUT_OF_DEVICE_MEMORY ";
+    case(VK_ERROR_INITIALIZATION_FAILED): return "VK_ERROR_INITIALIZATION_FAILED ";
+    case(VK_ERROR_DEVICE_LOST): return "VK_ERROR_DEVICE_LOST ";
+    case(VK_ERROR_MEMORY_MAP_FAILED): return "VK_ERROR_MEMORY_MAP_FAILED ";
+    case(VK_ERROR_LAYER_NOT_PRESENT): return "VK_ERROR_LAYER_NOT_PRESENT ";
+    case(VK_ERROR_EXTENSION_NOT_PRESENT): return "VK_ERROR_EXTENSION_NOT_PRESENT ";
+    case(VK_ERROR_FEATURE_NOT_PRESENT): return "VK_ERROR_FEATURE_NOT_PRESENT ";
+    case(VK_ERROR_INCOMPATIBLE_DRIVER): return "VK_ERROR_INCOMPATIBLE_DRIVER ";
+    case(VK_ERROR_TOO_MANY_OBJECTS): return "VK_ERROR_TOO_MANY_OBJECTS ";
+    case(VK_ERROR_FORMAT_NOT_SUPPORTED): return "VK_ERROR_FORMAT_NOT_SUPPORTED ";
+    case(VK_ERROR_FRAGMENTED_POOL): return "VK_ERROR_FRAGMENTED_POOL ";
+    case(VK_ERROR_OUT_OF_POOL_MEMORY): return "VK_ERROR_OUT_OF_POOL_MEMORY ";
+    case(VK_ERROR_INVALID_EXTERNAL_HANDLE): return "VK_ERROR_INVALID_EXTERNAL_HANDLE ";
+    case(VK_ERROR_SURFACE_LOST_KHR): return "VK_ERROR_SURFACE_LOST_KHR ";
+    case(VK_ERROR_NATIVE_WINDOW_IN_USE_KHR): return "VK_ERROR_NATIVE_WINDOW_IN_USE_KHR ";
+    case(VK_SUBOPTIMAL_KHR): return "VK_SUBOPTIMAL_KHR ";
+    case(VK_ERROR_OUT_OF_DATE_KHR): return "VK_ERROR_OUT_OF_DATE_KHR ";
+    case(VK_ERROR_INCOMPATIBLE_DISPLAY_KHR): return "VK_ERROR_INCOMPATIBLE_DISPLAY_KHR ";
+    case(VK_ERROR_VALIDATION_FAILED_EXT): return "VK_ERROR_VALIDATION_FAILED_EXT ";
+    case(VK_ERROR_INVALID_SHADER_NV): return "VK_ERROR_INVALID_SHADER_NV ";
+    case(VK_ERROR_FRAGMENTATION_EXT): return "VK_ERROR_FRAGMENTATION_EXT ";
+    case(VK_ERROR_NOT_PERMITTED_EXT): return "VK_ERROR_NOT_PERMITTED_EXT ";
+    default: return "BAD VKRESULT";
+    }
+  }
+  
   // Using the supplied properties, determine the right kind of memory to allocate.
   // Success sets a_typeindex to the value required to allocate the right type of memory. Failure returns false 
   // if no matching memory found.
@@ -372,7 +450,27 @@ namespace sdlxvulkan
     return false;
   }
 
+  uint32_t get_memory_type_from_properties(VkPhysicalDeviceMemoryProperties const& a_properties, uint32_t a_typebits, VkMemoryPropertyFlags  a_requirements)
+  {
+    // Search memtypes to find first index with those properties
+    for (uint32_t i = 0; i < a_properties.memoryTypeCount; i++)
+    {
+      // If has 
+      if (a_typebits & (1 << i))
+      {
+        // Type is available, does it match user properties?
+        if ((a_properties.memoryTypes[i].propertyFlags & a_requirements) == a_requirements)
+        {
+          return i;
+        }
+      }
+      a_typebits >>= 1;
+    }
+    // No memory types matched, return failure
+    throw std::runtime_error{ "Vulkan: Failed to find a suitable memory type." };
+  }
 
+  
   std::string get_shader_filepath(std::string const& a_arg0, std::string const& a_filename)
   {
     using namespace std::experimental::filesystem;
@@ -390,8 +488,7 @@ namespace sdlxvulkan
     
     return l_result;
   };
-
-
+  
   std::vector<char> get_file_bytes(std::string const& a_filepath)
   {
     // Open the file and seek to the end
@@ -418,29 +515,14 @@ namespace sdlxvulkan
   }
 
 
-  static VKAPI_ATTR VkBool32 VKAPI_CALL debug_callback
-  (
-    VkDebugReportFlagsEXT a_flags,
-    VkDebugReportObjectTypeEXT a_obj_type,
-    uint64_t a_obj,
-    size_t a_location,
-    int32_t a_code,
-    const char* a_layer_prefix,
-    const char* a_msg,
-    void* a_user_data
-  )
-  {
-    std::cerr << "[validation layer] " << a_msg << std::endl << std::endl;
 
-    return VK_FALSE;
-  }
 }
 
 
 
 namespace sdlxvulkan
 {
-  
+
   static_assert(std::is_pointer_v<VkInstance>, "VkInstance is not a pointer type, don't do the next thing.");
   using Instance_Type = std::remove_pointer_t<VkInstance>;
   using Instance_Pointer = std::add_pointer_t<Instance_Type>;
@@ -460,7 +542,7 @@ namespace sdlxvulkan
 
   void f()
   {
-    VkInstance l_input{VK_NULL_HANDLE};
+    VkInstance l_input{ VK_NULL_HANDLE };
     Instance l_smart_instance{ l_input };
     VkInstance l_instance = l_smart_instance.get();
   }
@@ -473,7 +555,7 @@ namespace sdlxvulkan
     VkPhysicalDeviceProperties m_properties;
     VkPhysicalDeviceMemoryProperties m_memory_properties;
     std::vector<VkExtensionProperties> m_extension_properties;
-        
+
     Physical_Device(VkInstance a_instance, uint32_t a_index);
     ~Physical_Device();
 
@@ -522,7 +604,7 @@ namespace sdlxvulkan
 
     // Framebuffers
     std::vector<VkFramebuffer> m_swapchain_framebuffers;
-    
+
     // Command Buffer(s)
     std::vector<VkCommandBuffer> m_command_buffers;
 
@@ -530,7 +612,15 @@ namespace sdlxvulkan
     ~Swapchain();
   };
 
+  class Buffer;
 
+  class Command_Pool;
+  class Command_Buffer;
+}
+
+
+namespace sdlxvulkan
+{
   class Application::Implementation
   {
   private:
@@ -560,6 +650,10 @@ namespace sdlxvulkan
     // Logical Device
     VkDevice m_device;
 
+    // Graphics Queue
+    uint32_t m_graphics_qf_index;
+    VkQueue m_graphics_queue;
+    
     // Command Pool
     VkCommandPool m_command_pool;
 
@@ -567,16 +661,16 @@ namespace sdlxvulkan
     VkBuffer m_vertex_buffer;
     VkDeviceMemory m_vertex_buffer_memory;
 
+    // Index Buffer
+    VkBuffer m_index_buffer;
+    VkDeviceMemory m_index_buffer_memory;
+
     // Shaders
     VkShaderModule m_fragment_shader_module;
     VkShaderModule m_vertex_shader_module;
     VkPipelineShaderStageCreateInfo m_fragment_shader_stage_info;
     VkPipelineShaderStageCreateInfo m_vertex_shader_stage_info;
     std::array<VkPipelineShaderStageCreateInfo, 2> m_shader_stage_infos;
-
-    // Graphics Queue
-    uint32_t m_graphics_qf_index;
-    VkQueue m_graphics_queue;
 
     // Surface
     VkSurfaceKHR m_surface;
@@ -712,6 +806,9 @@ namespace sdlxvulkan
     void init_vertex_buffer();
     void quit_vertex_buffer();
 
+    void init_index_buffer();
+    void quit_index_buffer();
+
     void init_shader_modules();
     void quit_shader_modules();
 
@@ -749,6 +846,11 @@ namespace sdlxvulkan
     void quit_sync_objects();
 
     void draw_frame();
+
+    void create_buffer(VkDeviceSize a_size, VkBufferUsageFlags a_usage, VkBuffer& a_buffer, VkDeviceMemory& a_buffer_memory);
+
+    //void copy_buffer(VkBuffer a_source, VkDeviceSize a_source_offset, VkBuffer a_dest, VkDeviceSize a_dest_offset, VkDeviceSize a_size);
+    void copy_buffer(VkBuffer a_source, VkBuffer a_dest, VkDeviceSize a_size);
   };
 }
 
@@ -801,10 +903,16 @@ sdlxvulkan::Application::Implementation::Implementation(int argc, char** argv) :
 
   m_device{ VK_NULL_HANDLE },
 
+  m_graphics_qf_index{ UINT32_MAX },
+  m_graphics_queue{},
+
   m_command_pool{},
 
   m_vertex_buffer{}, 
   m_vertex_buffer_memory{},
+
+  m_index_buffer{},
+  m_index_buffer_memory{},
 
   m_fragment_shader_module{},
   m_vertex_shader_module{},
@@ -812,9 +920,7 @@ sdlxvulkan::Application::Implementation::Implementation(int argc, char** argv) :
   m_vertex_shader_stage_info{},
   m_shader_stage_infos{},
 
-  m_graphics_qf_index{ UINT32_MAX },
   m_present_qf_index{ UINT32_MAX },
-  m_graphics_queue{},
   m_present_queue{},
   
   m_swapchain_surface_cababilites{},
@@ -933,10 +1039,11 @@ void sdlxvulkan::Application::Implementation::init()
   init_surface();
   init_queue_families();
   init_logical_device();
+  init_graphics_queue();
   init_command_pool();
   init_vertex_buffer();
+  init_index_buffer();
   init_shader_modules();
-  init_graphics_queue();
   init_surface();
   init_present_queue();
   init_swapchain();
@@ -1629,6 +1736,7 @@ void sdlxvulkan::Application::Implementation::quit()
   quit_surface();
   quit_graphics_queue();
   quit_shader_modules();
+  quit_index_buffer();
   quit_vertex_buffer();
   quit_command_pool();
   quit_logical_device();
@@ -1639,64 +1747,6 @@ void sdlxvulkan::Application::Implementation::quit()
   quit_window();
   quit_system();
 }
-
-namespace
-{
-#define CASE_ENUM_STRING(a_arg) case a_arg: return u8###a_arg;
-
-  char const* sdl_event_c_string(SDL_EventType a_event_type)
-  {
-    switch (a_event_type)
-    {
-    CASE_ENUM_STRING(SDL_QUIT)
-    CASE_ENUM_STRING(SDL_APP_TERMINATING)
-    CASE_ENUM_STRING(SDL_APP_LOWMEMORY)
-    CASE_ENUM_STRING(SDL_APP_WILLENTERBACKGROUND)
-    CASE_ENUM_STRING(SDL_APP_DIDENTERBACKGROUND)
-    CASE_ENUM_STRING(SDL_APP_WILLENTERFOREGROUND)
-    CASE_ENUM_STRING(SDL_APP_DIDENTERFOREGROUND)
-    CASE_ENUM_STRING(SDL_WINDOWEVENT)
-    CASE_ENUM_STRING(SDL_SYSWMEVENT)
-
-    default: return u8"Bad SDL_EventType";
-    }
-  }
-  std::string sdl_event_string(SDL_EventType a_event_type)
-  {
-    return std::string{ sdl_event_c_string(a_event_type) };
-  }
-
-  char const* sdl_window_event_c_string(SDL_WindowEventID a_event_id)
-  {
-    switch (a_event_id)
-    {
-    CASE_ENUM_STRING(SDL_WINDOWEVENT_NONE)
-    CASE_ENUM_STRING(SDL_WINDOWEVENT_SHOWN)
-    CASE_ENUM_STRING(SDL_WINDOWEVENT_HIDDEN)
-    CASE_ENUM_STRING(SDL_WINDOWEVENT_EXPOSED)
-    CASE_ENUM_STRING(SDL_WINDOWEVENT_MOVED)
-    CASE_ENUM_STRING(SDL_WINDOWEVENT_RESIZED)
-    CASE_ENUM_STRING(SDL_WINDOWEVENT_SIZE_CHANGED)
-    CASE_ENUM_STRING(SDL_WINDOWEVENT_MINIMIZED)
-    CASE_ENUM_STRING(SDL_WINDOWEVENT_MAXIMIZED)
-    CASE_ENUM_STRING(SDL_WINDOWEVENT_RESTORED)
-    CASE_ENUM_STRING(SDL_WINDOWEVENT_ENTER)
-    CASE_ENUM_STRING(SDL_WINDOWEVENT_LEAVE)
-    CASE_ENUM_STRING(SDL_WINDOWEVENT_FOCUS_GAINED)
-    CASE_ENUM_STRING(SDL_WINDOWEVENT_FOCUS_LOST)
-    CASE_ENUM_STRING(SDL_WINDOWEVENT_CLOSE)
-    CASE_ENUM_STRING(SDL_WINDOWEVENT_TAKE_FOCUS)
-    CASE_ENUM_STRING(SDL_WINDOWEVENT_HIT_TEST)
-
-    default: return u8"Bad SDL_WindowEventID";
-    }
-  }
-  std::string sdl_window_event_string(SDL_WindowEventID a_event_id)
-  {
-    return std::string{ sdl_window_event_c_string(a_event_id) };
-  }
-}
-
 
 void sdlxvulkan::Application::Implementation::main_loop()
 {
@@ -1715,17 +1765,32 @@ void sdlxvulkan::Application::Implementation::main_loop()
   // a really basic render loop...
   SDL_Event l_event{};
   bool l_quit{ false };
+  size_t l_frame_count{ 0 };
+  auto l_last_time = std::chrono::steady_clock::now();
+  auto l_now_time = l_last_time;
   while (!l_quit)
   {
+    // FPS tracking
+    l_now_time = std::chrono::steady_clock::now();
+    std::chrono::duration<double> l_dif = l_now_time - l_last_time;
+    if (l_dif.count() >= 1.0)
+    {
+      std::cout << "FPS: " << l_frame_count << std::endl;
+      l_frame_count = 0;
+      l_last_time = l_now_time;
+    }
+
     while (SDL_PollEvent(&l_event))
     {
+      
+
       if (l_event.type == SDL_QUIT)
       {
         l_quit = true;
       }
       if (l_event.type == SDL_WINDOWEVENT && l_event.window.windowID == m_window_id)
       {
-        std::cout << sdl_window_event_string(static_cast<SDL_WindowEventID>(l_event.window.event)) << std::endl;
+        //std::cout << sdl_window_event_string(static_cast<SDL_WindowEventID>(l_event.window.event)) << std::endl;
         if (l_event.window.event == SDL_WINDOWEVENT_RESIZED) // everytime the user resizes the window
         {
           int l_window_width{ l_event.window.data1 };
@@ -1738,20 +1803,23 @@ void sdlxvulkan::Application::Implementation::main_loop()
 
           m_width = l_draw_width;
           m_height = l_draw_height;
-          std::cout << "Window Resized:" << std::endl;
-          std::cout << "window = " << l_window_width << "x" << l_window_height << std::endl;
-          std::cout << "draw = " << l_window_width << "x" << l_window_height << std::endl;
+          //std::cout << "Window Resized:" << std::endl;
+          //std::cout << "window = " << l_window_width << "x" << l_window_height << std::endl;
+          //std::cout << "draw = " << l_window_width << "x" << l_window_height << std::endl;
 
           recreate_swapchain();
         }
       }
     }
+    // Drawing
     draw_frame();
-    SDL_Delay(120);
+    ++l_frame_count;
+
+    // Tick rate limit
+    //SDL_Delay(16);
   }
   vkDeviceWaitIdle(m_device);
 }
-
 
 void sdlxvulkan::Application::Implementation::init_system()
 {
@@ -2216,78 +2284,88 @@ void sdlxvulkan::Application::Implementation::quit_command_pool()
   vkDestroyCommandPool(m_device, m_command_pool, nullptr);
 }
 
+
 void sdlxvulkan::Application::Implementation::init_vertex_buffer()
 {
-  VkBufferCreateInfo l_buffer_info {};
-  l_buffer_info.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-  l_buffer_info.pNext = nullptr;
-  l_buffer_info.flags = 0;
-  l_buffer_info.size = sizeof(c_vertices[0]) * c_vertices.size();
-  l_buffer_info.usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
-  l_buffer_info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-  l_buffer_info.queueFamilyIndexCount = 0;
-  l_buffer_info.pQueueFamilyIndices = nullptr;
+  VkDeviceSize l_buffer_size = sizeof(c_vertices[0]) * c_vertices.size();
+    
+  // Staging buffer - Temporary object
+  VkBuffer l_staging_buffer{};
+  VkDeviceMemory l_staging_buffer_memory{};
+  VkBufferUsageFlags l_staging_buffer_usage_flags = VK_BUFFER_USAGE_TRANSFER_SRC_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
 
-  if (vkCreateBuffer(m_device, &l_buffer_info, nullptr, &m_vertex_buffer) != VK_SUCCESS)
-  {
-    throw std::runtime_error("Vulkan: failed to create vertex buffer");
-  }
-
-  VkMemoryRequirements l_mem_reqs{};
-  vkGetBufferMemoryRequirements(m_device, m_vertex_buffer, &l_mem_reqs);
-
-
-  VkMemoryAllocateInfo l_alloc_info = {};
-  l_alloc_info.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
-  l_alloc_info.pNext = NULL;
-  l_alloc_info.memoryTypeIndex = 0;
-
-  l_alloc_info.allocationSize = l_mem_reqs.size;
-
-  if (!set_memory_type_from_properties(m_physical_device_mem_properties, l_mem_reqs.memoryTypeBits, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, &l_alloc_info.memoryTypeIndex))
-  {
-    throw std::runtime_error{ "Vulkan: Failed to find matching memory type on the phyisical device to allocate the vertex buffer." };
-  }
-
-  // Allocate the memory
-  if (vkAllocateMemory(m_device, &l_alloc_info, NULL, &m_vertex_buffer_memory) != VK_SUCCESS)
-  {
-    throw std::runtime_error{ "Vulkan: Failed to allocate vertex buffer memory." };
-  }
-
-  // Bind it
-  if (vkBindBufferMemory(m_device, m_vertex_buffer, m_vertex_buffer_memory, 0) != VK_SUCCESS)
-  {
-    throw std::runtime_error{ "Vulkan: Failed to bind the vertex buffer." };
-  }
-
-
-  /*
-
-  m_vertex_buffer_info.buffer = m_vertex_buffer;
-  m_vertex_buffer_info.range = l_mem_reqs.size;
-  m_vertex_buffer_info.offset = 0;
-  */
-
+  create_buffer(l_buffer_size, l_staging_buffer_usage_flags, l_staging_buffer, l_staging_buffer_memory);
+  
   // Map data to it
-  void *l_data{ nullptr };
-  if (vkMapMemory(m_device, m_vertex_buffer_memory, 0, l_buffer_info.size, 0, &l_data) != VK_SUCCESS)
+  void *l_staging_data{ nullptr };
+  if (vkMapMemory(m_device, l_staging_buffer_memory, 0, l_buffer_size, 0, &l_staging_data) != VK_SUCCESS)
   {
-    throw std::runtime_error{ "Vulkan: Failed to map the uniform buffer." };
+    throw std::runtime_error{ "Vulkan: Vertex Buffer: Failed to map the staging buffer." };
   }
 
   //memcpy(l_data, g_vertex_buffer_solid_face_colors_data, sizeof(g_vertex_buffer_solid_face_colors_data));
-  memcpy(l_data, c_vertices.data(), l_buffer_info.size);
+  memcpy(l_staging_data, c_vertices.data(), static_cast<size_t>(l_buffer_size));
 
   // unmap the memory after we have used it.
-  vkUnmapMemory(m_device, m_vertex_buffer_memory);
+  vkUnmapMemory(m_device, l_staging_buffer_memory);
   
+
+  // Vertex buffer
+  VkBufferUsageFlags l_buffer_usage_flags = VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
+  create_buffer(l_buffer_size, l_buffer_usage_flags, m_vertex_buffer, m_vertex_buffer_memory);
+     
+  copy_buffer(l_staging_buffer, m_vertex_buffer, l_buffer_size);
+
+  vkDestroyBuffer(m_device, l_staging_buffer, nullptr);
+  vkFreeMemory(m_device, l_staging_buffer_memory, nullptr);    
 }
 
 void sdlxvulkan::Application::Implementation::quit_vertex_buffer()
 {
   vkDestroyBuffer(m_device, m_vertex_buffer, nullptr);
   vkFreeMemory(m_device, m_vertex_buffer_memory, nullptr);
+}
+
+void sdlxvulkan::Application::Implementation::init_index_buffer()
+{
+  // Like the vertex buffer but with the index data.
+  VkDeviceSize l_buffer_size = sizeof(c_indices[0]) * c_indices.size();
+
+  // Staging buffer - Temporary object
+  VkBuffer l_staging_buffer{};
+  VkDeviceMemory l_staging_buffer_memory{};
+  VkBufferUsageFlags l_staging_buffer_usage_flags = VK_BUFFER_USAGE_TRANSFER_SRC_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
+
+  create_buffer(l_buffer_size, l_staging_buffer_usage_flags, l_staging_buffer, l_staging_buffer_memory);
+
+  // Map data to it
+  void *l_staging_data{ nullptr };
+  if (vkMapMemory(m_device, l_staging_buffer_memory, 0, l_buffer_size, 0, &l_staging_data) != VK_SUCCESS)
+  {
+    throw std::runtime_error{ "Vulkan: Index Buffer: Failed to map the staging buffer." };
+  }
+
+  //memcpy(l_data, g_vertex_buffer_solid_face_colors_data, sizeof(g_vertex_buffer_solid_face_colors_data));
+  memcpy(l_staging_data, c_indices.data(), static_cast<size_t>(l_buffer_size));
+
+  // unmap the memory after we have used it.
+  vkUnmapMemory(m_device, l_staging_buffer_memory);
+
+
+  // Vertex buffer
+  VkBufferUsageFlags l_buffer_usage_flags = VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
+  create_buffer(l_buffer_size, l_buffer_usage_flags, m_index_buffer, m_index_buffer_memory);
+
+  copy_buffer(l_staging_buffer, m_index_buffer, l_buffer_size);
+
+  vkDestroyBuffer(m_device, l_staging_buffer, nullptr);
+  vkFreeMemory(m_device, l_staging_buffer_memory, nullptr);
+}
+
+void sdlxvulkan::Application::Implementation::quit_index_buffer()
+{
+  vkDestroyBuffer(m_device, m_index_buffer, nullptr);
+  vkFreeMemory(m_device, m_index_buffer_memory, nullptr);
 }
 
 void sdlxvulkan::Application::Implementation::init_shader_modules()
@@ -3173,7 +3251,20 @@ void sdlxvulkan::Application::Implementation::do_commands()
     VkDeviceSize l_offsets[] = { 0 };
     vkCmdBindVertexBuffers(m_command_buffers[l_index], 0, 1, l_vertex_buffers, l_offsets);
 
-    vkCmdDraw(m_command_buffers[l_index], static_cast<uint32_t>(c_vertices.size()), 1, 0, 0);
+    // Bind the index buffer - there can be only one
+    vkCmdBindIndexBuffer(m_command_buffers[l_index], m_index_buffer, 0, VK_INDEX_TYPE_UINT16);
+
+    // Now we draw using the indices
+    vkCmdDrawIndexed(m_command_buffers[l_index], static_cast<uint32_t>(c_indices.size()), 1, 0, 0, 0);
+
+
+
+    // Draw triangles using these verts.
+    //uint32_t const l_vertex_count = static_cast<uint32_t>(c_vertices.size());
+    //uint32_t const l_triangle_count = l_vertex_count / 3;
+    //std::cout << "Command to draw " << l_vertex_count << " verticies, " << l_triangle_count << " triangles" << std::endl;
+    //vkCmdDraw(m_command_buffers[l_index], l_vertex_count, 1, 0, 0);
+
 
     vkCmdEndRenderPass(m_command_buffers[l_index]);
 
@@ -3259,7 +3350,7 @@ void sdlxvulkan::Application::Implementation::draw_frame()
 
   VkSubmitInfo l_submit_info {};
   l_submit_info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-  l_submit_info.pNext = NULL;
+  l_submit_info.pNext = nullptr;
   l_submit_info.waitSemaphoreCount = 1;
   l_submit_info.pWaitSemaphores = l_wait_semaphores;
   l_submit_info.pWaitDstStageMask = l_wait_stages;
@@ -3303,7 +3394,109 @@ void sdlxvulkan::Application::Implementation::draw_frame()
   //std::cout << "->" << m_current_frame << std::endl;
 }
 
+void sdlxvulkan::Application::Implementation::create_buffer(VkDeviceSize a_size, VkBufferUsageFlags a_usage, VkBuffer& a_buffer, VkDeviceMemory& a_buffer_memory)
+{
+  VkBufferCreateInfo l_buffer_info{};
+  l_buffer_info.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+  l_buffer_info.pNext = nullptr;
+  l_buffer_info.flags = 0;
+  l_buffer_info.size = a_size;
+  l_buffer_info.usage = a_usage;
+  l_buffer_info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+  l_buffer_info.queueFamilyIndexCount = 0;
+  l_buffer_info.pQueueFamilyIndices = nullptr;
 
+  if (vkCreateBuffer(m_device, &l_buffer_info, nullptr, &a_buffer) != VK_SUCCESS)
+  {
+    throw std::runtime_error("Vulkan: failed to create a buffer.");
+  }
+
+  VkMemoryRequirements l_mem_reqs{};
+  vkGetBufferMemoryRequirements(m_device, a_buffer, &l_mem_reqs);
+
+  VkMemoryAllocateInfo l_alloc_info{};
+  l_alloc_info.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+  l_alloc_info.pNext = NULL;
+  l_alloc_info.allocationSize = l_mem_reqs.size;
+  l_alloc_info.memoryTypeIndex = get_memory_type_from_properties(m_physical_device_mem_properties, l_mem_reqs.memoryTypeBits, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+  /*
+  if (!set_memory_type_from_properties(m_physical_device_mem_properties, l_mem_reqs.memoryTypeBits, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, &l_alloc_info.memoryTypeIndex))
+  {
+    throw std::runtime_error{ "Vulkan: Failed to find matching memory type on the phyisical device to allocate a buffer." };
+  }*/
+
+  // Allocate the memory
+  if (vkAllocateMemory(m_device, &l_alloc_info, NULL, &a_buffer_memory) != VK_SUCCESS)
+  {
+    throw std::runtime_error{ "Vulkan: Failed to allocate buffer memory." };
+  }
+  assert(a_buffer != VK_NULL_HANDLE);
+  assert(a_buffer_memory != VK_NULL_HANDLE);
+  // Bind it
+  if (vkBindBufferMemory(m_device, a_buffer, a_buffer_memory, 0) != VK_SUCCESS)
+  {
+    throw std::runtime_error{ "Vulkan: Failed to bind a buffer." };
+  }
+
+}
+
+void sdlxvulkan::Application::Implementation::copy_buffer(VkBuffer a_source, VkBuffer a_dest, VkDeviceSize a_size)
+{
+  std::cout << "begin buffer copy, size = " << a_size << std::endl;
+  VkCommandBufferAllocateInfo l_alloc_info{};
+  l_alloc_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+  l_alloc_info.pNext = nullptr;
+  l_alloc_info.commandPool = this->m_command_pool;
+  l_alloc_info.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+  l_alloc_info.commandBufferCount = 1;
+
+  VkCommandBuffer l_command_buffers[1]{};
+  vkAllocateCommandBuffers(this->m_device, &l_alloc_info, l_command_buffers);
+  assert(l_command_buffers[0] != VK_NULL_HANDLE);
+
+  VkCommandBufferBeginInfo l_begin_info{};
+  l_begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+  l_begin_info.pNext = nullptr;
+  l_begin_info.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+  l_begin_info.pInheritanceInfo = nullptr;
+
+
+  if (vkBeginCommandBuffer(l_command_buffers[0], &l_begin_info) != VK_SUCCESS)
+  {
+    throw std::runtime_error{ "Vulkan: Copying Buffer: Failed to begin command buffer." };
+  }
+  //vkBeginCommandBuffer(l_command_buffers[0], &l_begin_info);
+
+  VkBufferCopy l_copy_regions[1]{};
+  l_copy_regions[0].srcOffset = 0; // Optional
+  l_copy_regions[0].dstOffset = 0; // Optional
+  l_copy_regions[0].size = a_size;
+
+  vkCmdCopyBuffer(l_command_buffers[0], a_source, a_dest, 1, l_copy_regions);
+
+  vkEndCommandBuffer(l_command_buffers[0]);
+
+  VkSubmitInfo l_submit_info = {};
+  l_submit_info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+  l_submit_info.pNext = nullptr;
+  l_submit_info.waitSemaphoreCount = 0;
+  l_submit_info.pWaitSemaphores = nullptr;
+  l_submit_info.pWaitDstStageMask = 0;
+  l_submit_info.commandBufferCount = 1;
+  l_submit_info.pCommandBuffers = l_command_buffers;
+  l_submit_info.signalSemaphoreCount = 0;
+  l_submit_info.pSignalSemaphores = nullptr;
+
+  std::cout << "submit" << std::endl;
+  if (vkQueueSubmit(this->m_graphics_queue, 1, &l_submit_info, VK_NULL_HANDLE) != VK_SUCCESS)
+  {
+    throw std::runtime_error{ "Vulkan: Copying Buffer: Failed to submit command buffer." };
+  }
+  //vkQueueSubmit(this->m_graphics_queue, 1, &l_submit_info, VK_NULL_HANDLE);
+  vkQueueWaitIdle(this->m_graphics_queue);
+
+  vkFreeCommandBuffers(this->m_device, this->m_command_pool, 1, l_command_buffers);
+}
 //------------------------------------------------------------------------------------------------------------------------------------------------------
 
 //---------------------------------------------------------------------------
