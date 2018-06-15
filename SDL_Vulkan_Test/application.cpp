@@ -13,6 +13,10 @@
 #include <filesystem>
 #include <chrono>
 
+#include "system.hpp"
+#include "window.hpp"
+#include "instance.hpp"
+
 #include <SDL.h>
 #include <SDL_vulkan.h>
 #include <vulkan/vulkan.h>
@@ -54,14 +58,7 @@ namespace
       return l_attribute_descriptions;
     }
   };
-  /*
-  static std::vector<Vertex> const c_vertices =
-  {
-    { { 0.0f, -0.5f },{ 1.0f, 0.0f, 1.0f } },
-    { { 0.5f, 0.5f },{ 0.0f, 1.0f, 0.0f } },
-    { { -0.5f, 0.5f },{ 0.0f, 0.0f, 1.0f } }
-  };
-  */
+
   static std::vector<Vertex> const c_vertices = 
   {
     { { -0.5f, -0.5f },{ 1.0f, 0.0f, 0.0f } },
@@ -86,17 +83,26 @@ namespace
   // Make sure environment variable VK_LAYER_PATH is set to the Vulkan binary path
   // e.g. 
 
-  std::vector<const char*> const c_validation_layers = {"VK_LAYER_LUNARG_standard_validation"};
 
 #ifdef NDEBUG
   constexpr bool c_enable_validation_layers = false;
+  std::vector<std::string> const c_extension_names{  };
+  std::vector<std::string> const c_validation_layers { };
 #else
   constexpr bool c_enable_validation_layers = true;
+  std::vector<std::string> const c_extension_names{ VK_EXT_DEBUG_REPORT_EXTENSION_NAME };
+  std::vector<std::string> const c_validation_layers = { "VK_LAYER_LUNARG_standard_validation" };
 #endif
 
   constexpr size_t c_frames_in_flight{ 2 };
   constexpr uint32_t c_start_width{ 800 };
   constexpr uint32_t c_start_height{ 600 };
+
+  std::string const c_application_name = "SDL x Vulkan";
+  uint32_t const c_application_version = VK_MAKE_VERSION(1, 0, 0);
+  std::string const c_engine_name = "No Engine";
+  uint32_t const c_engine_version = VK_MAKE_VERSION(1, 0, 0);
+  uint32_t const c_vulkan_version = VK_API_VERSION_1_1;
   
   static VKAPI_ATTR VkBool32 VKAPI_CALL debug_callback(VkDebugReportFlagsEXT a_flags, VkDebugReportObjectTypeEXT a_obj_type, uint64_t a_obj, size_t a_location, int32_t a_code, const char* a_layer_prefix, const char* a_msg, void* a_user_data)
   {
@@ -175,6 +181,7 @@ namespace
 
 namespace sdlxvulkan
 {
+  /*
   // The function that will get the others.
   DECLARE_VULKAN_FUNC(vkGetInstanceProcAddr)
 
@@ -183,7 +190,7 @@ namespace sdlxvulkan
   DECLARE_VULKAN_FUNC(vkEnumerateInstanceExtensionProperties)
   DECLARE_VULKAN_FUNC(vkEnumerateInstanceLayerProperties)
   DECLARE_VULKAN_FUNC(vkEnumerateInstanceVersion)
-
+  */
   // These relate to an instance
   DECLARE_VULKAN_FUNC(vkCreateDevice)
   DECLARE_VULKAN_FUNC(vkCreateDebugReportCallbackEXT)
@@ -268,14 +275,14 @@ namespace sdlxvulkan
 
   
 
-  void init_vulkan_get_proc(PFN_vkGetInstanceProcAddr a_getter);
-  void init_vulkan_global_functions();
+  //void init_vulkan_get_proc(PFN_vkGetInstanceProcAddr a_getter);
+  //void init_vulkan_global_functions();
   void init_vulkan_instance_functions(VkInstance a_instance);
   void init_vulkan_device_functions(VkDevice a_device);
 }
 
 #undef DECLARE_VULKAN_FUNC
-
+/*
 void sdlxvulkan::init_vulkan_get_proc(PFN_vkGetInstanceProcAddr a_getter)
 {
   sdlxvulkan::vkGetInstanceProcAddr = a_getter;
@@ -292,8 +299,8 @@ void sdlxvulkan::init_vulkan_global_functions()
 }
 
 #undef INIT_VULKAN_GLOBAL_FUNC
-
-#define INIT_VULKAN_INSTANCE_FUNC(a_func_name) a_func_name = (PFN_##a_func_name)(sdlxvulkan::vkGetInstanceProcAddr(a_instance, #a_func_name));
+*/
+#define INIT_VULKAN_INSTANCE_FUNC(a_func_name) a_func_name = (PFN_##a_func_name)(sdlxvulkan::System::vkGetInstanceProcAddr(a_instance, #a_func_name));
 
 void sdlxvulkan::init_vulkan_instance_functions(VkInstance a_instance)
 {
@@ -519,106 +526,6 @@ namespace sdlxvulkan
 }
 
 
-
-namespace sdlxvulkan
-{
-
-  static_assert(std::is_pointer_v<VkInstance>, "VkInstance is not a pointer type, don't do the next thing.");
-  using Instance_Type = std::remove_pointer_t<VkInstance>;
-  using Instance_Pointer = std::add_pointer_t<Instance_Type>;
-  static_assert(std::is_same_v<VkInstance, Instance_Pointer>, "VkInstance is not the same type as deduced Instance_Pointer.");
-
-  class Instance_Destroyer
-  {
-  public:
-    void operator()(Instance_Pointer a_ptr)
-    {
-      vkDestroyInstance(a_ptr, nullptr);
-    }
-  };
-
-  using Instance = std::unique_ptr<Instance_Type, Instance_Destroyer>;
-
-
-  void f()
-  {
-    VkInstance l_input{ VK_NULL_HANDLE };
-    Instance l_smart_instance{ l_input };
-    VkInstance l_instance = l_smart_instance.get();
-  }
-
-
-  class Physical_Device
-  {
-  public:
-    VkPhysicalDevice m_physical_device;
-    VkPhysicalDeviceProperties m_properties;
-    VkPhysicalDeviceMemoryProperties m_memory_properties;
-    std::vector<VkExtensionProperties> m_extension_properties;
-
-    Physical_Device(VkInstance a_instance, uint32_t a_index);
-    ~Physical_Device();
-
-    void refresh_surface(VkInstance a_instance, VkSurfaceKHR a_surface);
-  };
-
-  class Surface_Data
-  {
-  public:
-    VkSurfaceCapabilitiesKHR m_surface_cababilites;
-    std::vector<VkSurfaceFormatKHR> m_surface_formats;
-    std::vector<VkPresentModeKHR> m_present_modes;
-
-    Surface_Data(VkInstance a_instance, VkPhysicalDevice a_device, VkSurfaceKHR a_surface);
-  };
-
-  class Device
-  {
-  public:
-    VkDevice m_device;
-    VkCommandPool m_command_pool;
-
-    Device(VkInstance a_instance, VkPhysicalDevice a_physical_device);
-    ~Device();
-  };
-
-  class Swapchain
-  {
-  public:
-    VkFormat m_format;
-    VkPresentModeKHR m_present_mode;
-    VkExtent2D m_extent;
-    uint32_t m_image_count;
-    VkSwapchainKHR m_swapchain;
-    std::vector<VkImage> m_images;
-    std::vector<VkImageView> m_image_views;
-
-    // Render Pass
-    VkRenderPass m_render_pass;
-
-    // Pipeline
-    VkViewport m_viewport;
-    VkRect2D m_scissor;
-    VkPipelineLayout m_pipeline_layout;
-    VkPipeline m_pipeline;
-
-    // Framebuffers
-    std::vector<VkFramebuffer> m_swapchain_framebuffers;
-
-    // Command Buffer(s)
-    std::vector<VkCommandBuffer> m_command_buffers;
-
-    Swapchain(VkDevice a_device, Surface_Data const& a_surface_data, uint32_t a_width, uint32_t a_height);
-    ~Swapchain();
-  };
-
-  class Buffer;
-
-  class Command_Pool;
-  class Command_Buffer;
-}
-
-
 namespace sdlxvulkan
 {
   class Application::Implementation
@@ -626,15 +533,11 @@ namespace sdlxvulkan
   private:
     std::vector<std::string> m_args;
 
-    // Window
-    SDL_Window* m_window;
-    static_assert(std::is_same_v<Uint32, uint32_t>, "SDL::Uint32 is not ::uint32_t");
-    uint32_t m_window_id;
-    uint32_t m_width;
-    uint32_t m_height;
+    System m_system;
 
-    // Instance
-    VkInstance m_instance;
+    Window m_window;
+
+    Instance m_instance;
 
     // Debug Callback
     VkDebugReportCallbackEXT m_debug_callback;
@@ -727,46 +630,6 @@ namespace sdlxvulkan
     std::vector<VkFence> m_fences;
     size_t m_current_frame;
 
-    /*
-    VkSampleCountFlagBits m_sample_count;
-    VkFormat m_depth_format;
-    VkImage m_depth_image;
-    VkDeviceMemory m_depth_memory;
-    VkImageView m_depth_image_view;
-
-    VkBuffer m_uniform_buffer;
-    VkDeviceMemory m_uniform_memory;
-    VkDescriptorBufferInfo m_uniform_buffer_info;
-
-    glm::mat4 m_glm_projection;
-    glm::mat4 m_glm_view;
-    glm::mat4 m_glm_model;
-    glm::mat4 m_glm_clip;
-    glm::mat4 m_glm_mvp;
-
-    uint32_t m_descriptor_set_count;
-    std::vector<VkDescriptorSetLayout> m_descriptor_set_layouts;
-    
-    VkDescriptorPool m_descriptor_pool;
-    std::vector<VkDescriptorSet> m_descriptor_sets;
-
-
-    uint32_t m_current_buffer;
-//    VkSemaphore m_image_available_semaphore;
-    
-    std::vector<VkFramebuffer> m_framebuffers;
-
-    VkBuffer m_vertex_buffer;
-    VkDeviceMemory m_vertex_buffer_memory;
-    VkDescriptorBufferInfo m_vertex_buffer_info;
-
-    VkVertexInputBindingDescription m_vertex_input_binding_desc;
-    VkVertexInputAttributeDescription m_vertex_input_attributes_descs[2];
-    
-    
-    uint32_t m_num_viewports;
-    uint32_t m_num_scissors;
-    */
   public:
     // Special 6
     //============================================================
@@ -784,22 +647,12 @@ namespace sdlxvulkan
     //============================================================
     int execute();
 
-    void init();
-    void quit();
-
-    void ignore_init();
-    void ignore_quit();
-    
     void main_loop();
 
-    void init_system();
-    void quit_system();
-
-    void init_window();
-    void quit_window();
-
-    void init_instance();
-    void quit_instance();
+    void init();
+    void quit();
+        
+    void init_instance_functions();
 
     void init_debug_callback();
     void quit_debug_callback();
@@ -911,13 +764,13 @@ namespace
 //============================================================
 sdlxvulkan::Application::Implementation::Implementation(int argc, char** argv) :
   m_args{ make_arg_vector(argc, argv) },
+  m_system{ SDL_INIT_VIDEO | SDL_INIT_EVENTS },
+  m_window{ m_system, "SDL x Vulkan", 100, 100, c_start_width, c_start_height, SDL_WINDOW_VULKAN | SDL_WINDOW_RESIZABLE | SDL_WINDOW_SHOWN },
+  //m_window_id{ 0 },
+  //m_width{ 0 },
+  //m_height{ 0 },
 
-  m_window{ nullptr },
-  m_window_id{ 0 },
-  m_width{ 0 },
-  m_height{ 0 },
-
-  m_instance{ VK_NULL_HANDLE },
+  m_instance{ m_system, m_window, c_extension_names, c_validation_layers, c_application_name, c_application_version, c_engine_name, c_engine_version, c_vulkan_version },
 
   m_debug_callback{},
   m_physical_device{ VK_NULL_HANDLE },
@@ -1067,9 +920,7 @@ void sdlxvulkan::Application::Implementation::init()
 {
   std::cout << "Application::Implementation::init()" << std::endl;
 
-  init_system();
-  init_window();
-  init_instance();
+  init_instance_functions();
   init_debug_callback();
   init_physical_device();
   init_surface();
@@ -1097,672 +948,6 @@ void sdlxvulkan::Application::Implementation::init()
   do_commands();
 }
 
-void sdlxvulkan::Application::Implementation::ignore_init()
-{
-  /*
-  //------------------------------------------------------------------------------------------------------------------------
-  {
-   
-  }
-  //------------------------------------------------------------------------------------------------------------------------
-  
-
-  //------------------------------------------------------------------------------------------------------------------------
-  {
-    
-  }
-  //------------------------------------------------------------------------------------------------------------------------
-  {
-    std::cout << "Depth Buffer" << std::endl;
-    // Depth Buffer
-    //-------------
-
-    // Set the depth format
-    m_depth_format = VK_FORMAT_D16_UNORM;
-
-    // Get properties for this format
-    VkFormatProperties l_format_properties{};
-    vkGetPhysicalDeviceFormatProperties(m_physical_device, m_depth_format, &l_format_properties);
-
-    // Set up the image data for the depth buffer
-    VkImageCreateInfo l_depth_image_info{};
-
-    // This bit relies on the format properties
-    if (l_format_properties.linearTilingFeatures & VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT)
-    {
-      l_depth_image_info.tiling = VK_IMAGE_TILING_LINEAR;
-    }
-    else if (l_format_properties.optimalTilingFeatures & VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT)
-    {
-      l_depth_image_info.tiling = VK_IMAGE_TILING_OPTIMAL;
-    }
-    else
-    {
-      // Try other depth formats?
-      throw std::runtime_error{ "Vulkan: VK_FORMAT_D16_UNORM Unsupported." };
-    }
-
-    l_depth_image_info.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
-    l_depth_image_info.pNext = NULL;
-    l_depth_image_info.flags = 0;
-    l_depth_image_info.imageType = VK_IMAGE_TYPE_2D;
-    l_depth_image_info.format = m_depth_format;
-    l_depth_image_info.extent.width = m_width;
-    l_depth_image_info.extent.height = m_height;
-    l_depth_image_info.extent.depth = 1;
-    l_depth_image_info.mipLevels = 1;
-    l_depth_image_info.arrayLayers = 1;
-    l_depth_image_info.samples = m_sample_count;
-    l_depth_image_info.usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
-    l_depth_image_info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-    l_depth_image_info.queueFamilyIndexCount = 0;
-    l_depth_image_info.pQueueFamilyIndices = NULL;
-    l_depth_image_info.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-
-    // Create the iamge
-    if (vkCreateImage(m_device, &l_depth_image_info, NULL, &m_depth_image) != VK_SUCCESS)
-    {
-      throw std::runtime_error{ "Vulkan: Failed to create depth buffer image." };
-    }
-
-    // Now we start work making some memory to use.
-    // First figure out how much we need
-    VkMemoryRequirements l_mem_reqs{};
-    vkGetImageMemoryRequirements(m_device, m_depth_image, &l_mem_reqs);
-
-    // Now setup for the allocation
-    VkMemoryAllocateInfo l_mem_alloc_info = {};
-    l_mem_alloc_info.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
-    l_mem_alloc_info.pNext = NULL;
-    l_mem_alloc_info.allocationSize = l_mem_reqs.size;
-    l_mem_alloc_info.memoryTypeIndex = 0;
-
-    // Use the memory properties to determine the type of memory required 
-
-    if (!set_memory_type_from_properties(m_physical_device_mem_properties, l_mem_reqs.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, &l_mem_alloc_info.memoryTypeIndex))
-    {
-      throw std::runtime_error{ "Vulkan: Failed to find matching memory type on the phyisical device." };
-    }
-
-    // Allocate memory on the device
-    if (vkAllocateMemory(m_device, &l_mem_alloc_info, NULL, &m_depth_memory) != VK_SUCCESS)
-    {
-      throw std::runtime_error{ "Vulkan: Failed to allocate depth buffer memory." };
-    }
-
-    // Bind the memory
-    if (vkBindImageMemory(m_device, m_depth_image, m_depth_memory, 0) != VK_SUCCESS)
-    {
-      throw std::runtime_error{ "Vulkan: Failed to bind depth buffer memory." };
-    }
-
-    VkImageViewCreateInfo l_depth_image_view_info{};
-    l_depth_image_view_info.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-    l_depth_image_view_info.pNext = NULL;
-    l_depth_image_view_info.flags = 0;
-    l_depth_image_view_info.image = m_depth_image;
-    l_depth_image_view_info.viewType = VK_IMAGE_VIEW_TYPE_2D;
-    l_depth_image_view_info.format = m_depth_format;
-    l_depth_image_view_info.components.r = VK_COMPONENT_SWIZZLE_R;
-    l_depth_image_view_info.components.g = VK_COMPONENT_SWIZZLE_G;
-    l_depth_image_view_info.components.b = VK_COMPONENT_SWIZZLE_B;
-    l_depth_image_view_info.components.a = VK_COMPONENT_SWIZZLE_A;
-    l_depth_image_view_info.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
-    l_depth_image_view_info.subresourceRange.baseMipLevel = 0;
-    l_depth_image_view_info.subresourceRange.levelCount = 1;
-    l_depth_image_view_info.subresourceRange.baseArrayLayer = 0;
-    l_depth_image_view_info.subresourceRange.layerCount = 1;
-
-    // Create the image view
-    if (vkCreateImageView(m_device, &l_depth_image_view_info, NULL, &m_depth_image_view) != VK_SUCCESS)
-    {
-      throw std::runtime_error{ "Vulkan: Failed to create depth buffer image view." };
-    }
-
-    std::cout << "END" << std::endl;
-  }
-  //------------------------------------------------------------------------------------------------------------------------
-  
-  {
-    // Uniform Buffer
-    //-------------
-
-    // Setup the data we are going to be using for rendering here
-
-    m_glm_projection = 
-      glm::perspective
-      (
-        glm::radians(45.0f), 
-        1.0f, 
-        0.1f, 
-        100.0f
-      );
-
-    m_glm_view = 
-      glm::lookAt
-      (
-        glm::vec3(-5, 3, -10),  // Camera is at (-5,3,-10), in World Space
-        glm::vec3(0, 0, 0),     // and looks at the origin
-        glm::vec3(0, -1, 0)     // Head is up (set to 0,-1,0 to look upside-down)
-      );
-
-    m_glm_model = glm::mat4(1.0f);
-
-    // Vulkan clip space has inverted Y and half Z.
-    m_glm_clip = 
-      glm::mat4
-      (
-        1.0f, 0.0f, 0.0f, 0.0f,
-        0.0f, -1.0f, 0.0f, 0.0f,
-        0.0f, 0.0f, 0.5f, 0.0f,
-        0.0f, 0.0f, 0.5f, 1.0f
-      );
-
-    m_glm_mvp = m_glm_clip * m_glm_projection * m_glm_view * m_glm_model;
-
-    VkBufferCreateInfo l_buffer_info = {};
-    l_buffer_info.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-    l_buffer_info.pNext = NULL;
-    l_buffer_info.usage = VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
-    l_buffer_info.size = sizeof(m_glm_mvp);
-    l_buffer_info.queueFamilyIndexCount = 0;
-    l_buffer_info.pQueueFamilyIndices = NULL;
-    l_buffer_info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-    l_buffer_info.flags = 0;
-
-    if (vkCreateBuffer(m_device, &l_buffer_info, NULL, &m_uniform_buffer) != VK_SUCCESS)
-    {
-      throw std::runtime_error{ "Vulkan: Failed to create uniform buffer." };
-    }
-    
-    VkMemoryRequirements l_mem_reqs{};
-    vkGetBufferMemoryRequirements(m_device, m_uniform_buffer, &l_mem_reqs);
-
-    VkMemoryAllocateInfo l_alloc_info = {};
-    l_alloc_info.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
-    l_alloc_info.pNext = NULL;
-    l_alloc_info.memoryTypeIndex = 0;
-
-    l_alloc_info.allocationSize = l_mem_reqs.size;
-
-
-    if (!set_memory_type_from_properties(m_physical_device_mem_properties, l_mem_reqs.memoryTypeBits, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, &l_alloc_info.memoryTypeIndex))
-    {
-      throw std::runtime_error{ "Vulkan: Failed to find matching memory type on the phyisical device to allocate the uniform buffer." };
-    }
-    
-    if (vkAllocateMemory(m_device, &l_alloc_info, NULL, &m_uniform_memory) != VK_SUCCESS)
-    {
-      throw std::runtime_error{ "Vulkan: Failed to allocate the uniform buffer." };
-    }
-
-    void* l_data{nullptr};
-    // dunno about this cast
-    if (vkMapMemory(m_device, m_uniform_memory, 0, l_mem_reqs.size, 0, &l_data) != VK_SUCCESS)
-    {
-      throw std::runtime_error{ "Vulkan: Failed to allocate the uniform buffer." };
-    }
-
-    memcpy(l_data, &m_glm_mvp, sizeof(m_glm_mvp));
-
-    // unmap the memory after we have used it.
-    vkUnmapMemory(m_device, m_uniform_memory);
-
-    if (vkBindBufferMemory(m_device, m_uniform_buffer, m_uniform_memory, 0) != VK_SUCCESS)
-    {
-      throw std::runtime_error{ "Vulkan: Failed to bind the uniform buffer." };
-    }
-
-    m_uniform_buffer_info.buffer = m_uniform_buffer;
-    m_uniform_buffer_info.offset = 0;
-    m_uniform_buffer_info.range = sizeof(m_glm_mvp);
-
-  }
-  //------------------------------------------------------------------------------------------------------------------------
-  {
-    // Pipeline Layout
-    //-------------
-    // Note that when we start using textures, this is where our sampler will need to be specified
-    VkDescriptorSetLayoutBinding l_layout_binding = {};
-    l_layout_binding.binding = 0;
-    l_layout_binding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-    l_layout_binding.descriptorCount = 1;
-    l_layout_binding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
-    l_layout_binding.pImmutableSamplers = NULL;
-
-    // Next take layout bindings and use them to create a descriptor set layout
-    VkDescriptorSetLayoutCreateInfo l_descriptor_layout = {};
-    l_descriptor_layout.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-    l_descriptor_layout.pNext = NULL;
-    l_descriptor_layout.bindingCount = 1;
-    l_descriptor_layout.pBindings = &l_layout_binding;
-
-    // only one descriptor set right now.
-    m_descriptor_set_count = 1;
-
-    m_descriptor_set_layouts.resize(m_descriptor_set_count);
-
-    if (vkCreateDescriptorSetLayout(m_device, &l_descriptor_layout, NULL, m_descriptor_set_layouts.data()) != VK_SUCCESS)
-    {
-      throw std::runtime_error{ "Vulkan: Failed to create descriptor sets." };
-    }
-
-    // Now use the descriptor layout to create a pipeline layout 
-    VkPipelineLayoutCreateInfo l_pipeline_layout_info = {};
-    l_pipeline_layout_info.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-    l_pipeline_layout_info.pNext = NULL;
-    l_pipeline_layout_info.pushConstantRangeCount = 0;
-    l_pipeline_layout_info.pPushConstantRanges = NULL;
-    l_pipeline_layout_info.setLayoutCount = m_descriptor_set_count;
-    l_pipeline_layout_info.pSetLayouts = m_descriptor_set_layouts.data();
-    
-    if (vkCreatePipelineLayout(m_device, &l_pipeline_layout_info, NULL, &m_pipeline_layout) != VK_SUCCESS)
-    {
-      throw std::runtime_error{ "Vulkan: Failed to create pipeline layout." };
-    }
-  }
-  
-  //------------------------------------------------------------------------------------------------------------------------
-  {
-    std::cout << "Uniform Buffer" << std::endl;
-    // Uniform Buffer
-    //-------------
-    UniformBufferObject l_ubo = {};
-    l_ubo.model = glm::rotate(glm::mat4(1.0f), glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-    l_ubo.view = glm::lookAt(glm::vec3(2.0f, 2.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-    l_ubo.proj = glm::perspective(glm::radians(45.0f), m_width / (float)m_height, 0.1f, 10.0f);
-    l_ubo.proj[1][1] *= -1;
-
-    VkBufferCreateInfo l_buffer_info = {};
-    l_buffer_info.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-    l_buffer_info.pNext = NULL;
-    l_buffer_info.usage = VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
-    l_buffer_info.size = sizeof(l_ubo);
-    l_buffer_info.queueFamilyIndexCount = 0;
-    l_buffer_info.pQueueFamilyIndices = NULL;
-    l_buffer_info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-    l_buffer_info.flags = 0;
-
-    if (vkCreateBuffer(m_device, &l_buffer_info, NULL, &m_uniform_buffer) != VK_SUCCESS)
-    {
-      throw std::runtime_error{ "Vulkan: Failed to create uniform buffer." };
-    }
-
-    VkMemoryRequirements l_mem_reqs{};
-    vkGetBufferMemoryRequirements(m_device, m_uniform_buffer, &l_mem_reqs);
-
-    VkMemoryAllocateInfo l_alloc_info = {};
-    l_alloc_info.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
-    l_alloc_info.pNext = NULL;
-    l_alloc_info.memoryTypeIndex = 0;
-
-    l_alloc_info.allocationSize = l_mem_reqs.size;
-
-
-    if (!set_memory_type_from_properties(m_physical_device_mem_properties, l_mem_reqs.memoryTypeBits, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, &l_alloc_info.memoryTypeIndex))
-    {
-      throw std::runtime_error{ "Vulkan: Failed to find matching memory type on the phyisical device to allocate the uniform buffer." };
-    }
-
-    if (vkAllocateMemory(m_device, &l_alloc_info, NULL, &m_uniform_memory) != VK_SUCCESS)
-    {
-      throw std::runtime_error{ "Vulkan: Failed to allocate the uniform buffer." };
-    }
-    
-    void* l_data{ nullptr };
-    // dunno about this cast
-    if (vkMapMemory(m_device, m_uniform_memory, 0, sizeof(l_ubo), 0, &l_data) != VK_SUCCESS)
-    {
-      throw std::runtime_error{ "Vulkan: Failed to map the uniform buffer." };
-    }
-    
-    memcpy(l_data, &l_ubo, sizeof(l_ubo));
-
-    // unmap the memory after we have used it.
-    vkUnmapMemory(m_device, m_uniform_memory);
-    
-    if (vkBindBufferMemory(m_device, m_uniform_buffer, m_uniform_memory, 0) != VK_SUCCESS)
-    {
-      throw std::runtime_error{ "Vulkan: Failed to bind the uniform buffer." };
-    }
-
-    m_uniform_buffer_info.buffer = m_uniform_buffer;
-    m_uniform_buffer_info.offset = 0;
-    m_uniform_buffer_info.range = sizeof(l_ubo);
-
-    std::cout << "END" << std::endl;
-  }
-  //------------------------------------------------------------------------------------------------------------------------
-  {
-    // Pipeline Layout
-    //-------------
-    // Note that when we start using textures, this is where our sampler will need to be specified
-    VkDescriptorSetLayoutBinding l_layout_binding = {};
-    l_layout_binding.binding = 0;
-    l_layout_binding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-    l_layout_binding.descriptorCount = 1;
-    l_layout_binding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
-    l_layout_binding.pImmutableSamplers = NULL;
-
-    // Next take layout bindings and use them to create a descriptor set layout
-    VkDescriptorSetLayoutCreateInfo l_descriptor_layout = {};
-    l_descriptor_layout.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-    l_descriptor_layout.pNext = NULL;
-    l_descriptor_layout.bindingCount = 1;
-    l_descriptor_layout.pBindings = &l_layout_binding;
-
-    // only one descriptor set right now.
-    m_descriptor_set_count = 1;
-
-    m_descriptor_set_layouts.resize(m_descriptor_set_count);
-
-    if (vkCreateDescriptorSetLayout(m_device, &l_descriptor_layout, NULL, m_descriptor_set_layouts.data()) != VK_SUCCESS)
-    {
-      throw std::runtime_error{ "Vulkan: Failed to create descriptor sets." };
-    }
-
-    // Now use the descriptor layout to create a pipeline layout 
-    VkPipelineLayoutCreateInfo l_pipeline_layout_info = {};
-    l_pipeline_layout_info.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-    l_pipeline_layout_info.pNext = NULL;
-    l_pipeline_layout_info.pushConstantRangeCount = 0;
-    l_pipeline_layout_info.pPushConstantRanges = NULL;
-    l_pipeline_layout_info.setLayoutCount = m_descriptor_set_count;
-    l_pipeline_layout_info.pSetLayouts = m_descriptor_set_layouts.data();
-
-    if (vkCreatePipelineLayout(m_device, &l_pipeline_layout_info, NULL, &m_pipeline_layout) != VK_SUCCESS)
-    {
-      throw std::runtime_error{ "Vulkan: Failed to create pipeline layout." };
-    }
-  }
-  //------------------------------------------------------------------------------------------------------------------------
-  {
-    // Descriptor Pool
-    //-------------
-
-    VkDescriptorPoolSize l_type_count[1]{};
-    l_type_count[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-    l_type_count[0].descriptorCount = 1;
-
-    VkDescriptorPoolCreateInfo l_descriptor_pool_info = {};
-    l_descriptor_pool_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
-    l_descriptor_pool_info.pNext = NULL;
-    l_descriptor_pool_info.maxSets = 1;
-    l_descriptor_pool_info.poolSizeCount = 1;
-    l_descriptor_pool_info.pPoolSizes = l_type_count;
-
-    // Make the pool 
-    if (vkCreateDescriptorPool(m_device, &l_descriptor_pool_info, NULL, &m_descriptor_pool) != VK_SUCCESS)
-    {
-      throw std::runtime_error{ "Vulkan: Failed to create descriptor pool." };
-    }
-  }
-  //------------------------------------------------------------------------------------------------------------------------
-  {
-    // Descriptor Set
-    //-------------
-    // Now we actually allocate the descriptor sets
-
-    VkDescriptorSetAllocateInfo l_alloc_info{};
-    l_alloc_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-    l_alloc_info.pNext = NULL;
-    l_alloc_info.descriptorPool = m_descriptor_pool;
-    l_alloc_info.descriptorSetCount = m_descriptor_set_count;
-    l_alloc_info.pSetLayouts = m_descriptor_set_layouts.data();
-
-    m_descriptor_sets.resize(m_descriptor_set_count);
-    if (vkAllocateDescriptorSets(m_device, &l_alloc_info, m_descriptor_sets.data()) != VK_SUCCESS)
-    {
-      throw std::runtime_error{ "Vulkan: Failed to allocate descriptor sets." };
-    }
-    // Destroyed by Descriptor Pool cleanup
-
-    // Update the descriptor sets
-    VkWriteDescriptorSet l_writes[1]{};
-
-    l_writes[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-    l_writes[0].pNext = NULL;
-    l_writes[0].dstSet = m_descriptor_sets[0];
-    l_writes[0].dstBinding = 0;
-    l_writes[0].dstArrayElement = 0;
-    l_writes[0].descriptorCount = 1;
-    l_writes[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-    l_writes[0].pImageInfo = nullptr;
-    l_writes[0].pBufferInfo = &m_uniform_buffer_info;
-    l_writes[0].pTexelBufferView = nullptr;
-
-    // Send the data to the descriptor sets
-    vkUpdateDescriptorSets(m_device, 1, l_writes, 0, NULL);
-
-  }
-  //------------------------------------------------------------------------------------------------------------------------
-  {
-    // Render Pass
-    //-------------
-    // A semaphore (or fence) is required in order to acquire a
-    // swapchain image to prepare it for use in a render pass.
-    // The semaphore is normally used to hold back the rendering
-    // operation until the image is actually available.
-    // But since this sample does not render, the semaphore
-    // ends up being unused.
-    
-
-    // Semaphore
-
-    // This gets put directly after the swapchain in the examples...
-    VkSemaphoreCreateInfo l_image_acquired_semaphore_info{};
-    l_image_acquired_semaphore_info.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
-    l_image_acquired_semaphore_info.pNext = NULL;
-    l_image_acquired_semaphore_info.flags = 0;
-
-    if (vkCreateSemaphore(m_device, &l_image_acquired_semaphore_info, NULL, &m_image_available_semaphore) != VK_SUCCESS)
-    {
-      throw std::runtime_error{ "Vulkan: Failed to create semaphore." };
-    }
-
-
-    // Current Buffer
-
-    // Aquire the next swapchain image so we can manipulate it
-    if (vkAcquireNextImageKHR(m_device, m_swapchain, UINT64_MAX, m_image_available_semaphore, VK_NULL_HANDLE, &m_current_buffer) != VK_SUCCESS)
-    {
-      throw std::runtime_error{ "Vulkan: Failed to aquire swapchain image" };
-    }
-
-    // The initial layout for the color and depth attachments will be
-    // LAYOUT_UNDEFINED because at the start of the renderpass, we don't
-    // care about their contents. At the start of the subpass, the color
-    // attachment's layout will be transitioned to LAYOUT_COLOR_ATTACHMENT_OPTIMAL
-    // and the depth stencil attachment's layout will be transitioned to
-    // LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL.  At the end of the renderpass,
-    // the color attachment's layout will be transitioned to
-    // LAYOUT_PRESENT_SRC_KHR to be ready to present.  This is all done as part
-    // of the renderpass, no barriers are necessary.
-    VkAttachmentDescription l_attachments[2]{};
-    l_attachments[0].format = m_swapchain_format;
-    l_attachments[0].samples = m_sample_count;
-    l_attachments[0].loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-    l_attachments[0].storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-    l_attachments[0].stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-    l_attachments[0].stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-    l_attachments[0].initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-    l_attachments[0].finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
-    l_attachments[0].flags = 0;
-
-    l_attachments[1].format = m_depth_format;
-    l_attachments[1].samples = m_sample_count;
-    l_attachments[1].loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-    l_attachments[1].storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-    l_attachments[1].stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-    l_attachments[1].stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-    l_attachments[1].initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-    l_attachments[1].finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-    l_attachments[1].flags = 0;
-
-    VkAttachmentReference l_colour_reference = {};
-    l_colour_reference.attachment = 0;
-    l_colour_reference.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-
-    VkAttachmentReference l_depth_reference = {};
-    l_depth_reference.attachment = 1;
-    l_depth_reference.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-
-    VkSubpassDescription l_subpass = {};
-    l_subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
-    l_subpass.flags = 0;
-    l_subpass.inputAttachmentCount = 0;
-    l_subpass.pInputAttachments = NULL;
-    l_subpass.colorAttachmentCount = 1;
-    l_subpass.pColorAttachments = &l_colour_reference;
-    l_subpass.pResolveAttachments = NULL;
-    l_subpass.pDepthStencilAttachment = &l_depth_reference;
-    l_subpass.preserveAttachmentCount = 0;
-    l_subpass.pPreserveAttachments = NULL;
-
-    VkRenderPassCreateInfo l_render_pass_info = {};
-    l_render_pass_info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
-    l_render_pass_info.pNext = NULL;
-    l_render_pass_info.attachmentCount = 2;
-    l_render_pass_info.pAttachments = l_attachments;
-    l_render_pass_info.subpassCount = 1;
-    l_render_pass_info.pSubpasses = &l_subpass;
-    l_render_pass_info.dependencyCount = 0;
-    l_render_pass_info.pDependencies = NULL;
-
-
-    // Aquire the next swapchain image so we can manipulate it
-    if (vkCreateRenderPass(m_device, &l_render_pass_info, NULL, &m_render_pass) != VK_SUCCESS)
-    {
-      throw std::runtime_error{ "Vulkan: Failed to aquire swapchain image" };
-    }
-
-  }
-  //------------------------------------------------------------------------------------------------------------------------
-  {
-    
-
-  }
-  //------------------------------------------------------------------------------------------------------------------------
-
-  //------------------------------------------------------------------------------------------------------------------------
-  
-  //----------------------------------------------------------------------------------------------------------------------
-  {
-    
-  }
-  //------------------------------------------------------------------------------------------------------------------------
-  {
-    std::cout << "Render Pass" << std::endl;
-    // Begin the render pass
-    //-------------
-
-    // We cannot bind the vertex buffer until we begin a renderpass 
-    VkClearValue l_clear_values[2]{};
-    l_clear_values[0].color.float32[0] = 0.2f;
-    l_clear_values[0].color.float32[1] = 0.2f;
-    l_clear_values[0].color.float32[2] = 0.2f;
-    l_clear_values[0].color.float32[3] = 0.2f;
-    l_clear_values[1].depthStencil.depth = 1.0f;
-    l_clear_values[1].depthStencil.stencil = 0;
-
-    VkRenderPassBeginInfo l_render_pass_begin_info{};
-    l_render_pass_begin_info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-    l_render_pass_begin_info.pNext = NULL;
-    l_render_pass_begin_info.renderPass = m_render_pass;
-    l_render_pass_begin_info.framebuffer = m_framebuffers[m_current_buffer];
-    l_render_pass_begin_info.renderArea.offset.x = 0;
-    l_render_pass_begin_info.renderArea.offset.y = 0;
-    l_render_pass_begin_info.renderArea.extent.width = m_width;
-    l_render_pass_begin_info.renderArea.extent.height = m_height;
-    l_render_pass_begin_info.clearValueCount = 2;
-    l_render_pass_begin_info.pClearValues = l_clear_values;
-
-
-    // Start the Command Buffer
-    VkCommandBufferBeginInfo l_cmd_buf_info = {};
-    l_cmd_buf_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-    l_cmd_buf_info.pNext = NULL;
-    l_cmd_buf_info.flags = 0;
-    l_cmd_buf_info.pInheritanceInfo = NULL;
-
-    if (vkBeginCommandBuffer(m_command_buffer, &l_cmd_buf_info) != VK_SUCCESS)
-    {
-      throw std::runtime_error("Vulkan: Failed to begin the command buffer.");
-    }
-
-
-    // Begin the render pass
-    vkCmdBeginRenderPass(m_command_buffer, &l_render_pass_begin_info, VK_SUBPASS_CONTENTS_INLINE);
-    
-    // Bind the pipeline
-    vkCmdBindPipeline(m_command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipeline);
-    
-    // Bind the descriptor sets
-    vkCmdBindDescriptorSets(m_command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipeline_layout, 0, m_descriptor_set_count, m_descriptor_sets.data(), 0, nullptr);
-    
-    VkDeviceSize const l_offsets[1] = { 0 };
-
-    // Bind the vertex buffers
-    VkBuffer l_vertex_buffers[] = { m_vertex_buffer };
-    vkCmdBindVertexBuffers(m_command_buffer, 0, 1, l_vertex_buffers, l_offsets);
-
-
-    std::cout << "END" << std::endl;
-  }
-  //------------------------------------------------------------------------------------------------------------------------
-  
-  }
-  //------------------------------------------------------------------------------------------------------------------------
-  */
-}
-
-void sdlxvulkan::Application::Implementation::ignore_quit()
-{
-  /*
-  std::cout << "Application::Implementation::quit()" << std::endl;
-
-
-  // Destroy the pipeline
-  vkDestroyPipeline(m_device, m_pipeline, NULL);
-
-  // Destroy the vertex buffer
-  vkDestroyBuffer(m_device, m_vertex_buffer, NULL);
-  vkFreeMemory(m_device, m_vertex_buffer_memory, NULL);
-
-  // Destroy the frambuffers
-  for (uint32_t i = 0; i != m_framebuffers.size(); i++)
-  {
-    vkDestroyFramebuffer(m_device, m_framebuffers[i], NULL);
-  }
-
-
-  // Destroy the render pass
-  vkDestroyRenderPass(m_device, m_render_pass, NULL);
-
-  // Destroy the semaphore
-  vkDestroySemaphore(m_device, m_image_available_semaphore, NULL);
-
-  // Destroy the descriptor pool.
-  // Don't seem to have to clean up the descriptor sets...
-  vkDestroyDescriptorPool(m_device, m_descriptor_pool, NULL);
-
-  // Destroy the pipeline layout
-  for (uint32_t i = 0; i < m_descriptor_set_count; i++)
-  {
-    vkDestroyDescriptorSetLayout(m_device, m_descriptor_set_layouts[i], NULL);
-  }
-
-  // Destroy the uniform buffer
-  vkDestroyBuffer(m_device, m_uniform_buffer, NULL);
-  vkFreeMemory(m_device, m_uniform_memory, NULL);
-
-  // Destroy the depth buffer
-  vkDestroyImageView(m_device, m_depth_image_view, NULL);
-  vkDestroyImage(m_device, m_depth_image, NULL);
-  vkFreeMemory(m_device, m_depth_memory, NULL);
-  */
-}
-
 void sdlxvulkan::Application::Implementation::quit()
 {
   quit_sync_objects();
@@ -1787,9 +972,6 @@ void sdlxvulkan::Application::Implementation::quit()
   quit_queue_families();
   quit_physical_device();
   quit_debug_callback();
-  quit_instance();
-  quit_window();
-  quit_system();
 }
 
 void sdlxvulkan::Application::Implementation::main_loop()
@@ -1805,7 +987,7 @@ void sdlxvulkan::Application::Implementation::main_loop()
     SDL_Vulkan_GetDrawableSize(m_window, &l_draw_width, &l_draw_height);
     std::cout << "draw = " << l_window_width << "x" << l_window_height << std::endl;
   }
-
+  //update_uniform_buffer();
   // a really basic render loop...
   SDL_Event l_event{};
   bool l_quit{ false };
@@ -1832,7 +1014,7 @@ void sdlxvulkan::Application::Implementation::main_loop()
       {
         l_quit = true;
       }
-      if (l_event.type == SDL_WINDOWEVENT && l_event.window.windowID == m_window_id)
+      if (l_event.type == SDL_WINDOWEVENT && l_event.window.windowID == m_window.id())
       {
         //std::cout << sdl_window_event_string(static_cast<SDL_WindowEventID>(l_event.window.event)) << std::endl;
         if (l_event.window.event == SDL_WINDOWEVENT_RESIZED) // everytime the user resizes the window
@@ -1845,8 +1027,8 @@ void sdlxvulkan::Application::Implementation::main_loop()
 
           SDL_Vulkan_GetDrawableSize(m_window, &l_draw_width, &l_draw_height);
 
-          m_width = l_draw_width;
-          m_height = l_draw_height;
+          //m_width = l_draw_width;
+          //m_height = l_draw_height;
           std::cout << "Window Resized:" << std::endl;
           std::cout << "window = " << l_window_width << "x" << l_window_height << std::endl;
           std::cout << "draw = " << l_window_width << "x" << l_window_height << std::endl;
@@ -1861,6 +1043,7 @@ void sdlxvulkan::Application::Implementation::main_loop()
     ++l_frame_count;
 
     // Tick rate limit
+    //SDL_Delay(32); //~30FPS
     //SDL_Delay(16); //~60FPS
     //SDL_Delay(1);
     
@@ -1868,214 +1051,20 @@ void sdlxvulkan::Application::Implementation::main_loop()
   vkDeviceWaitIdle(m_device);
 }
 
-void sdlxvulkan::Application::Implementation::init_system()
+
+void sdlxvulkan::Application::Implementation::init_instance_functions()
 {
-  // SDL
-  //-------------
-  // Initialise the system, stop if fails.
-  if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_EVENTS) != 0)
-  {
-    throw std::runtime_error("SDL: Initialisation failed.");
-  }
-
-  if (SDL_Vulkan_LoadLibrary(nullptr) != 0)
-  {
-    throw std::runtime_error("SDL: Could not load Vulkan.");
-  }
-
-  void* l_getter_address = SDL_Vulkan_GetVkGetInstanceProcAddr();
-  if (l_getter_address == nullptr)
-  {
-    throw std::runtime_error("SDL: Could not get address of vkGetInstanceProcAddr.");
-  }
-
-  // Initialise the vulcan getter function
-  init_vulkan_get_proc(static_cast<PFN_vkGetInstanceProcAddr>(l_getter_address));
-
-  // Initialise the global vulkan functions.
-  init_vulkan_global_functions();
-
-  // Dump the Vulkan version for the loaded library
-  uint32_t l_library_version{ 0 };
-  if (vkEnumerateInstanceVersion(&l_library_version) != VK_SUCCESS)
-  {
-    throw std::runtime_error("Vulkan: could not get api version.");
-  }
-  std::cout << "Found Vulkan version: " << VK_VERSION_MAJOR(l_library_version) << "." << VK_VERSION_MINOR(l_library_version) << "." << VK_VERSION_PATCH(l_library_version) << std::endl; 
-
-  std::cout << "System initialised." << std::endl;
-}
-
-void sdlxvulkan::Application::Implementation::quit_system()
-{
-  // Unload SDL Vulkan
-  SDL_Vulkan_UnloadLibrary();
-
-  // Quit SDL
-  SDL_Quit();
-}
-
-void sdlxvulkan::Application::Implementation::init_window()
-{
-  // SDL Window
-  //-------------
-
-  m_window = SDL_CreateWindow("SDL x Vulkan", 100, 100, c_start_width, c_start_height, SDL_WINDOW_VULKAN | SDL_WINDOW_RESIZABLE | SDL_WINDOW_SHOWN);
-  if (m_window == nullptr)
-  {
-    throw std::runtime_error("SDL: Failed to create window.");
-  }
-  m_window_id = SDL_GetWindowID(m_window);
-
-  int l_width{0};
-  int l_height{0};
-  SDL_Vulkan_GetDrawableSize(m_window, &l_width, &l_height);
-
-  m_width = static_cast<uint32_t>(l_width);
-  m_height = static_cast<uint32_t>(l_height);
-
-  std::cout << "Window initialised: id=" << m_window_id << " w=" << m_width << " h=" << m_height << std::endl;
-}
-
-void sdlxvulkan::Application::Implementation::quit_window()
-{
-  // Destroy the window
-  SDL_DestroyWindow(m_window);
-}
-
-void sdlxvulkan::Application::Implementation::init_instance()
-{
-  // Instance
-  //-------------
-
-  auto check_valiation_layer_support = []()->bool 
-  {
-    uint32_t l_layer_count{};
-    vkEnumerateInstanceLayerProperties(&l_layer_count, nullptr);
-
-    std::vector<VkLayerProperties> l_available_layers{ l_layer_count };
-
-    vkEnumerateInstanceLayerProperties(&l_layer_count, l_available_layers.data());
-
-    for (const char* layer_name : c_validation_layers) 
-    {
-      bool l_layer_found = false;
-
-      for (const auto& l_layer_properties : l_available_layers)
-      {
-        if (strcmp(layer_name, l_layer_properties.layerName) == 0)
-        {
-          l_layer_found = true;
-          break;
-        }
-      }
-
-      if (!l_layer_found)
-      {
-        return false;
-      }
-    }
-
-    return true;
-  };
-
-
-  // Validation layers
-  if (c_enable_validation_layers && !check_valiation_layer_support())
-  {
-    throw std::runtime_error("Vulkan:: Validation layers requested, but not available!");
-  }
-
-
-  // Initialise an application info structure
-  // INITIALISE EVERYTHING PROPERLY FOR VULKAN STRUCTS
-  VkApplicationInfo l_app_info{};
-  l_app_info.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
-  l_app_info.pNext = NULL;
-  l_app_info.pApplicationName = "SDL x Vulkan";
-  l_app_info.applicationVersion = VK_MAKE_VERSION(1, 0, 0);
-  l_app_info.pEngineName = "No Engine";
-  l_app_info.engineVersion = VK_MAKE_VERSION(1, 0, 0);
-  l_app_info.apiVersion = VK_API_VERSION_1_1;
-
-  // get the number of extensions 
-  uint32_t l_extension_count{ 0 };
-  if (SDL_Vulkan_GetInstanceExtensions(m_window, &l_extension_count, nullptr) != SDL_TRUE)
-  {
-    // failed to get extension count...
-    throw std::runtime_error("SDL: Could not get Vulkan extension count.");
-  }
-
-  // make a vector of nullptr big enough to store the extension names
-  std::vector<char const*> l_extension_names{ l_extension_count, nullptr };
-  if (SDL_Vulkan_GetInstanceExtensions(m_window, &l_extension_count, l_extension_names.data()) != SDL_TRUE)
-  {
-    // failed to get all the extension names...
-    throw std::runtime_error("SDL: Could not get all Vulkan extension names.");
-  }
-
-  if (c_enable_validation_layers)
-  {
-    l_extension_names.push_back(VK_EXT_DEBUG_REPORT_EXTENSION_NAME);
-    //++l_extension_count;
-  }
-
-
-
-  std::cout << "SDL Vulkan Extensions:" << std::endl;
-  std::cout << "----------------------------------------" << std::endl;
-  for (auto l_ext : l_extension_names)
-  {
-    std::cout << l_ext << std::endl;
-  }
-  std::cout << std::endl;
-
-  // If you want more extensions they get added in here, or after this
-  //auto l_swapchain_ext = VK_KHR_SWAPCHAIN_EXTENSION_NAME;
-  //l_extension_names.push_back(l_swapchain_ext);
-
-
-  // Initialise a create info struct.
-  // INITIALISE EVERYTHING PROPERLY FOR VULKAN STRUCTS
-  VkInstanceCreateInfo l_create_info{};
-  l_create_info.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
-  l_create_info.pNext = NULL;
-  l_create_info.flags = 0;
-  l_create_info.pApplicationInfo = &l_app_info;
-  if (c_enable_validation_layers)
-  {
-    l_create_info.enabledLayerCount = static_cast<uint32_t>(c_validation_layers.size());
-    l_create_info.ppEnabledLayerNames = c_validation_layers.data();
-  }
-  else
-  {
-    l_create_info.enabledLayerCount = 0;
-    l_create_info.ppEnabledLayerNames = NULL;
-  }
-  l_create_info.enabledExtensionCount = static_cast<uint32_t>(l_extension_names.size());
-  l_create_info.ppEnabledExtensionNames = l_extension_names.data();
-
-  if (vkCreateInstance(&l_create_info, nullptr, &m_instance) != VK_SUCCESS)
-  {
-    throw std::runtime_error("Vulkan: Failed to create instance.");
-  }
-    
   // Initialise the intance vulkan functions.
   init_vulkan_instance_functions(m_instance);
+  init_vulkan_instance_functions(m_instance);
 
-  std::cout << "Instance initialised." << std::endl;
+  std::cout << "Instance functions initialised." << std::endl;
 }
 
-void sdlxvulkan::Application::Implementation::quit_instance()
-{
-  // Destroy the Vulkan instance.
-  // Must have killed all children before reaching this point.
-  // Instance can be NULL
-  vkDestroyInstance(m_instance, nullptr);
-}
 
 void sdlxvulkan::Application::Implementation::init_debug_callback()
 {
+
   if (!c_enable_validation_layers)
   {
     return;
@@ -2598,6 +1587,7 @@ void sdlxvulkan::Application::Implementation::init_surface()
   // Surface
   //-------------
 
+  std::cout << "<<<<<<<<<<<" << std::endl;
   if (SDL_Vulkan_CreateSurface(m_window, m_instance, &m_surface) != SDL_TRUE)
   {
     throw std::runtime_error("SDL: Failed to create a Vulkan surface.");
@@ -2784,8 +1774,8 @@ void sdlxvulkan::Application::Implementation::init_swapchain(VkSwapchainKHR a_ol
     if (m_swapchain_surface_cababilites.currentExtent.width == 0xFFFFFFFF)
     {
       // If the surface size is undefined, the size is set to the size of the images requested.
-      m_swapchain_extent.width = m_width;
-      m_swapchain_extent.height = m_height;
+      m_swapchain_extent.width = m_window.draw_width();
+      m_swapchain_extent.height = m_window.draw_height();
 
       // If the requested sizes are smaller than the device can go, we clamp to the minimum values.
       if (m_swapchain_extent.width < m_swapchain_surface_cababilites.minImageExtent.width)

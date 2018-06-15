@@ -27,6 +27,18 @@
     <ClCompile Include="application.cpp">
       <Filter>Source Files\sdlxvulkan</Filter>
     </ClCompile>
+    <ClCompile Include="instance.cpp">
+      <Filter>Source Files\sdlxvulkan</Filter>
+    </ClCompile>
+    <ClCompile Include="system.cpp">
+      <Filter>Source Files\sdlxvulkan</Filter>
+    </ClCompile>
+    <ClCompile Include="window.cpp">
+      <Filter>Source Files\sdlxvulkan</Filter>
+    </ClCompile>
+    <ClCompile Include="surface.cpp">
+      <Filter>Source Files\sdlxvulkan</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="application.hpp">
@@ -36,6 +48,18 @@
       <Filter>Header Files\sdlxvulkan</Filter>
     </ClInclude>
     <ClInclude Include="instance.hpp">
+      <Filter>Header Files\sdlxvulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="system.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="result.hpp">
+      <Filter>Header Files\sdlxvulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="window.hpp">
+      <Filter>Header Files\sdlxvulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="surface.hpp">
       <Filter>Header Files\sdlxvulkan</Filter>
     </ClInclude>
   </ItemGroup>
