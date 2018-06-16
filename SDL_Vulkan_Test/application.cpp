@@ -1,7 +1,5 @@
 #include "application.hpp"
 
-//#include "cube_data.hpp"
-
 #include <cassert>
 #include <cstdlib>
 #include <array>

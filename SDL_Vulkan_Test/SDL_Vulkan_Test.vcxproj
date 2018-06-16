@@ -24,8 +24,6 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="application.hpp" />
-    <ClInclude Include="cube_data.hpp" />
-    <ClInclude Include="instance.hpp" />
   </ItemGroup>
   <ItemGroup>
     <CustomBuild Include="shaders\shader.vert">
