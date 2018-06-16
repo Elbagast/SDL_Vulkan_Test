@@ -32,12 +32,6 @@
     <ClInclude Include="application.hpp">
       <Filter>Header Files\sdlxvulkan</Filter>
     </ClInclude>
-    <ClInclude Include="cube_data.hpp">
-      <Filter>Header Files\sdlxvulkan</Filter>
-    </ClInclude>
-    <ClInclude Include="instance.hpp">
-      <Filter>Header Files\sdlxvulkan</Filter>
-    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <CustomBuild Include="shaders\shader.vert">
