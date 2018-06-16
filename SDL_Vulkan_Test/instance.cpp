@@ -201,56 +201,50 @@ namespace sdlxvulkan
 #undef INIT_VULKAN_INSTANCE_FUNC
 
 
-
-
   //---------------------------------------------------------------------------
-  // Window::Implementation
+  // Instance_Destroyer
   //---------------------------------------------------------------------------
-  // Does the actual work.
-  
-  class Instance::Implementation
+  // Hold the state that must be destroyed after this and supply a means of 
+  // destroying this. This would probably have to hold the allocator too.
+
+  class Instance_Destroyer
   {
-  public:
+  private:
     // Member Data
     //============================================================
     System m_system;
     Window m_window;
-    VkInstance m_instance;
 
+  public:
     // Special 6
     //============================================================
-    Implementation
+    Instance_Destroyer
     (
       System const& a_system,
-      Window const& a_window,
-      std::vector<std::string> const& a_extension_names,
-      std::vector<std::string> const& a_layer_names,
-      std::string const& a_application_name,
-      uint32_t a_application_version,
-      std::string const& a_engine_name,
-      uint32_t a_engine_version,
-      uint32_t a_vulkan_version
-    ):
+      Window const& a_window
+    ) :
       m_system{ a_system },
-      m_window{ a_window },
-      m_instance{ make_except_instance(m_system, m_window, a_extension_names, a_layer_names, a_application_name, a_application_version, a_engine_name, a_engine_version, a_vulkan_version) }
+      m_window{ a_window }
     {
-      init_vulkan_instance_functions(m_instance);
-      //vkDestroyInstance = get_destroy_func(m_system, m_instance);
-      std::cout << "sdlxvulkan::Instance::Instance()" << std::endl;
     }
-    ~Implementation()
+    ~Instance_Destroyer() = default;
+
+    Instance_Destroyer(Instance_Destroyer const& a_other) = default;
+    Instance_Destroyer& operator=(Instance_Destroyer const& a_other) = default;
+
+    Instance_Destroyer(Instance_Destroyer && a_other) = default;
+    Instance_Destroyer& operator=(Instance_Destroyer && a_other) = default;
+
+    // Interface
+    //============================================================
+    void operator()(VkInstance a_instance) const
     {
-      sdlxvulkan::vkDestroyInstance(m_instance, nullptr);
-      std::cout << "sdlxvulkan::Instance::~Instance()" << std::endl;
+      // Could use system to get the destroy proc and execute it.
+      // This means if Instance hides the Vulkan functions this one
+      // can still be accessed without needing friend status.
+      sdlxvulkan::vkDestroyInstance(a_instance, nullptr);
+      std::cout << "sdlxvulkan::Instance_Destroyer::operator()" << std::endl;
     }
-
-    Implementation(Implementation const& a_other) = delete;
-    Implementation& operator=(Implementation const& a_other) = delete;
-
-    Implementation(Implementation && a_other) = delete;
-    Implementation& operator=(Implementation && a_other) = delete;
-
   };
 }
 
@@ -258,32 +252,8 @@ namespace sdlxvulkan
 //PFN_vkDestroySurfaceKHR sdlxvulkan::Instance::Implementation::vkDestroySurfaceKHR{ nullptr };
 
 
-
 // Special 6
 //============================================================
-/*
-sdlxvulkan::Instance::Instance():
-  m_instance{VK_NULL_HANDLE}
-{
-}
-
-sdlxvulkan::Instance::Instance
-(
-  PFN_vkGetInstanceProcAddr a_get_func,
-  std::vector<char const*> const& a_extension_names,
-  std::vector<char const*> const& a_layer_names,
-  char const* a_application_name,
-  uint32_t a_application_version,
-  char const* a_engine_name,
-  uint32_t a_engine_version,
-  uint32_t a_vulkan_version
-):
-  m_instance{ make_instance(a_get_func, a_extension_names, a_layer_names, a_application_name, a_application_version, a_engine_name, a_engine_version, a_vulkan_version) }
-{
-}
-*/
-
-
 sdlxvulkan::Instance::Instance
 (
   System const& a_system,
@@ -296,33 +266,30 @@ sdlxvulkan::Instance::Instance
   uint32_t a_engine_version,
   uint32_t a_vulkan_version
 ) :
-  m_implementation{ std::make_shared<Implementation>(a_system, a_window, a_extension_names, a_layer_names, a_application_name, a_application_version, a_engine_name, a_engine_version, a_vulkan_version) }
+  Inherited_Type{ make_except_instance(a_system, a_window, a_extension_names, a_layer_names, a_application_name, a_application_version, a_engine_name, a_engine_version, a_vulkan_version), Instance_Destroyer{ a_system, a_window } }
 {
+  init_vulkan_instance_functions(get());
+  std::cout << "sdlxvulkan::Instance::Instance()" << std::endl;
 }
 
-sdlxvulkan::Instance::~Instance() = default;
-
-sdlxvulkan::Instance::Instance(Instance const& a_other) = default;
-sdlxvulkan::Instance& sdlxvulkan::Instance::operator=(Instance const& a_other) = default;
-
-sdlxvulkan::Instance::Instance(Instance && a_other) = default;
-sdlxvulkan::Instance& sdlxvulkan::Instance::operator=(Instance && a_other) = default;
+sdlxvulkan::Instance::~Instance()
+{
+  std::cout << "sdlxvulkan::Instance::~Instance()" << std::endl;
+}
 
 // Interface
 //============================================================
-// Explcitly get the VkInstance.
-VkInstance sdlxvulkan::Instance::get() const
+void sdlxvulkan::Instance::vkDestroySurfaceKHR(VkSurfaceKHR a_surface, VkAllocationCallbacks const* pAllocator) const
 {
-  return m_implementation->m_instance;
+  sdlxvulkan::vkDestroySurfaceKHR(get(), a_surface, pAllocator);
 }
 
-// Implicitly convert to VkInstance.
-sdlxvulkan::Instance::operator VkInstance() const
+VkResult sdlxvulkan::Instance::vkCreateDebugReportCallbackEXT(VkDebugReportCallbackCreateInfoEXT const* pCreateInfo, VkAllocationCallbacks const* pAllocator, VkDebugReportCallbackEXT* pCallback) const
 {
-  return m_implementation->m_instance;
+  return sdlxvulkan::vkCreateDebugReportCallbackEXT(get(), pCreateInfo, pAllocator, pCallback);
 }
 
-void sdlxvulkan::Instance::vkDestroySurfaceKHR(VkSurfaceKHR a_surface, VkAllocationCallbacks const* pAllocator)
+void sdlxvulkan::Instance::vkDestroyDebugReportCallbackEXT(VkDebugReportCallbackEXT callback, VkAllocationCallbacks const*pAllocator) const
 {
-  sdlxvulkan::vkDestroySurfaceKHR(m_implementation->m_instance, a_surface, pAllocator);
+  sdlxvulkan::vkDestroyDebugReportCallbackEXT(get(), callback, pAllocator);
 }

@@ -1,34 +1,28 @@
 #ifndef SDLXVULKAN_SURFACE_HPP
 #define SDLXVULKAN_SURFACE_HPP
 
-#include "result.hpp"
-#include <vector>
-#include <memory>
-#include <string>
+#include "handle.hpp"
 #include <vulkan/vulkan_core.h>
 
 namespace sdlxvulkan
 {
   class Window;
   class Instance;
-
-
+  
   //---------------------------------------------------------------------------
   // Surface
   //---------------------------------------------------------------------------
   // Manages the Vulkan surface with reference counting.
 
-  class Surface
+  class Surface :
+    private Vulkan_Handle<VkSurfaceKHR>
   {
   private:
-    // Member Data
-    //============================================================
-    class Implementation;
-    std::shared_ptr<Implementation> m_implementation;
-    //Implementation* imp() noexcept { m_implementation.get(); }
-    //Implementation const* cimp() const noexcept { m_implementation.get(); }
-
+    using Inherited_Type = Vulkan_Handle<VkSurfaceKHR>;
   public:
+    using Inherited_Type::get;
+    using Inherited_Type::operator Pointer;
+
     // Special 6
     //============================================================
     Surface(Window const& a_window, Instance const& a_instance);
@@ -42,10 +36,23 @@ namespace sdlxvulkan
 
     // Interface
     //============================================================
-    VkSurfaceKHR get() const;
-
-    operator VkSurfaceKHR() const;
   };
 }
+
+//------------------------------------------------------------------------------------------------------------------------------------------------------
+
+//---------------------------------------------------------------------------
+// Surface
+//---------------------------------------------------------------------------
+
+// Special 6
+//============================================================
+
+inline sdlxvulkan::Surface::Surface(Surface const& a_other) = default;
+inline sdlxvulkan::Surface& sdlxvulkan::Surface::operator=(Surface const& a_other) = default;
+
+inline sdlxvulkan::Surface::Surface(Surface && a_other) = default;
+inline sdlxvulkan::Surface& sdlxvulkan::Surface::operator=(Surface && a_other) = default;
+
 
 #endif // SDLXVULKAN_SURFACE_HPP

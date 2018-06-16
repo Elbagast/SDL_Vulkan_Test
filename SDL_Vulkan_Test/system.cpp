@@ -102,8 +102,7 @@ sdlxvulkan::System::Implementation::Implementation(uint32_t a_flags)
 
   // Initialise the global vulkan functions.
   init_vulkan_global_functions();
-
-  std::cout << "sdlxvulkan::System::System()" << std::endl;
+  std::cout << "sdlxvulkan::System::Implementation::Implementation()" << std::endl;
 }
 
 sdlxvulkan::System::Implementation::~Implementation()
@@ -113,7 +112,7 @@ sdlxvulkan::System::Implementation::~Implementation()
 
   // Quit SDL
   SDL_Quit();
-  std::cout << "sdlxvulkan::System::~System()" << std::endl;
+  std::cout << "sdlxvulkan::System::Implementation::~Implementation()" << std::endl;
 }
 
 
@@ -129,10 +128,14 @@ sdlxvulkan::System::Implementation::~Implementation()
 //============================================================
 sdlxvulkan::System::System(uint32_t a_flags) :
   m_implementation{ std::make_shared<Implementation>(a_flags)}
-{  
+{
+  std::cout << "sdlxvulkan::System::System()" << std::endl;
 }
 
-sdlxvulkan::System::~System() = default;
+sdlxvulkan::System::~System()
+{
+  std::cout << "sdlxvulkan::System::~System()" << std::endl;
+}
 
 sdlxvulkan::System::System(System const& a_other) = default;
 sdlxvulkan::System& sdlxvulkan::System::operator=(System const& a_other) = default;

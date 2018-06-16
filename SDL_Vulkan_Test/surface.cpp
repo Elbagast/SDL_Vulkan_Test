@@ -12,88 +12,75 @@
 
 namespace sdlxvulkan
 {
-  VkSurfaceKHR make_except_surface(Window const& a_window, Instance const& a_instance)
+  namespace
   {
-    VkSurfaceKHR l_surface{};
-    if (SDL_Vulkan_CreateSurface(a_window, a_instance, &l_surface) != SDL_TRUE)
+    VkSurfaceKHR make_except_surface(Window const& a_window, Instance const& a_instance)
     {
-      throw std::runtime_error("SDL: Failed to create a Vulkan surface.");
+      VkSurfaceKHR l_surface{};
+      if (SDL_Vulkan_CreateSurface(a_window, a_instance, &l_surface) != SDL_TRUE)
+      {
+        throw std::runtime_error("SDL: Failed to create a Vulkan surface.");
+      }
+      return l_surface;
     }
-    return l_surface;
+
+
+    //---------------------------------------------------------------------------
+    // Surface_Destroyer
+    //---------------------------------------------------------------------------
+    // Does the actual work.
+
+    class Surface_Destroyer
+    {
+    private:
+      // Member Data
+      //============================================================
+      Window m_window;
+      mutable Instance m_instance;
+
+    public:
+      // Special 6
+      //============================================================
+      Surface_Destroyer(Window const& a_window, Instance const& a_instance) :
+        m_window{ a_window },
+        m_instance{ a_instance }
+      {
+      }
+      ~Surface_Destroyer() = default;
+
+      Surface_Destroyer(Surface_Destroyer const& a_other) = default;
+      Surface_Destroyer& operator=(Surface_Destroyer const& a_other) = default;
+
+      Surface_Destroyer(Surface_Destroyer && a_other) = default;
+      Surface_Destroyer& operator=(Surface_Destroyer && a_other) = default;
+
+      // Interface
+      //============================================================
+      void operator()(VkSurfaceKHR a_surface) const noexcept
+      {
+        m_instance.vkDestroySurfaceKHR(a_surface, nullptr);
+        std::cout << "sdlxvulkan::Surface_Destroyer::operator()" << std::endl;
+      }
+    };
   }
-  
-
-  //---------------------------------------------------------------------------
-  // Window::Implementation
-  //---------------------------------------------------------------------------
-  // Does the actual work.
-
-  class Surface::Implementation
-  {
-  public:
-    // Member Data
-    //============================================================
-    Window m_window;
-    Instance m_instance;
-    VkSurfaceKHR m_surface;
-
-    // Special 6
-    //============================================================
-    Implementation(Window const& a_window, Instance const& a_instance) :
-      m_window{ a_window },
-      m_instance{ a_instance },
-      m_surface{ make_except_surface(m_window, m_instance) }
-    {
-      std::cout << "sdlxvulkan::Surface::Surface()" << std::endl;
-    }
-    ~Implementation()
-    {
-      // Destroy the Vulkan surface.
-      m_instance.vkDestroySurfaceKHR(m_surface, nullptr);
-      std::cout << "sdlxvulkan::Surface::~Surface()" << std::endl;
-    }
-
-    Implementation(Implementation const& a_other) = delete;
-    Implementation& operator=(Implementation const& a_other) = delete;
-
-    Implementation(Implementation && a_other) = delete;
-    Implementation& operator=(Implementation && a_other) = delete;
-
-  };
 }
 
+//------------------------------------------------------------------------------------------------------------------------------------------------------
 
 //---------------------------------------------------------------------------
-// Window
+// Surface
 //---------------------------------------------------------------------------
 
 // Special 6
 //============================================================
 
 sdlxvulkan::Surface::Surface(Window const& a_window, Instance const& a_instance) :
-  m_implementation{ std::make_shared<Implementation>(a_window, a_instance) }
+  Inherited_Type{ make_except_surface(a_window, a_instance), Surface_Destroyer{ a_window, a_instance } }
 {
+  std::cout << "sdlxvulkan::Surface::Surface()" << std::endl;
 }
 
-sdlxvulkan::Surface::~Surface() = default;
-
-sdlxvulkan::Surface::Surface(Surface const& a_other) = default;
-sdlxvulkan::Surface& sdlxvulkan::Surface::operator=(Surface const& a_other) = default;
-
-sdlxvulkan::Surface::Surface(Surface && a_other) = default;
-sdlxvulkan::Surface& sdlxvulkan::Surface::operator=(Surface && a_other) = default;
-
-
-// Interface
-//============================================================
-// Explcitly get the VkInstance.
-VkSurfaceKHR sdlxvulkan::Surface::get() const
+sdlxvulkan::Surface::~Surface()
 {
-  return m_implementation->m_surface;
-}
-
-// Implicitly convert to VkInstance.
-sdlxvulkan::Surface::operator VkSurfaceKHR() const
-{
-  return m_implementation->m_surface;
+  std::cout << "sdlxvulkan::Surface::~Surface()" << std::endl;
 }

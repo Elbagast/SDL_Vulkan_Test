@@ -39,12 +39,12 @@
     <ClCompile Include="surface.cpp">
       <Filter>Source Files\sdlxvulkan</Filter>
     </ClCompile>
+    <ClCompile Include="debug_callback.cpp">
+      <Filter>Source Files\sdlxvulkan</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="application.hpp">
-      <Filter>Header Files\sdlxvulkan</Filter>
-    </ClInclude>
-    <ClInclude Include="cube_data.hpp">
       <Filter>Header Files\sdlxvulkan</Filter>
     </ClInclude>
     <ClInclude Include="instance.hpp">
@@ -60,6 +60,15 @@
       <Filter>Header Files\sdlxvulkan</Filter>
     </ClInclude>
     <ClInclude Include="surface.hpp">
+      <Filter>Header Files\sdlxvulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="debug_callback.hpp">
+      <Filter>Header Files\sdlxvulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="handle.hpp">
+      <Filter>Header Files\sdlxvulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="physical_device.hpp">
       <Filter>Header Files\sdlxvulkan</Filter>
     </ClInclude>
   </ItemGroup>

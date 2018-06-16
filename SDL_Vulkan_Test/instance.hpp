@@ -1,8 +1,7 @@
 #ifndef SDLXVULKAN_INSTANCE_HPP
 #define SDLXVULKAN_INSTANCE_HPP
 
-//#include "system.hpp"
-
+#include "handle.hpp"
 #include <vector>
 #include <string>
 #include <vulkan/vulkan_core.h>
@@ -11,53 +10,24 @@ namespace sdlxvulkan
 {
   class System;
   class Window;
-  /*
-  namespace internal
-  {
-    static_assert(std::is_pointer_v<VkInstance>, "VkInstance is not a pointer type, don't do the next thing.");
-    using Instance_Type = std::remove_pointer_t<VkInstance>;
-    using Instance_Pointer = std::add_pointer_t<Instance_Type>;
-    static_assert(std::is_same_v<VkInstance, Instance_Pointer>, "VkInstance is not the same type as deduced Instance_Pointer.");
-  }*/
 
   //---------------------------------------------------------------------------
   // Instance
   //---------------------------------------------------------------------------
   // Holds a VkInstance with reference counting and cleans up properly. 
 
-  class Instance
+  class Instance :
+    private Vulkan_Handle<VkInstance>
   {
   private:
-
-    // Member Data
-    //============================================================   
-    class Implementation;
-    std::shared_ptr<Implementation> m_implementation;
-
-    // Member Data
-    //============================================================   
-    //System m_system;
-    //std::shared_ptr<internal::Instance_Type> m_instance;
-       
+    using Inherited_Type = Vulkan_Handle<VkInstance>;
   public:
+    using Inherited_Type::get;
+    using Inherited_Type::operator Pointer;
+    
     // Special 6
     //============================================================
-    // Create a null instance. It contains nothing and does nothing.
-    //Instance();
-
     // Create using the supplied data.
-    /*
-    Instance
-    (
-      PFN_vkGetInstanceProcAddr a_get_func,
-      std::vector<char const*> const& a_extension_names,
-      std::vector<char const*> const& a_layer_names,
-      char const* a_application_name,
-      uint32_t a_application_version,
-      char const* a_engine_name,
-      uint32_t a_engine_version,
-      uint32_t a_vulkan_version
-    );*/
     Instance
     (
       System const& a_system,
@@ -81,18 +51,26 @@ namespace sdlxvulkan
 
     // Interface
     //============================================================
-    // Explcitly get the VkInstance.
-    VkInstance get() const;
 
-    // Implicitly convert to VkInstance, allowing this to be passed
-    // directly to Vulkan functions.
-    operator VkInstance() const;
+    void vkDestroySurfaceKHR(VkSurfaceKHR surface, VkAllocationCallbacks const* pAllocator) const;
 
-    // a shedload of instance functions....
-
-    void vkDestroySurfaceKHR(VkSurfaceKHR surface, VkAllocationCallbacks const* pAllocator);
-
+    VkResult vkCreateDebugReportCallbackEXT(VkDebugReportCallbackCreateInfoEXT const* pCreateInfo, VkAllocationCallbacks const* pAllocator, VkDebugReportCallbackEXT* pCallback) const;
+    void vkDestroyDebugReportCallbackEXT(VkDebugReportCallbackEXT callback, VkAllocationCallbacks const*pAllocator) const;
   };
 }
+
+//------------------------------------------------------------------------------------------------------------------------------------------------------
+
+//---------------------------------------------------------------------------
+// Instance
+//---------------------------------------------------------------------------
+
+// Special 6
+//============================================================
+inline sdlxvulkan::Instance::Instance(Instance const& a_other) = default;
+inline sdlxvulkan::Instance& sdlxvulkan::Instance::operator=(Instance const& a_other) = default;
+
+inline sdlxvulkan::Instance::Instance(Instance && a_other) = default;
+inline sdlxvulkan::Instance& sdlxvulkan::Instance::operator=(Instance && a_other) = default;
 
 #endif // SDLXVULKAN_INSTANCE_HPP

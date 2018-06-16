@@ -1,7 +1,5 @@
 #include "application.hpp"
 
-//#include "cube_data.hpp"
-
 #include <cassert>
 #include <cstdlib>
 #include <array>
@@ -16,6 +14,8 @@
 #include "system.hpp"
 #include "window.hpp"
 #include "instance.hpp"
+#include "surface.hpp"
+#include "debug_callback.hpp"
 
 #include <SDL.h>
 #include <SDL_vulkan.h>
@@ -534,13 +534,13 @@ namespace sdlxvulkan
     std::vector<std::string> m_args;
 
     System m_system;
-
     Window m_window;
-
     Instance m_instance;
+    Debug_Callback m_debug_callback;
+    Surface m_surface;
 
     // Debug Callback
-    VkDebugReportCallbackEXT m_debug_callback;
+   // VkDebugReportCallbackEXT m_debug_callback;
 
     // Physical Device
     VkPhysicalDevice m_physical_device;
@@ -584,10 +584,7 @@ namespace sdlxvulkan
     VkPipelineShaderStageCreateInfo m_fragment_shader_stage_info;
     VkPipelineShaderStageCreateInfo m_vertex_shader_stage_info;
     std::array<VkPipelineShaderStageCreateInfo, 2> m_shader_stage_infos;
-
-    // Surface
-    VkSurfaceKHR m_surface;
-
+    
     // Present Queue
     uint32_t m_present_qf_index;
     VkQueue m_present_queue;
@@ -653,9 +650,6 @@ namespace sdlxvulkan
     void quit();
         
     void init_instance_functions();
-
-    void init_debug_callback();
-    void quit_debug_callback();
 
     void init_physical_device();
     void quit_physical_device();
@@ -766,20 +760,17 @@ sdlxvulkan::Application::Implementation::Implementation(int argc, char** argv) :
   m_args{ make_arg_vector(argc, argv) },
   m_system{ SDL_INIT_VIDEO | SDL_INIT_EVENTS },
   m_window{ m_system, "SDL x Vulkan", 100, 100, c_start_width, c_start_height, SDL_WINDOW_VULKAN | SDL_WINDOW_RESIZABLE | SDL_WINDOW_SHOWN },
-  //m_window_id{ 0 },
-  //m_width{ 0 },
-  //m_height{ 0 },
-
+  
   m_instance{ m_system, m_window, c_extension_names, c_validation_layers, c_application_name, c_application_version, c_engine_name, c_engine_version, c_vulkan_version },
+  m_debug_callback{ m_instance, debug_callback, VK_DEBUG_REPORT_ERROR_BIT_EXT | VK_DEBUG_REPORT_WARNING_BIT_EXT },
+  m_surface{ m_window, m_instance },
 
-  m_debug_callback{},
   m_physical_device{ VK_NULL_HANDLE },
   m_physical_device_properties{},
   m_physical_device_mem_properties{},
 
   m_queue_familiy_properties{},
 
-  m_surface{ VK_NULL_HANDLE },
 
   m_device{ VK_NULL_HANDLE },
 
@@ -843,41 +834,6 @@ sdlxvulkan::Application::Implementation::Implementation(int argc, char** argv) :
   m_render_finished_semaphores{},
   m_fences{},
   m_current_frame{}
-  /*
-  m_sample_count{ VK_SAMPLE_COUNT_1_BIT },
-  m_depth_format{},
-  m_depth_image{},
-  m_depth_memory{},
-  m_depth_image_view{},
-
-  m_uniform_buffer{},
-  m_uniform_memory{},
-  m_uniform_buffer_info{},
-
-  m_glm_projection{},
-  m_glm_view{},
-  m_glm_model{},
-  m_glm_clip{},
-  m_glm_mvp{},
-
-  m_descriptor_set_count{},
-  m_descriptor_set_layouts{},
-  m_descriptor_pool{},
-  m_descriptor_sets{},
-  m_current_buffer{},
-  //m_image_available_semaphore{},
-  m_framebuffers{},
-
-  m_vertex_buffer{},
-  m_vertex_buffer_memory{},
-  m_vertex_buffer_info{},
-
-  m_vertex_input_binding_desc{},
-  m_vertex_input_attributes_descs{},
-
-  m_num_viewports{ 1 },
-  m_num_scissors{ 1 }
-  */
 {
   std::cout << "Application::Implementation::Implementation(argc, * argv)" << std::endl;
   // Output the captured args to the console.
@@ -921,9 +877,7 @@ void sdlxvulkan::Application::Implementation::init()
   std::cout << "Application::Implementation::init()" << std::endl;
 
   init_instance_functions();
-  init_debug_callback();
   init_physical_device();
-  init_surface();
   init_queue_families();
   init_logical_device();
   init_graphics_queue();
@@ -932,7 +886,6 @@ void sdlxvulkan::Application::Implementation::init()
   init_index_buffer();
   init_uniform_buffer();
   init_shader_modules();
-  init_surface();
   init_present_queue();
   init_swapchain();
   init_swapchain_image_views();
@@ -961,7 +914,6 @@ void sdlxvulkan::Application::Implementation::quit()
   quit_swapchain_image_views();
   quit_swapchain();
   quit_present_queue();
-  quit_surface();
   quit_graphics_queue();
   quit_shader_modules();
   quit_uniform_buffer();
@@ -971,7 +923,6 @@ void sdlxvulkan::Application::Implementation::quit()
   quit_logical_device();
   quit_queue_families();
   quit_physical_device();
-  quit_debug_callback();
 }
 
 void sdlxvulkan::Application::Implementation::main_loop()
@@ -992,10 +943,12 @@ void sdlxvulkan::Application::Implementation::main_loop()
   SDL_Event l_event{};
   bool l_quit{ false };
   size_t l_frame_count{ 0 };
-  auto l_last_time = std::chrono::steady_clock::now();
+  auto l_start_time = std::chrono::steady_clock::now();
+  auto l_last_time = l_start_time;
   auto l_now_time = l_last_time;
   while (!l_quit)
   {
+    /*
     // FPS tracking
     l_now_time = std::chrono::steady_clock::now();
     std::chrono::duration<double> l_dif = l_now_time - l_last_time;
@@ -1004,7 +957,7 @@ void sdlxvulkan::Application::Implementation::main_loop()
       std::cout << "FPS: " << l_frame_count << std::endl;
       l_frame_count = 0;
       l_last_time = l_now_time;
-    }
+    }*/
 
     while (SDL_PollEvent(&l_event))
     {
@@ -1042,12 +995,29 @@ void sdlxvulkan::Application::Implementation::main_loop()
     draw_frame();
     ++l_frame_count;
 
+
+    // Benchmarking
+    l_now_time = std::chrono::steady_clock::now();
+    std::chrono::duration<double> l_dif = l_now_time - l_start_time;
+    if (l_dif.count() >= 10.0)
+    {
+      l_quit = true;
+    }
+
+
     // Tick rate limit
     //SDL_Delay(32); //~30FPS
     //SDL_Delay(16); //~60FPS
     //SDL_Delay(1);
     
   }
+  std::chrono::duration<double> l_elapsed = l_now_time - l_start_time;
+  auto l_elapsed_time = l_elapsed.count();
+  std::cout << "Time: " << l_elapsed_time << std::endl;
+  std::cout << "Frames: " << l_frame_count << std::endl;
+  std::cout << "FPS: " << l_frame_count/ l_elapsed_time << std::endl;
+
+
   vkDeviceWaitIdle(m_device);
 }
 
@@ -1059,37 +1029,6 @@ void sdlxvulkan::Application::Implementation::init_instance_functions()
   init_vulkan_instance_functions(m_instance);
 
   std::cout << "Instance functions initialised." << std::endl;
-}
-
-
-void sdlxvulkan::Application::Implementation::init_debug_callback()
-{
-
-  if (!c_enable_validation_layers)
-  {
-    return;
-  }
-  
-  VkDebugReportCallbackCreateInfoEXT l_callback_info {};
-  l_callback_info.sType = VK_STRUCTURE_TYPE_DEBUG_REPORT_CALLBACK_CREATE_INFO_EXT;
-  l_callback_info.pNext = nullptr;
-  l_callback_info.flags = VK_DEBUG_REPORT_ERROR_BIT_EXT | VK_DEBUG_REPORT_WARNING_BIT_EXT;
-  l_callback_info.pfnCallback = debug_callback;
-  l_callback_info.pUserData = nullptr;
-
-  if (vkCreateDebugReportCallbackEXT(m_instance, &l_callback_info, nullptr, &m_debug_callback) != VK_SUCCESS)
-  {
-    throw std::runtime_error("Vulkan: Failed to set up debug callback!");
-  }
-  std::cout << "Debug Callback initialised." << std::endl;
-}
-
-void sdlxvulkan::Application::Implementation::quit_debug_callback()
-{
-  if (c_enable_validation_layers)
-  {
-    vkDestroyDebugReportCallbackEXT(m_instance, m_debug_callback, nullptr);
-  }
 }
 
 void sdlxvulkan::Application::Implementation::init_physical_device()
@@ -1586,19 +1525,20 @@ void sdlxvulkan::Application::Implementation::init_surface()
 {
   // Surface
   //-------------
-
+  /*
   std::cout << "<<<<<<<<<<<" << std::endl;
   if (SDL_Vulkan_CreateSurface(m_window, m_instance, &m_surface) != SDL_TRUE)
   {
     throw std::runtime_error("SDL: Failed to create a Vulkan surface.");
   }
   std::cout << "Surface initialised" << std::endl;
+  */
 }
 
 void sdlxvulkan::Application::Implementation::quit_surface()
 {
   // Destroy the Vulkan surface.
-  vkDestroySurfaceKHR(m_instance, m_surface, nullptr);
+  //vkDestroySurfaceKHR(m_instance, m_surface, nullptr);
 }
 
 void sdlxvulkan::Application::Implementation::init_present_queue()

@@ -20,6 +20,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="application.cpp" />
+    <ClCompile Include="debug_callback.cpp" />
     <ClCompile Include="instance.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="surface.cpp" />
@@ -28,8 +29,10 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="application.hpp" />
-    <ClInclude Include="cube_data.hpp" />
+    <ClInclude Include="debug_callback.hpp" />
+    <ClInclude Include="handle.hpp" />
     <ClInclude Include="instance.hpp" />
+    <ClInclude Include="physical_device.hpp" />
     <ClInclude Include="result.hpp" />
     <ClInclude Include="surface.hpp" />
     <ClInclude Include="system.hpp" />
