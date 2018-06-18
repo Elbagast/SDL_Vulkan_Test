@@ -8,6 +8,8 @@
 
 namespace sdlxvulkan
 {
+  struct Global_Functions;
+
   //---------------------------------------------------------------------------
   // System
   //---------------------------------------------------------------------------
@@ -41,14 +43,7 @@ namespace sdlxvulkan
     // DO NOT CALL THESE FUNCTIONS BEFORE A System OBJECT HAS BEEN 
     // SUCCESSFULLY CONSTRUCTED.
 
-    static PFN_vkGetInstanceProcAddr get_vkGetInstanceProcAddr();
-
-    // Direct access to the Vulkan functions, as in the Vulkan documentation.
-    static PFN_vkVoidFunction vkGetInstanceProcAddr(VkInstance instance, char const* pName);
-    static VkResult vkCreateInstance(VkInstanceCreateInfo const*  pCreateInfo, VkAllocationCallbacks const* pAllocator, VkInstance* pInstance);
-    static VkResult vkEnumerateInstanceExtensionProperties(char const* pLayerName, uint32_t* pPropertyCount, VkExtensionProperties* pProperties);
-    static VkResult vkEnumerateInstanceLayerProperties(uint32_t* pPropertyCount, VkLayerProperties* pProperties);
-    static VkResult vkEnumerateInstanceVersion(uint32_t* pApiVersion);
+    static Global_Functions const& vk_functions();
 
     // Simplified access to the above data.
     static Result<std::vector<VkExtensionProperties>> instance_extension_properties(char const* a_layer_name);

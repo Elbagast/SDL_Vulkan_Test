@@ -42,6 +42,12 @@
     <ClCompile Include="debug_callback.cpp">
       <Filter>Source Files\sdlxvulkan</Filter>
     </ClCompile>
+    <ClCompile Include="functions.cpp">
+      <Filter>Source Files\sdlxvulkan</Filter>
+    </ClCompile>
+    <ClCompile Include="physical_device.cpp">
+      <Filter>Source Files\sdlxvulkan</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="application.hpp">
@@ -49,9 +55,6 @@
     </ClInclude>
     <ClInclude Include="instance.hpp">
       <Filter>Header Files\sdlxvulkan</Filter>
-    </ClInclude>
-    <ClInclude Include="system.hpp">
-      <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="result.hpp">
       <Filter>Header Files\sdlxvulkan</Filter>
@@ -69,6 +72,15 @@
       <Filter>Header Files\sdlxvulkan</Filter>
     </ClInclude>
     <ClInclude Include="physical_device.hpp">
+      <Filter>Header Files\sdlxvulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="event_string.hpp">
+      <Filter>Header Files\sdlxvulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="system.hpp">
+      <Filter>Header Files\sdlxvulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="functions.hpp">
       <Filter>Header Files\sdlxvulkan</Filter>
     </ClInclude>
   </ItemGroup>

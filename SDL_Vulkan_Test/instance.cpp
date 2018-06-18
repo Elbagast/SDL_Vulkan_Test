@@ -2,12 +2,15 @@
 
 #include "system.hpp"
 #include "window.hpp"
+#include "functions.hpp"
 
 #include <cassert>
 #include <iostream>
 
 namespace sdlxvulkan
 {
+  static Instance_Functions s_instance_functions{};
+
   namespace
   {
     VkInstance make_except_instance
@@ -23,8 +26,8 @@ namespace sdlxvulkan
       uint32_t a_vulkan_version
     )
     {
-      // If no validation layers supplied, or the ones requested are not available, stop.
-      if (a_layer_names.empty() || !a_system.supports_layers(a_layer_names))
+      // If validation layers supplied, and the ones requested are not available, stop.
+      if (!a_layer_names.empty() && !a_system.supports_layers(a_layer_names))
       {
         throw std::runtime_error{ "sdlxvulkan::Instance: Validation layers requested, but not available." };
       }
@@ -135,7 +138,7 @@ namespace sdlxvulkan
 
       //d::cout << "create instance...";
 
-      if (a_system.vkCreateInstance(&l_create_info, nullptr, &l_instance) != VK_SUCCESS)
+      if (a_system.vk_functions().vkCreateInstance(&l_create_info, nullptr, &l_instance) != VK_SUCCESS)
       {
         throw std::runtime_error{ "sdlxvulkan::Instance: Failed to create VkInstance." };
       }
@@ -148,58 +151,11 @@ namespace sdlxvulkan
 
     PFN_vkDestroyInstance get_destroy_func(System const& a_system, VkInstance a_instance)
     {
-      auto l_destroy_func = reinterpret_cast<PFN_vkDestroyInstance>(a_system.vkGetInstanceProcAddr(a_instance, "vkDestroyInstance"));
+      auto l_destroy_func = reinterpret_cast<PFN_vkDestroyInstance>(a_system.vk_functions().vkGetInstanceProcAddr(a_instance, "vkDestroyInstance"));
       assert(l_destroy_func != nullptr);
       return l_destroy_func;
     }
-
-
-#define DECLARE_VULKAN_FUNC(a_func_name) static PFN_##a_func_name a_func_name{nullptr};
-    // These relate to an instance
-    DECLARE_VULKAN_FUNC(vkCreateDevice)
-    DECLARE_VULKAN_FUNC(vkCreateDebugReportCallbackEXT)
-    DECLARE_VULKAN_FUNC(vkDestroyDebugReportCallbackEXT)
-    DECLARE_VULKAN_FUNC(vkDestroyInstance)
-    DECLARE_VULKAN_FUNC(vkDestroySurfaceKHR)
-    DECLARE_VULKAN_FUNC(vkEnumerateDeviceExtensionProperties)
-    DECLARE_VULKAN_FUNC(vkEnumeratePhysicalDevices)
-    DECLARE_VULKAN_FUNC(vkGetDeviceProcAddr)
-    DECLARE_VULKAN_FUNC(vkGetPhysicalDeviceFeatures)
-    DECLARE_VULKAN_FUNC(vkGetPhysicalDeviceProperties)
-    DECLARE_VULKAN_FUNC(vkGetPhysicalDeviceMemoryProperties)
-    DECLARE_VULKAN_FUNC(vkGetPhysicalDeviceQueueFamilyProperties)
-    DECLARE_VULKAN_FUNC(vkGetPhysicalDeviceSurfaceCapabilitiesKHR)
-    DECLARE_VULKAN_FUNC(vkGetPhysicalDeviceSurfaceFormatsKHR)
-    DECLARE_VULKAN_FUNC(vkGetPhysicalDeviceSurfacePresentModesKHR)
-    DECLARE_VULKAN_FUNC(vkGetPhysicalDeviceSurfaceSupportKHR)
-
-#undef DECLARE_VULKAN_FUNC
-
-#define INIT_VULKAN_INSTANCE_FUNC(a_func_name) a_func_name = (PFN_##a_func_name)(sdlxvulkan::System::vkGetInstanceProcAddr(a_instance, #a_func_name));
-
-    void init_vulkan_instance_functions(VkInstance a_instance)
-    {
-      INIT_VULKAN_INSTANCE_FUNC(vkCreateDevice)
-        INIT_VULKAN_INSTANCE_FUNC(vkCreateDebugReportCallbackEXT)
-        INIT_VULKAN_INSTANCE_FUNC(vkDestroyDebugReportCallbackEXT)
-        INIT_VULKAN_INSTANCE_FUNC(vkDestroyInstance)
-        INIT_VULKAN_INSTANCE_FUNC(vkDestroySurfaceKHR)
-        INIT_VULKAN_INSTANCE_FUNC(vkEnumerateDeviceExtensionProperties)
-        INIT_VULKAN_INSTANCE_FUNC(vkEnumeratePhysicalDevices)
-        INIT_VULKAN_INSTANCE_FUNC(vkGetDeviceProcAddr)
-        INIT_VULKAN_INSTANCE_FUNC(vkGetPhysicalDeviceFeatures)
-        INIT_VULKAN_INSTANCE_FUNC(vkGetPhysicalDeviceProperties)
-        INIT_VULKAN_INSTANCE_FUNC(vkGetPhysicalDeviceMemoryProperties)
-        INIT_VULKAN_INSTANCE_FUNC(vkGetPhysicalDeviceQueueFamilyProperties)
-        INIT_VULKAN_INSTANCE_FUNC(vkGetPhysicalDeviceSurfaceCapabilitiesKHR)
-        INIT_VULKAN_INSTANCE_FUNC(vkGetPhysicalDeviceSurfaceFormatsKHR)
-        INIT_VULKAN_INSTANCE_FUNC(vkGetPhysicalDeviceSurfacePresentModesKHR)
-        INIT_VULKAN_INSTANCE_FUNC(vkGetPhysicalDeviceSurfaceSupportKHR)
-    }
   }
-
-#undef INIT_VULKAN_INSTANCE_FUNC
-
 
   //---------------------------------------------------------------------------
   // Instance_Destroyer
@@ -242,14 +198,12 @@ namespace sdlxvulkan
       // Could use system to get the destroy proc and execute it.
       // This means if Instance hides the Vulkan functions this one
       // can still be accessed without needing friend status.
-      sdlxvulkan::vkDestroyInstance(a_instance, nullptr);
+      s_instance_functions.vkDestroyInstance(a_instance, nullptr);
       std::cout << "sdlxvulkan::Instance_Destroyer::operator()" << std::endl;
     }
   };
+  
 }
-
-//PFN_vkDestroyInstance sdlxvulkan::Instance::Implementation::vkDestroyInstance{ nullptr };
-//PFN_vkDestroySurfaceKHR sdlxvulkan::Instance::Implementation::vkDestroySurfaceKHR{ nullptr };
 
 
 // Special 6
@@ -268,7 +222,7 @@ sdlxvulkan::Instance::Instance
 ) :
   Inherited_Type{ make_except_instance(a_system, a_window, a_extension_names, a_layer_names, a_application_name, a_application_version, a_engine_name, a_engine_version, a_vulkan_version), Instance_Destroyer{ a_system, a_window } }
 {
-  init_vulkan_instance_functions(get());
+  init_instance_functions(s_instance_functions, get(), a_system.vk_functions());
   std::cout << "sdlxvulkan::Instance::Instance()" << std::endl;
 }
 
@@ -279,17 +233,31 @@ sdlxvulkan::Instance::~Instance()
 
 // Interface
 //============================================================
-void sdlxvulkan::Instance::vkDestroySurfaceKHR(VkSurfaceKHR a_surface, VkAllocationCallbacks const* pAllocator) const
+sdlxvulkan::Instance_Functions const& sdlxvulkan::Instance::vk_functions()
 {
-  sdlxvulkan::vkDestroySurfaceKHR(get(), a_surface, pAllocator);
+  return s_instance_functions;
 }
 
-VkResult sdlxvulkan::Instance::vkCreateDebugReportCallbackEXT(VkDebugReportCallbackCreateInfoEXT const* pCreateInfo, VkAllocationCallbacks const* pAllocator, VkDebugReportCallbackEXT* pCallback) const
+
+
+std::vector<VkPhysicalDevice> sdlxvulkan::Instance::get_physical_devices() const
 {
-  return sdlxvulkan::vkCreateDebugReportCallbackEXT(get(), pCreateInfo, pAllocator, pCallback);
+  assert(s_instance_functions.vkEnumeratePhysicalDevices != nullptr);
+
+  uint32_t l_count{ 0 };
+  s_instance_functions.vkEnumeratePhysicalDevices(get(), &l_count, nullptr);
+
+  std::vector<VkPhysicalDevice> l_result{};
+  l_result.resize(l_count);
+
+  s_instance_functions.vkEnumeratePhysicalDevices(get(), &l_count, l_result.data());
+
+  return l_result;
 }
 
-void sdlxvulkan::Instance::vkDestroyDebugReportCallbackEXT(VkDebugReportCallbackEXT callback, VkAllocationCallbacks const*pAllocator) const
+VkPhysicalDevice sdlxvulkan::Instance::get_first_physical_device() const
 {
-  sdlxvulkan::vkDestroyDebugReportCallbackEXT(get(), callback, pAllocator);
+  auto l_devices = get_physical_devices();
+  assert(l_devices.size() >= 1);
+  return l_devices.front();
 }

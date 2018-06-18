@@ -2,6 +2,7 @@
 
 #include "instance.hpp"
 #include "window.hpp"
+#include "functions.hpp"
 
 #include <SDL.h>
 #include <SDL_vulkan.h>
@@ -58,7 +59,7 @@ namespace sdlxvulkan
       //============================================================
       void operator()(VkSurfaceKHR a_surface) const noexcept
       {
-        m_instance.vkDestroySurfaceKHR(a_surface, nullptr);
+        m_instance.vk_functions().vkDestroySurfaceKHR(m_instance, a_surface, nullptr);
         std::cout << "sdlxvulkan::Surface_Destroyer::operator()" << std::endl;
       }
     };

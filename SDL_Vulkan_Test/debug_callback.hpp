@@ -42,9 +42,6 @@ namespace sdlxvulkan
 
     // Interface
     //============================================================
-    VkDebugReportCallbackEXT get() const noexcept;
-
-    operator VkDebugReportCallbackEXT() const noexcept;
   };
 }
 

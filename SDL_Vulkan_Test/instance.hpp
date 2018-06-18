@@ -11,6 +11,8 @@ namespace sdlxvulkan
   class System;
   class Window;
 
+  struct Instance_Functions;
+
   //---------------------------------------------------------------------------
   // Instance
   //---------------------------------------------------------------------------
@@ -51,11 +53,11 @@ namespace sdlxvulkan
 
     // Interface
     //============================================================
+    static Instance_Functions const& vk_functions();
 
-    void vkDestroySurfaceKHR(VkSurfaceKHR surface, VkAllocationCallbacks const* pAllocator) const;
+    std::vector<VkPhysicalDevice> get_physical_devices() const;
+    VkPhysicalDevice get_first_physical_device() const;
 
-    VkResult vkCreateDebugReportCallbackEXT(VkDebugReportCallbackCreateInfoEXT const* pCreateInfo, VkAllocationCallbacks const* pAllocator, VkDebugReportCallbackEXT* pCallback) const;
-    void vkDestroyDebugReportCallbackEXT(VkDebugReportCallbackEXT callback, VkAllocationCallbacks const*pAllocator) const;
   };
 }
 

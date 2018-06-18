@@ -21,8 +21,10 @@
   <ItemGroup>
     <ClCompile Include="application.cpp" />
     <ClCompile Include="debug_callback.cpp" />
+    <ClCompile Include="functions.cpp" />
     <ClCompile Include="instance.cpp" />
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="physical_device.cpp" />
     <ClCompile Include="surface.cpp" />
     <ClCompile Include="system.cpp" />
     <ClCompile Include="window.cpp" />
@@ -30,6 +32,8 @@
   <ItemGroup>
     <ClInclude Include="application.hpp" />
     <ClInclude Include="debug_callback.hpp" />
+    <ClInclude Include="event_string.hpp" />
+    <ClInclude Include="functions.hpp" />
     <ClInclude Include="handle.hpp" />
     <ClInclude Include="instance.hpp" />
     <ClInclude Include="physical_device.hpp" />
