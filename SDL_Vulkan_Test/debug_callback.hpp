@@ -2,7 +2,9 @@
 #define SDLXVULKAN_DEBUG_CALLBACK_HPP
 
 #include "handle.hpp"
-#include <vulkan/vulkan_core.h>
+#ifndef VULKAN_H_
+#include <vulkan/vulkan.h>
+#endif 
 
 namespace sdlxvulkan
 {

@@ -1,7 +1,7 @@
 #include "debug_callback.hpp"
 
 #include "instance.hpp"
-#include "functions.hpp"
+#include "instance_functions.hpp"
 
 #include <cassert>
 #include <iostream>
@@ -15,8 +15,6 @@ namespace sdlxvulkan
       // If we break here then the instance initialisation failed to get the extension function pointers.
       // This probably means VK_EXT_DEBUG_REPORT_EXTENSION_NAME was not in the extension names used to
       // create the Instance.
-      assert(a_instance.vk_functions().vkCreateDebugReportCallbackEXT != nullptr);
-      assert(a_instance.vk_functions().vkDestroyDebugReportCallbackEXT != nullptr);
 
       VkDebugReportCallbackEXT l_debug_callback{};
 
@@ -65,7 +63,7 @@ namespace sdlxvulkan
       //============================================================
       void operator()(VkDebugReportCallbackEXT a_debug_callback) const noexcept
       {
-        assert(m_instance.vk_functions().vkDestroyDebugReportCallbackEXT != nullptr);
+        //assert(m_instance.vk_functions().vkDestroyDebugReportCallbackEXT != nullptr);
         m_instance.vk_functions().vkDestroyDebugReportCallbackEXT(m_instance, a_debug_callback, nullptr);
         std::cout << "sdlxvulkan::Debug_Callback_Destroyer::operator()" << std::endl;
       }

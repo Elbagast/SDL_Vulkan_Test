@@ -42,10 +42,16 @@
     <ClCompile Include="debug_callback.cpp">
       <Filter>Source Files\sdlxvulkan</Filter>
     </ClCompile>
-    <ClCompile Include="functions.cpp">
+    <ClCompile Include="physical_device.cpp">
       <Filter>Source Files\sdlxvulkan</Filter>
     </ClCompile>
-    <ClCompile Include="physical_device.cpp">
+    <ClCompile Include="global_functions.cpp">
+      <Filter>Source Files\sdlxvulkan</Filter>
+    </ClCompile>
+    <ClCompile Include="instance_functions.cpp">
+      <Filter>Source Files\sdlxvulkan</Filter>
+    </ClCompile>
+    <ClCompile Include="device_functions.cpp">
       <Filter>Source Files\sdlxvulkan</Filter>
     </ClCompile>
   </ItemGroup>
@@ -80,7 +86,13 @@
     <ClInclude Include="system.hpp">
       <Filter>Header Files\sdlxvulkan</Filter>
     </ClInclude>
-    <ClInclude Include="functions.hpp">
+    <ClInclude Include="global_functions.hpp">
+      <Filter>Header Files\sdlxvulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="instance_functions.hpp">
+      <Filter>Header Files\sdlxvulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="device_functions.hpp">
       <Filter>Header Files\sdlxvulkan</Filter>
     </ClInclude>
   </ItemGroup>

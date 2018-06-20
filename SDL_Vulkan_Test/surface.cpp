@@ -1,8 +1,8 @@
 #include "surface.hpp"
 
 #include "instance.hpp"
+#include "instance_functions.hpp"
 #include "window.hpp"
-#include "functions.hpp"
 
 #include <SDL.h>
 #include <SDL_vulkan.h>

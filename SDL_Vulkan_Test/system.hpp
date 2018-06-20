@@ -4,11 +4,13 @@
 #include "result.hpp"
 #include <vector>
 #include <memory>
-#include <vulkan/vulkan_core.h>
+#ifndef VULKAN_H_
+#include <vulkan/vulkan.h>
+#endif 
 
 namespace sdlxvulkan
 {
-  struct Global_Functions;
+  class Global_Functions;
 
   //---------------------------------------------------------------------------
   // System

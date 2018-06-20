@@ -1,6 +1,7 @@
 #include "system.hpp"
 
-#include "functions.hpp"
+#include "global_functions.hpp"
+//#include "functions.hpp"
 #include <SDL.h>
 #include <SDL_vulkan.h>
 
@@ -63,7 +64,8 @@ sdlxvulkan::System::Implementation::Implementation(uint32_t a_flags)
     throw std::runtime_error{ "SDL: Could not get address of vkGetInstanceProcAddr." };
   }
 
-  init_global_functions(s_global_functions, static_cast<PFN_vkGetInstanceProcAddr>(l_getter_address));
+  s_global_functions = Global_Functions{ static_cast<PFN_vkGetInstanceProcAddr>(l_getter_address) };
+  //init_global_functions(s_global_functions, static_cast<PFN_vkGetInstanceProcAddr>(l_getter_address));
 
   std::cout << "sdlxvulkan::System::Implementation::Implementation()" << std::endl;
 }
@@ -120,7 +122,7 @@ sdlxvulkan::Global_Functions const& sdlxvulkan::System::vk_functions()
 // Simplified access to the above data.
 sdlxvulkan::Result<std::vector<VkExtensionProperties>> sdlxvulkan::System::instance_extension_properties(char const* a_layer_name)
 {
-  assert(s_global_functions.vkEnumerateInstanceExtensionProperties != nullptr);
+  //assert(s_global_functions.vkEnumerateInstanceExtensionProperties != nullptr);
 
   uint32_t l_extension_count{};
   s_global_functions.vkEnumerateInstanceExtensionProperties(a_layer_name, &l_extension_count, nullptr);
@@ -135,7 +137,7 @@ sdlxvulkan::Result<std::vector<VkExtensionProperties>> sdlxvulkan::System::insta
 
 sdlxvulkan::Result<std::vector<VkLayerProperties>> sdlxvulkan::System::instance_layer_properties()
 {
-  assert(s_global_functions.vkEnumerateInstanceLayerProperties != nullptr);
+  //assert(s_global_functions.vkEnumerateInstanceLayerProperties != nullptr);
 
   uint32_t l_layer_count{};
   s_global_functions.vkEnumerateInstanceLayerProperties(&l_layer_count, nullptr);
@@ -150,7 +152,7 @@ sdlxvulkan::Result<std::vector<VkLayerProperties>> sdlxvulkan::System::instance_
 
 uint32_t sdlxvulkan::System::vulkan_api_version()
 {
-  assert(s_global_functions.vkEnumerateInstanceVersion != nullptr);
+  //assert(s_global_functions.vkEnumerateInstanceVersion != nullptr);
 
   // Dump the Vulkan version for the loaded library
   uint32_t l_library_version{ 0 };

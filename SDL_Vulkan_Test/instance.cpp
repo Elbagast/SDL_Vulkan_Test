@@ -1,8 +1,9 @@
 #include "instance.hpp"
 
 #include "system.hpp"
+#include "global_functions.hpp"
 #include "window.hpp"
-#include "functions.hpp"
+#include "instance_functions.hpp"
 
 #include <cassert>
 #include <iostream>
@@ -222,7 +223,8 @@ sdlxvulkan::Instance::Instance
 ) :
   Inherited_Type{ make_except_instance(a_system, a_window, a_extension_names, a_layer_names, a_application_name, a_application_version, a_engine_name, a_engine_version, a_vulkan_version), Instance_Destroyer{ a_system, a_window } }
 {
-  init_instance_functions(s_instance_functions, get(), a_system.vk_functions());
+  s_instance_functions = Instance_Functions{ get(), a_system.vk_functions() };
+  //init_instance_functions(s_instance_functions, get(), a_system.vk_functions());
   std::cout << "sdlxvulkan::Instance::Instance()" << std::endl;
 }
 
@@ -242,7 +244,7 @@ sdlxvulkan::Instance_Functions const& sdlxvulkan::Instance::vk_functions()
 
 std::vector<VkPhysicalDevice> sdlxvulkan::Instance::get_physical_devices() const
 {
-  assert(s_instance_functions.vkEnumeratePhysicalDevices != nullptr);
+  //assert(s_instance_functions.vkEnumeratePhysicalDevices != nullptr);
 
   uint32_t l_count{ 0 };
   s_instance_functions.vkEnumeratePhysicalDevices(get(), &l_count, nullptr);

@@ -17,7 +17,9 @@
 #include "surface.hpp"
 #include "debug_callback.hpp"
 #include "event_string.hpp"
-#include "functions.hpp"
+#include "global_functions.hpp"
+#include "instance_functions.hpp"
+#include "device_functions.hpp"
 #include "physical_device.hpp"
 
 #include <SDL.h>
@@ -355,10 +357,7 @@ namespace sdlxvulkan
 
     void init_graphics_queue();
     void quit_graphics_queue();
-
-    void init_surface();
-    void quit_surface();
-
+    
     void init_present_queue();
     void quit_present_queue();
 
@@ -437,16 +436,9 @@ sdlxvulkan::Application::Implementation::Implementation(int argc, char** argv) :
   m_debug_callback{ m_instance, debug_callback, VK_DEBUG_REPORT_ERROR_BIT_EXT | VK_DEBUG_REPORT_WARNING_BIT_EXT },
   m_surface{ m_window, m_instance },
   m_physical_device{ m_instance.get_first_physical_device(), m_instance, m_surface },
-  //m_physical_device{ VK_NULL_HANDLE },
-  //m_physical_device_properties{},
-  //m_physical_device_mem_properties{},
-
-  //m_queue_familiy_properties{},
-
 
   m_device{ VK_NULL_HANDLE },
 
-  //m_graphics_qf_index{ UINT32_MAX },
   m_graphics_queue{},
 
   m_command_pool{},
@@ -470,7 +462,6 @@ sdlxvulkan::Application::Implementation::Implementation(int argc, char** argv) :
   m_vertex_shader_stage_info{},
   m_shader_stage_infos{},
 
-  //m_present_qf_index{ UINT32_MAX },
   m_present_queue{},
   
   m_swapchain_surface_cababilites{},
@@ -745,7 +736,8 @@ void sdlxvulkan::Application::Implementation::init_logical_device()
   }
 
   // Initialise the device vulkan functions.
-  init_device_functions(s_device_functions, m_device, m_instance.vk_functions());
+  s_device_functions = Device_Functions{ m_device, m_instance.vk_functions() };
+  //init_device_functions(s_device_functions, m_device, m_instance.vk_functions());
 
   std::cout << "Logical Device initialised." << std::endl;
 }
@@ -1047,25 +1039,6 @@ void sdlxvulkan::Application::Implementation::quit_graphics_queue()
   // Do nothing
 }
 
-void sdlxvulkan::Application::Implementation::init_surface()
-{
-  // Surface
-  //-------------
-  /*
-  std::cout << "<<<<<<<<<<<" << std::endl;
-  if (SDL_Vulkan_CreateSurface(m_window, m_instance, &m_surface) != SDL_TRUE)
-  {
-    throw std::runtime_error("SDL: Failed to create a Vulkan surface.");
-  }
-  std::cout << "Surface initialised" << std::endl;
-  */
-}
-
-void sdlxvulkan::Application::Implementation::quit_surface()
-{
-  // Destroy the Vulkan surface.
-  //vkDestroySurfaceKHR(m_instance, m_surface, nullptr);
-}
 
 void sdlxvulkan::Application::Implementation::init_present_queue()
 {
@@ -1090,47 +1063,49 @@ void sdlxvulkan::Application::Implementation::quit_present_queue()
   // Do nothing
 }
 
+namespace
+{
+  std::ostream& operator<<(std::ostream& a_ostream, VkExtent2D const& a_ext)
+  {
+    std::cout << a_ext.width << "x" << a_ext.height;
+    return a_ostream;
+  }
+
+
+  std::ostream& operator<<(std::ostream& a_ostream, VkSurfaceCapabilitiesKHR const& a_sc)
+  {
+    std::cout
+      << "VkSurfaceCapabilitiesKHR " << std::endl
+      << "minImageCount " << a_sc.minImageCount << std::endl
+      << "maxImageCount " << a_sc.maxImageCount << std::endl
+      << "currentExtent " << a_sc.currentExtent << std::endl
+      << "minImageExtent " << a_sc.minImageExtent << std::endl
+      << "maxImageExtent " << a_sc.maxImageExtent << std::endl
+      << "maxImageArrayLayers " << a_sc.maxImageArrayLayers << std::endl
+      << "supportedTransforms " << a_sc.supportedTransforms << std::endl
+      << "currentTransform " << a_sc.currentTransform << std::endl
+      << "supportedCompositeAlpha " << a_sc.supportedCompositeAlpha << std::endl
+      << "supportedUsageFlags " << a_sc.supportedUsageFlags << std::endl
+      << std::endl;
+
+    return a_ostream;
+  }
+}
+
 void sdlxvulkan::Application::Implementation::init_swapchain(VkSwapchainKHR a_old_swapchain)
 {
   // Surface Capabilities
   //-------------
 
-  // Get all the things we will need to look at to configure the swapchain
+  m_swapchain_surface_cababilites = m_physical_device.get_surface_cababilites(m_surface);
 
-  // Get the capabilities
-  if (m_instance.vk_functions().vkGetPhysicalDeviceSurfaceCapabilitiesKHR(m_physical_device, m_surface, &m_swapchain_surface_cababilites) != VK_SUCCESS)
-  {
-    throw std::runtime_error("Vulkan: Failed to get surface capabilites.");
-  }
+  m_swapchain_surface_formats = m_physical_device.get_surface_formats(m_surface);
 
+  m_swapchain_present_modes = m_physical_device.get_present_modes(m_surface);
 
-  // Get the formats that can be used with this device/surface combo.
-  uint32_t l_surface_format_count{ 0 };
-  if (m_instance.vk_functions().vkGetPhysicalDeviceSurfaceFormatsKHR(m_physical_device, m_surface, &l_surface_format_count, NULL) != VK_SUCCESS)
-  {
-    throw std::runtime_error("Vulkan: Failed to get surface format count.");
-  }
-
-  m_swapchain_surface_formats.resize(l_surface_format_count);
-  if (m_instance.vk_functions().vkGetPhysicalDeviceSurfaceFormatsKHR(m_physical_device, m_surface, &l_surface_format_count, m_swapchain_surface_formats.data()) != VK_SUCCESS)
-  {
-    throw std::runtime_error("Vulkan: Failed to get surface formats.");
-  }
-
-
-  // Get the present modes
-  uint32_t l_present_mode_count{ 0 };
-  if (m_instance.vk_functions().vkGetPhysicalDeviceSurfacePresentModesKHR(m_physical_device, m_surface, &l_present_mode_count, NULL) != VK_SUCCESS)
-  {
-    throw std::runtime_error("Vulkan: Failed to get surface present mode count.");
-  }
-
-  m_swapchain_present_modes.resize(l_present_mode_count);
-  if (m_instance.vk_functions().vkGetPhysicalDeviceSurfacePresentModesKHR(m_physical_device, m_surface, &l_present_mode_count, m_swapchain_present_modes.data()) != VK_SUCCESS)
-  {
-    throw std::runtime_error("Vulkan: Failed to get surface present modes.");
-  }
-
+  // output the cababilities to see if they change...
+  std::cout << std::endl << m_swapchain_surface_cababilites << std::endl;
+ 
 
   // Use these to find out if the selected device can actually do what we want here
 
@@ -2096,9 +2071,9 @@ void sdlxvulkan::Application::Implementation::copy_buffer(VkBuffer a_source, VkB
     throw std::runtime_error{ "Vulkan: Copying Buffer: Failed to submit command buffer." };
   }
   //vkQueueSubmit(this->m_graphics_queue, 1, &l_submit_info, VK_NULL_HANDLE);
-  s_device_functions.vkQueueWaitIdle(this->m_graphics_queue);
+  s_device_functions.vkQueueWaitIdle(m_graphics_queue);
 
-  s_device_functions.vkFreeCommandBuffers(this->m_device, this->m_command_pool, 1, l_command_buffers);
+  s_device_functions.vkFreeCommandBuffers(m_device, m_command_pool, 1, l_command_buffers);
 }
 //------------------------------------------------------------------------------------------------------------------------------------------------------
 

@@ -45,6 +45,12 @@ namespace sdlxvulkan
 
     // Implicitly convert.
     operator Pointer() const noexcept { return get(); }// not having this here breaks things
+
+    template <typename Destroyer>
+    Destroyer* get_destroyer() const noexcept
+    {
+      return std::get_deleter<Destroyer>(m_data);
+    }
   };
 
 

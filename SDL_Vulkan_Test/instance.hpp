@@ -4,14 +4,16 @@
 #include "handle.hpp"
 #include <vector>
 #include <string>
-#include <vulkan/vulkan_core.h>
+#ifndef VULKAN_H_
+#include <vulkan/vulkan.h>
+#endif 
 
 namespace sdlxvulkan
 {
   class System;
   class Window;
 
-  struct Instance_Functions;
+  class Instance_Functions;
 
   //---------------------------------------------------------------------------
   // Instance
