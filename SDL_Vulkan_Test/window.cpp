@@ -73,7 +73,7 @@ namespace sdlxvulkan
 // Special 6
 //============================================================
 sdlxvulkan::Window::Window(System const& a_system, std::string const& a_title, int a_xpos, int a_ypos, int a_width, int a_height, uint32_t a_flags) :
-  Inherited_Type{ make_except_window(a_system,a_title, a_xpos, a_ypos, a_width, a_height, a_flags), Window_Destroyer{ a_system } }
+  m_data{ make_except_window(a_system,a_title, a_xpos, a_ypos, a_width, a_height, a_flags), Window_Destroyer{ a_system } }
 {
   std::cout << "sdlxvulkan::Window::Window()" << std::endl;
 }

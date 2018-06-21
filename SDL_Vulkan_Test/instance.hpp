@@ -20,15 +20,15 @@ namespace sdlxvulkan
   //---------------------------------------------------------------------------
   // Holds a VkInstance with reference counting and cleans up properly. 
 
-  class Instance :
-    private Vulkan_Handle<VkInstance>
+  class Instance
   {
   private:
-    using Inherited_Type = Vulkan_Handle<VkInstance>;
-  public:
-    using Inherited_Type::get;
-    using Inherited_Type::operator Pointer;
-    
+    // Member Data
+    //============================================================   
+    using Data_Type = Vulkan_Handle<VkInstance>;
+    Data_Type m_data;
+
+  public:    
     // Special 6
     //============================================================
     // Create using the supplied data.
@@ -55,7 +55,10 @@ namespace sdlxvulkan
 
     // Interface
     //============================================================
-    static Instance_Functions const& vk_functions();
+    Data_Type::Pointer get() const noexcept       { return m_data.get(); }
+    operator Data_Type::Pointer() const noexcept  { return m_data.get(); }
+
+    Instance_Functions const& vk_functions() const;
 
     std::vector<VkPhysicalDevice> get_physical_devices() const;
     VkPhysicalDevice get_first_physical_device() const;

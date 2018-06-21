@@ -62,9 +62,14 @@ namespace sdlxvulkan
         m_instance.vk_functions().vkDestroySurfaceKHR(m_instance, a_surface, nullptr);
         std::cout << "sdlxvulkan::Surface_Destroyer::operator()" << std::endl;
       }
-    };
-  }
-}
+
+      Instance const& get_instance() const
+      {
+        return m_instance;
+      }
+    };  
+  } // namespace  
+} // namespace sdlxvulkan
 
 //------------------------------------------------------------------------------------------------------------------------------------------------------
 
@@ -76,7 +81,7 @@ namespace sdlxvulkan
 //============================================================
 
 sdlxvulkan::Surface::Surface(Window const& a_window, Instance const& a_instance) :
-  Inherited_Type{ make_except_surface(a_window, a_instance), Surface_Destroyer{ a_window, a_instance } }
+  m_data{ make_except_surface(a_window, a_instance), Surface_Destroyer{ a_window, a_instance } }
 {
   std::cout << "sdlxvulkan::Surface::Surface()" << std::endl;
 }
@@ -84,4 +89,9 @@ sdlxvulkan::Surface::Surface(Window const& a_window, Instance const& a_instance)
 sdlxvulkan::Surface::~Surface()
 {
   std::cout << "sdlxvulkan::Surface::~Surface()" << std::endl;
+}
+
+sdlxvulkan::Instance const& sdlxvulkan::Surface::get_instance() const noexcept
+{
+  return m_data.get_destroyer<Surface_Destroyer>()->get_instance();
 }

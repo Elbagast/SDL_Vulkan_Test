@@ -114,13 +114,13 @@ sdlxvulkan::System& sdlxvulkan::System::operator=(System && a_other) = default;
 // SUCCESSFULLY CONSTRUCTED.
 
 
-sdlxvulkan::Global_Functions const& sdlxvulkan::System::vk_functions()
+sdlxvulkan::Global_Functions const& sdlxvulkan::System::vk_functions() const
 {
   return s_global_functions;
 }
 
 // Simplified access to the above data.
-sdlxvulkan::Result<std::vector<VkExtensionProperties>> sdlxvulkan::System::instance_extension_properties(char const* a_layer_name)
+sdlxvulkan::Result<std::vector<VkExtensionProperties>> sdlxvulkan::System::instance_extension_properties(char const* a_layer_name) const
 {
   //assert(s_global_functions.vkEnumerateInstanceExtensionProperties != nullptr);
 
@@ -135,7 +135,7 @@ sdlxvulkan::Result<std::vector<VkExtensionProperties>> sdlxvulkan::System::insta
   return Result<std::vector<VkExtensionProperties>>{l_result, std::move(l_extensions)};
 }
 
-sdlxvulkan::Result<std::vector<VkLayerProperties>> sdlxvulkan::System::instance_layer_properties()
+sdlxvulkan::Result<std::vector<VkLayerProperties>> sdlxvulkan::System::instance_layer_properties() const
 {
   //assert(s_global_functions.vkEnumerateInstanceLayerProperties != nullptr);
 
@@ -150,7 +150,7 @@ sdlxvulkan::Result<std::vector<VkLayerProperties>> sdlxvulkan::System::instance_
   return Result<std::vector<VkLayerProperties>>{l_result, std::move(l_layers)};
 }
 
-uint32_t sdlxvulkan::System::vulkan_api_version()
+uint32_t sdlxvulkan::System::vulkan_api_version() const
 {
   //assert(s_global_functions.vkEnumerateInstanceVersion != nullptr);
 
@@ -161,7 +161,7 @@ uint32_t sdlxvulkan::System::vulkan_api_version()
   return l_library_version;
 }
 
-bool sdlxvulkan::System::supports_layer(std::string const& a_layer_name)
+bool sdlxvulkan::System::supports_layer(std::string const& a_layer_name) const
 {
   auto const l_available_layers = instance_layer_properties().data;
 
@@ -175,7 +175,7 @@ bool sdlxvulkan::System::supports_layer(std::string const& a_layer_name)
   return false;
 }
 
-bool sdlxvulkan::System::supports_layers(std::vector<std::string> const& a_layer_names)
+bool sdlxvulkan::System::supports_layers(std::vector<std::string> const& a_layer_names) const
 {
   auto const l_available_layers = instance_layer_properties().data;
 

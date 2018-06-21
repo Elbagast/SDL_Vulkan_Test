@@ -14,15 +14,13 @@ namespace sdlxvulkan
   template <typename T>
   class Handle
   {
-  private:
-    //static_assert(std::is_pointer_v<T>, "Supplied T is not a pointer type, cannot use.");
+  public:
     using Pointer = std::add_pointer_t<T>;
     using Type = T;
+  private:
+    //static_assert(std::is_pointer_v<T>, "Supplied T is not a pointer type, cannot use.");
     std::shared_ptr<Type> m_data;
-
   public:
-    using Constructor_Arg_Type = std::shared_ptr<Type>;
-
     // Special 6
     //============================================================
     // Create using the supplied data.

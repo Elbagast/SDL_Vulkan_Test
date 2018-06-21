@@ -10,10 +10,10 @@
 
 namespace sdlxvulkan
 {
-  static Instance_Functions s_instance_functions{};
-
   namespace
   {
+    static Instance_Functions s_instance_functions{};
+
     VkInstance make_except_instance
     (
       System const& a_system,
@@ -156,55 +156,55 @@ namespace sdlxvulkan
       assert(l_destroy_func != nullptr);
       return l_destroy_func;
     }
-  }
 
-  //---------------------------------------------------------------------------
-  // Instance_Destroyer
-  //---------------------------------------------------------------------------
-  // Hold the state that must be destroyed after this and supply a means of 
-  // destroying this. This would probably have to hold the allocator too.
 
-  class Instance_Destroyer
-  {
-  private:
-    // Member Data
-    //============================================================
-    System m_system;
-    Window m_window;
+    //---------------------------------------------------------------------------
+    // Instance_Destroyer
+    //---------------------------------------------------------------------------
+    // Hold the state that must be destroyed after this and supply a means of 
+    // destroying this. This would probably have to hold the allocator too.
 
-  public:
-    // Special 6
-    //============================================================
-    Instance_Destroyer
-    (
-      System const& a_system,
-      Window const& a_window
-    ) :
-      m_system{ a_system },
-      m_window{ a_window }
+    class Instance_Destroyer
     {
-    }
-    ~Instance_Destroyer() = default;
+    private:
+      // Member Data
+      //============================================================
+      System m_system;
+      Window m_window;
 
-    Instance_Destroyer(Instance_Destroyer const& a_other) = default;
-    Instance_Destroyer& operator=(Instance_Destroyer const& a_other) = default;
+    public:
+      // Special 6
+      //============================================================
+      Instance_Destroyer
+      (
+        System const& a_system,
+        Window const& a_window
+      ) :
+        m_system{ a_system },
+        m_window{ a_window }
+      {
+      }
+      ~Instance_Destroyer() = default;
 
-    Instance_Destroyer(Instance_Destroyer && a_other) = default;
-    Instance_Destroyer& operator=(Instance_Destroyer && a_other) = default;
+      Instance_Destroyer(Instance_Destroyer const& a_other) = default;
+      Instance_Destroyer& operator=(Instance_Destroyer const& a_other) = default;
 
-    // Interface
-    //============================================================
-    void operator()(VkInstance a_instance) const
-    {
-      // Could use system to get the destroy proc and execute it.
-      // This means if Instance hides the Vulkan functions this one
-      // can still be accessed without needing friend status.
-      s_instance_functions.vkDestroyInstance(a_instance, nullptr);
-      std::cout << "sdlxvulkan::Instance_Destroyer::operator()" << std::endl;
-    }
-  };
-  
-}
+      Instance_Destroyer(Instance_Destroyer && a_other) = default;
+      Instance_Destroyer& operator=(Instance_Destroyer && a_other) = default;
+
+      // Interface
+      //============================================================
+      void operator()(VkInstance a_instance) const
+      {
+        // Could use system to get the destroy proc and execute it.
+        // This means if Instance hides the Vulkan functions this one
+        // can still be accessed without needing friend status.
+        s_instance_functions.vkDestroyInstance(a_instance, nullptr);
+        std::cout << "sdlxvulkan::Instance_Destroyer::operator()" << std::endl;
+      }
+    };
+  } // namespace  
+} // namespace sdlxvulkan
 
 
 // Special 6
@@ -221,7 +221,7 @@ sdlxvulkan::Instance::Instance
   uint32_t a_engine_version,
   uint32_t a_vulkan_version
 ) :
-  Inherited_Type{ make_except_instance(a_system, a_window, a_extension_names, a_layer_names, a_application_name, a_application_version, a_engine_name, a_engine_version, a_vulkan_version), Instance_Destroyer{ a_system, a_window } }
+  m_data{ make_except_instance(a_system, a_window, a_extension_names, a_layer_names, a_application_name, a_application_version, a_engine_name, a_engine_version, a_vulkan_version), Instance_Destroyer{ a_system, a_window } }
 {
   s_instance_functions = Instance_Functions{ get(), a_system.vk_functions() };
   //init_instance_functions(s_instance_functions, get(), a_system.vk_functions());
@@ -235,7 +235,7 @@ sdlxvulkan::Instance::~Instance()
 
 // Interface
 //============================================================
-sdlxvulkan::Instance_Functions const& sdlxvulkan::Instance::vk_functions()
+sdlxvulkan::Instance_Functions const& sdlxvulkan::Instance::vk_functions() const
 {
   return s_instance_functions;
 }

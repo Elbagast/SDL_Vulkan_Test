@@ -21,6 +21,8 @@
 #include "instance_functions.hpp"
 #include "device_functions.hpp"
 #include "physical_device.hpp"
+#include "device.hpp"
+#include "queue.hpp"
 
 #include <SDL.h>
 #include <SDL_vulkan.h>
@@ -119,6 +121,10 @@ namespace
 
     return VK_FALSE;
   }
+
+
+  std::vector<std::string> const c_device_extension_names{ VK_KHR_SWAPCHAIN_EXTENSION_NAME };
+
 }
 
 
@@ -134,7 +140,7 @@ namespace
 
 namespace sdlxvulkan
 {
-  static Device_Functions s_device_functions{};
+  //static Device_Functions s_device_functions{};
   
   std::string vulkan_result_string(VkResult a_value)
   {
@@ -231,15 +237,16 @@ namespace sdlxvulkan
     Instance m_instance;
     Debug_Callback m_debug_callback;
     Surface m_surface;
-
     Physical_Device m_physical_device;
 
-    // Logical Device
-    VkDevice m_device;
+    uint32_t m_graphics_qfi;
+    uint32_t m_present_qfi;
 
-    // Graphics Queue
-    VkQueue m_graphics_queue;
-    
+    Device m_device;
+
+    Queue m_graphics_queue;
+    Queue m_present_queue;
+
     // Command Pool
     VkCommandPool m_command_pool;
 
@@ -268,8 +275,6 @@ namespace sdlxvulkan
     VkPipelineShaderStageCreateInfo m_vertex_shader_stage_info;
     std::array<VkPipelineShaderStageCreateInfo, 2> m_shader_stage_infos;
     
-    // Present Queue
-    VkQueue m_present_queue;
     
     // Swapchain
     VkSurfaceCapabilitiesKHR m_swapchain_surface_cababilites;
@@ -331,8 +336,8 @@ namespace sdlxvulkan
     void init();
     void quit();
         
-    void init_logical_device();
-    void quit_logical_device();
+    //void init_logical_device();
+    //void quit_logical_device();
 
     void init_command_pool();
     void quit_command_pool();
@@ -354,13 +359,7 @@ namespace sdlxvulkan
     
     void init_shader_modules();
     void quit_shader_modules();
-
-    void init_graphics_queue();
-    void quit_graphics_queue();
     
-    void init_present_queue();
-    void quit_present_queue();
-
     void init_swapchain(VkSwapchainKHR a_old_swapchain = VK_NULL_HANDLE);
     void recreate_swapchain();
     void quit_swapchain();
@@ -435,11 +434,15 @@ sdlxvulkan::Application::Implementation::Implementation(int argc, char** argv) :
   m_instance{ m_system, m_window, c_extension_names, c_validation_layers, c_application_name, c_application_version, c_engine_name, c_engine_version, c_vulkan_version },
   m_debug_callback{ m_instance, debug_callback, VK_DEBUG_REPORT_ERROR_BIT_EXT | VK_DEBUG_REPORT_WARNING_BIT_EXT },
   m_surface{ m_window, m_instance },
-  m_physical_device{ m_instance.get_first_physical_device(), m_instance, m_surface },
+  m_physical_device{ m_instance.get_first_physical_device(), m_instance },
 
-  m_device{ VK_NULL_HANDLE },
+  // If we wanted to manage queue families in more detail then stuff goes here.
+  m_graphics_qfi{ m_physical_device.first_graphics_qfi() },
+  m_present_qfi{ m_physical_device.first_present_qfi(m_surface) },
+  m_device{ m_physical_device, m_graphics_qfi, m_present_qfi, c_device_extension_names },
 
-  m_graphics_queue{},
+  m_graphics_queue{ m_device, m_graphics_qfi, 0 },
+  m_present_queue{ m_device, m_present_qfi, 0 },
 
   m_command_pool{},
 
@@ -462,7 +465,6 @@ sdlxvulkan::Application::Implementation::Implementation(int argc, char** argv) :
   m_vertex_shader_stage_info{},
   m_shader_stage_infos{},
 
-  m_present_queue{},
   
   m_swapchain_surface_cababilites{},
   m_swapchain_surface_formats{},
@@ -539,14 +541,11 @@ void sdlxvulkan::Application::Implementation::init()
 {
   std::cout << "Application::Implementation::init()" << std::endl;
 
-  init_logical_device();
-  init_graphics_queue();
   init_command_pool();
   init_vertex_buffer();
   init_index_buffer();
   init_uniform_buffer();
   init_shader_modules();
-  init_present_queue();
   init_swapchain();
   init_swapchain_image_views();
   init_render_pass();
@@ -573,16 +572,11 @@ void sdlxvulkan::Application::Implementation::quit()
   quit_render_pass();
   quit_swapchain_image_views();
   quit_swapchain();
-  quit_present_queue();
-  quit_graphics_queue();
   quit_shader_modules();
   quit_uniform_buffer();
   quit_index_buffer();
   quit_vertex_buffer();
   quit_command_pool();
-  quit_logical_device();
-  //quit_queue_families();
-  //quit_physical_device();
 }
 
 void sdlxvulkan::Application::Implementation::main_loop()
@@ -697,55 +691,31 @@ void sdlxvulkan::Application::Implementation::main_loop()
   vkDeviceWaitIdle(m_device);
 }
 
-
-void sdlxvulkan::Application::Implementation::init_logical_device()
+namespace
 {
-  // Logical Device
-  //-------------
-
-
-  float l_queue_priorities[1] = { 0.0 };
-  // Configure our queue info
-  VkDeviceQueueCreateInfo l_queue_info{};
-  l_queue_info.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
-  l_queue_info.pNext = NULL;
-  l_queue_info.flags = 0; //?
-  l_queue_info.queueFamilyIndex = m_physical_device.graphics_qfi();
-  l_queue_info.queueCount = 1;
-  l_queue_info.pQueuePriorities = l_queue_priorities;
-
-  char const* l_device_extensions[1]{ VK_KHR_SWAPCHAIN_EXTENSION_NAME };
-
-  // Make some device info
-  VkDeviceCreateInfo l_device_info = {};
-  l_device_info.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
-  l_device_info.pNext = NULL;
-  l_device_info.queueCreateInfoCount = 1;
-  l_device_info.pQueueCreateInfos = &l_queue_info;
-  l_device_info.enabledExtensionCount = 1;
-  l_device_info.ppEnabledExtensionNames = l_device_extensions;
-  l_device_info.enabledLayerCount = 0;
-  l_device_info.ppEnabledLayerNames = NULL;
-  l_device_info.pEnabledFeatures = NULL;
-
-
-  // Create the device
-  if (vkCreateDevice(m_physical_device, &l_device_info, NULL, &m_device) != VK_SUCCESS)
+  std::ostream& flags_out(std::ostream& a_ostream, VkQueueFlags a_queue_flags)
   {
-    throw std::runtime_error("Vulkan: Failed to create logical device.");
+    a_ostream << u8"{ ";
+    if (a_queue_flags & VK_QUEUE_GRAPHICS_BIT) a_ostream << u8"VK_QUEUE_GRAPHICS_BIT ";
+    if (a_queue_flags & VK_QUEUE_COMPUTE_BIT) a_ostream << u8"VK_QUEUE_COMPUTE_BIT ";
+    if (a_queue_flags & VK_QUEUE_TRANSFER_BIT) a_ostream << u8"VK_QUEUE_TRANSFER_BIT ";
+    if (a_queue_flags & VK_QUEUE_SPARSE_BINDING_BIT) a_ostream << u8"VK_QUEUE_SPARSE_BINDING_BIT ";
+    if (a_queue_flags & VK_QUEUE_PROTECTED_BIT) a_ostream << u8"VK_QUEUE_PROTECTED_BIT ";
+    a_ostream << u8"}";
+    return a_ostream;
   }
 
-  // Initialise the device vulkan functions.
-  s_device_functions = Device_Functions{ m_device, m_instance.vk_functions() };
-  //init_device_functions(s_device_functions, m_device, m_instance.vk_functions());
+  std::ostream& operator<<(std::ostream& a_ostream, VkExtent3D const& a_extent)
+  {
+    a_ostream
+      << u8"{ "
+      << a_extent.width << u8", "
+      << a_extent.height << u8", "
+      << a_extent.depth
+      << u8" }";
+    return a_ostream;
+  }
 
-  std::cout << "Logical Device initialised." << std::endl;
-}
-
-void sdlxvulkan::Application::Implementation::quit_logical_device()
-{
-  // Destroy the logical device.
-  s_device_functions.vkDestroyDevice(m_device, nullptr);
 }
 
 
@@ -761,10 +731,10 @@ void sdlxvulkan::Application::Implementation::init_command_pool()
   l_command_pool_info.flags = 0; // optional
   //l_command_pool_info.flags = VK_COMMAND_POOL_CREATE_TRANSIENT_BIT;             // hint that this is often used.
   //l_command_pool_info.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;  // allow buffers to be rerecorded individually (uh?)
-  l_command_pool_info.queueFamilyIndex = m_physical_device.graphics_qfi();
+  l_command_pool_info.queueFamilyIndex = m_physical_device.first_graphics_qfi();
 
   // Make the pool using the device.
-  if (s_device_functions.vkCreateCommandPool(m_device, &l_command_pool_info, nullptr, &m_command_pool) != VK_SUCCESS)
+  if (m_device.vk_functions().vkCreateCommandPool(m_device, &l_command_pool_info, nullptr, &m_command_pool) != VK_SUCCESS)
   {
     throw std::runtime_error("Vulkan: Failed to create command pool.");
   }
@@ -774,7 +744,7 @@ void sdlxvulkan::Application::Implementation::init_command_pool()
 void sdlxvulkan::Application::Implementation::quit_command_pool()
 {
   // Destroy the command pool
-  s_device_functions.vkDestroyCommandPool(m_device, m_command_pool, nullptr);
+  m_device.vk_functions().vkDestroyCommandPool(m_device, m_command_pool, nullptr);
 }
 
 
@@ -792,7 +762,7 @@ void sdlxvulkan::Application::Implementation::init_vertex_buffer()
   
   // Map data to it
   void *l_staging_data{ nullptr };
-  if (s_device_functions.vkMapMemory(m_device, l_staging_buffer_memory, 0, l_buffer_size, 0, &l_staging_data) != VK_SUCCESS)
+  if (m_device.vk_functions().vkMapMemory(m_device, l_staging_buffer_memory, 0, l_buffer_size, 0, &l_staging_data) != VK_SUCCESS)
   {
     throw std::runtime_error{ "Vulkan: Vertex Buffer: Failed to map the staging buffer." };
   }
@@ -801,7 +771,7 @@ void sdlxvulkan::Application::Implementation::init_vertex_buffer()
   memcpy(l_staging_data, c_vertices.data(), static_cast<size_t>(l_buffer_size));
 
   // unmap the memory after we have used it.
-  s_device_functions.vkUnmapMemory(m_device, l_staging_buffer_memory);
+  m_device.vk_functions().vkUnmapMemory(m_device, l_staging_buffer_memory);
   
 
   // Vertex buffer
@@ -812,14 +782,14 @@ void sdlxvulkan::Application::Implementation::init_vertex_buffer()
      
   copy_buffer(l_staging_buffer, m_vertex_buffer, l_buffer_size);
 
-  s_device_functions.vkDestroyBuffer(m_device, l_staging_buffer, nullptr);
-  s_device_functions.vkFreeMemory(m_device, l_staging_buffer_memory, nullptr);
+  m_device.vk_functions().vkDestroyBuffer(m_device, l_staging_buffer, nullptr);
+  m_device.vk_functions().vkFreeMemory(m_device, l_staging_buffer_memory, nullptr);
 }
 
 void sdlxvulkan::Application::Implementation::quit_vertex_buffer()
 {
-  s_device_functions.vkDestroyBuffer(m_device, m_vertex_buffer, nullptr);
-  s_device_functions.vkFreeMemory(m_device, m_vertex_buffer_memory, nullptr);
+  m_device.vk_functions().vkDestroyBuffer(m_device, m_vertex_buffer, nullptr);
+  m_device.vk_functions().vkFreeMemory(m_device, m_vertex_buffer_memory, nullptr);
 }
 
 void sdlxvulkan::Application::Implementation::init_index_buffer()
@@ -837,7 +807,7 @@ void sdlxvulkan::Application::Implementation::init_index_buffer()
 
   // Map data to it
   void *l_staging_data{ nullptr };
-  if (s_device_functions.vkMapMemory(m_device, l_staging_buffer_memory, 0, l_buffer_size, 0, &l_staging_data) != VK_SUCCESS)
+  if (m_device.vk_functions().vkMapMemory(m_device, l_staging_buffer_memory, 0, l_buffer_size, 0, &l_staging_data) != VK_SUCCESS)
   {
     throw std::runtime_error{ "Vulkan: Index Buffer: Failed to map the staging buffer." };
   }
@@ -846,7 +816,7 @@ void sdlxvulkan::Application::Implementation::init_index_buffer()
   memcpy(l_staging_data, c_indices.data(), static_cast<size_t>(l_buffer_size));
 
   // unmap the memory after we have used it.
-  s_device_functions.vkUnmapMemory(m_device, l_staging_buffer_memory);
+  m_device.vk_functions().vkUnmapMemory(m_device, l_staging_buffer_memory);
   
   // Index buffer
   VkBufferUsageFlags l_index_usage_flags = VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT;
@@ -856,14 +826,14 @@ void sdlxvulkan::Application::Implementation::init_index_buffer()
 
   copy_buffer(l_staging_buffer, m_index_buffer, l_buffer_size);
 
-  s_device_functions.vkDestroyBuffer(m_device, l_staging_buffer, nullptr);
-  s_device_functions.vkFreeMemory(m_device, l_staging_buffer_memory, nullptr);
+  m_device.vk_functions().vkDestroyBuffer(m_device, l_staging_buffer, nullptr);
+  m_device.vk_functions().vkFreeMemory(m_device, l_staging_buffer_memory, nullptr);
 }
 
 void sdlxvulkan::Application::Implementation::quit_index_buffer()
 {
-  s_device_functions.vkDestroyBuffer(m_device, m_index_buffer, nullptr);
-  s_device_functions.vkFreeMemory(m_device, m_index_buffer_memory, nullptr);
+  m_device.vk_functions().vkDestroyBuffer(m_device, m_index_buffer, nullptr);
+  m_device.vk_functions().vkFreeMemory(m_device, m_index_buffer_memory, nullptr);
 }
 
 void sdlxvulkan::Application::Implementation::init_uniform_buffer()
@@ -876,8 +846,8 @@ void sdlxvulkan::Application::Implementation::init_uniform_buffer()
 
 void sdlxvulkan::Application::Implementation::quit_uniform_buffer()
 {
-  s_device_functions.vkDestroyBuffer(m_device, m_uniform_buffer, nullptr);
-  s_device_functions.vkFreeMemory(m_device, m_uniform_buffer_memory, nullptr);
+  m_device.vk_functions().vkDestroyBuffer(m_device, m_uniform_buffer, nullptr);
+  m_device.vk_functions().vkFreeMemory(m_device, m_uniform_buffer_memory, nullptr);
 }
 
 void sdlxvulkan::Application::Implementation::init_descriptor_pool()
@@ -894,7 +864,7 @@ void sdlxvulkan::Application::Implementation::init_descriptor_pool()
   l_pool_info.poolSizeCount = 1;
   l_pool_info.pPoolSizes = &l_pool_size;
   
-  if (s_device_functions.vkCreateDescriptorPool(m_device, &l_pool_info, nullptr, &m_descriptor_pool) != VK_SUCCESS)
+  if (m_device.vk_functions().vkCreateDescriptorPool(m_device, &l_pool_info, nullptr, &m_descriptor_pool) != VK_SUCCESS)
   {
     throw std::runtime_error("Vulkan: Failed to create descriptor pool.");
   }
@@ -902,7 +872,7 @@ void sdlxvulkan::Application::Implementation::init_descriptor_pool()
 
 void sdlxvulkan::Application::Implementation::quit_descriptor_pool()
 {
-  s_device_functions.vkDestroyDescriptorPool(m_device, m_descriptor_pool, nullptr);
+  m_device.vk_functions().vkDestroyDescriptorPool(m_device, m_descriptor_pool, nullptr);
 }
 
 void sdlxvulkan::Application::Implementation::init_descriptor_set()
@@ -920,7 +890,7 @@ void sdlxvulkan::Application::Implementation::init_descriptor_set()
   l_alloc_info.descriptorSetCount = 1;
   l_alloc_info.pSetLayouts = l_layouts;
 
-  if (s_device_functions.vkAllocateDescriptorSets(m_device, &l_alloc_info, &m_descriptor_set) != VK_SUCCESS)
+  if (m_device.vk_functions().vkAllocateDescriptorSets(m_device, &l_alloc_info, &m_descriptor_set) != VK_SUCCESS)
   {
     throw std::runtime_error("Vulkan: Failed to allocate descriptor set.");
   }
@@ -942,7 +912,7 @@ void sdlxvulkan::Application::Implementation::init_descriptor_set()
   l_descriptor_write.pBufferInfo = &l_buffer_info;
   l_descriptor_write.pTexelBufferView = nullptr; // optional
 
-  s_device_functions.vkUpdateDescriptorSets(m_device, 1, &l_descriptor_write, 0, nullptr);
+  m_device.vk_functions().vkUpdateDescriptorSets(m_device, 1, &l_descriptor_write, 0, nullptr);
 }
 
 void sdlxvulkan::Application::Implementation::quit_descriptor_set()
@@ -1023,23 +993,24 @@ void sdlxvulkan::Application::Implementation::init_shader_modules()
 void sdlxvulkan::Application::Implementation::quit_shader_modules()
 {
   // Destroy the shaders
-  s_device_functions.vkDestroyShaderModule(m_device, m_fragment_shader_module, nullptr);
-  s_device_functions.vkDestroyShaderModule(m_device, m_vertex_shader_module, nullptr);
+  m_device.vk_functions().vkDestroyShaderModule(m_device, m_fragment_shader_module, nullptr);
+  m_device.vk_functions().vkDestroyShaderModule(m_device, m_vertex_shader_module, nullptr);
 }
 
+/*
 void sdlxvulkan::Application::Implementation::init_graphics_queue()
 {
-  s_device_functions.vkGetDeviceQueue(m_device, m_physical_device.graphics_qfi(), 0, &m_graphics_queue);
+  m_device.vk_functions().vkGetDeviceQueue(m_device, m_graphics_qfi, 0, &m_graphics_queue);
 
-  std::cout << "Graphics Queue initialised, index = " << m_physical_device.graphics_qfi() << std::endl;
+  std::cout << "Graphics Queue initialised, index = " << m_graphics_qfi << " queue = " << m_graphics_queue << std::endl;
 }
 
 void sdlxvulkan::Application::Implementation::quit_graphics_queue()
 {
   // Do nothing
 }
-
-
+*/
+/*
 void sdlxvulkan::Application::Implementation::init_present_queue()
 {
   // Presenting
@@ -1047,22 +1018,25 @@ void sdlxvulkan::Application::Implementation::init_present_queue()
   
   // Do we really need to bother with this check?
   // Could just get the queue regardless
-  if (m_physical_device.present_qfi() == m_physical_device.graphics_qfi())
+
+  /*
+  if (m_present_qfi == m_graphics_qfi)
   {
     m_present_queue = m_graphics_queue;
   }
   else
   {
-    s_device_functions.vkGetDeviceQueue(m_device, m_physical_device.present_qfi(), 0, &m_present_queue);
+    m_device.vk_functions().vkGetDeviceQueue(m_device, m_present_qfi, 0, &m_present_queue);
   }
-  std::cout << "Present Queue initialised, index = " << m_physical_device.present_qfi() << std::endl;
+  m_device.vk_functions().vkGetDeviceQueue(m_device, m_present_qfi, 0, &m_present_queue);
+  std::cout << "Present Queue initialised, index = " << m_present_qfi << " queue = " << m_present_queue << std::endl;
 }
 
 void sdlxvulkan::Application::Implementation::quit_present_queue()
 {
   // Do nothing
 }
-
+*/
 namespace
 {
   std::ostream& operator<<(std::ostream& a_ostream, VkExtent2D const& a_ext)
@@ -1264,9 +1238,9 @@ void sdlxvulkan::Application::Implementation::init_swapchain(VkSwapchainKHR a_ol
   l_swapchain_info.imageArrayLayers = 1;
   l_swapchain_info.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
 
-  uint32_t l_queue_familiy_indicies[2] = { m_physical_device.graphics_qfi(), m_physical_device.present_qfi() };
+  uint32_t l_queue_familiy_indicies[2] = {m_graphics_qfi, m_present_qfi };
 
-  if (m_physical_device.graphics_qfi() != m_physical_device.present_qfi())
+  if (m_graphics_qfi != m_present_qfi)
   {
     // If the graphics and present queues are from different queue families,
     // we either have to explicitly transfer ownership of images between
@@ -1291,7 +1265,7 @@ void sdlxvulkan::Application::Implementation::init_swapchain(VkSwapchainKHR a_ol
 
 
   // Now do the actual making.
-  VkResult l_result = s_device_functions.vkCreateSwapchainKHR(m_device, &l_swapchain_info, nullptr, &m_swapchain);
+  VkResult l_result = m_device.vk_functions().vkCreateSwapchainKHR(m_device, &l_swapchain_info, nullptr, &m_swapchain);
   if (l_result != VK_SUCCESS)
   {
     throw std::runtime_error{ std::string{ "Vulkan: Failed to create swapchain. " } +vulkan_result_string(l_result) };
@@ -1299,7 +1273,7 @@ void sdlxvulkan::Application::Implementation::init_swapchain(VkSwapchainKHR a_ol
 
 
   uint32_t l_actual_image_count{ 0 };
-  if (s_device_functions.vkGetSwapchainImagesKHR(m_device, m_swapchain, &l_actual_image_count, nullptr) != VK_SUCCESS)
+  if (m_device.vk_functions().vkGetSwapchainImagesKHR(m_device, m_swapchain, &l_actual_image_count, nullptr) != VK_SUCCESS)
   {
     throw std::runtime_error{ "Vulkan: Failed to get swapchain images." };
   }
@@ -1309,7 +1283,7 @@ void sdlxvulkan::Application::Implementation::init_swapchain(VkSwapchainKHR a_ol
 
   // Now make the images. These have no special cleanup.
   m_swapchain_images.resize(m_swapchain_image_count);
-  if (s_device_functions.vkGetSwapchainImagesKHR(m_device, m_swapchain, &m_swapchain_image_count, m_swapchain_images.data()) != VK_SUCCESS)
+  if (m_device.vk_functions().vkGetSwapchainImagesKHR(m_device, m_swapchain, &m_swapchain_image_count, m_swapchain_images.data()) != VK_SUCCESS)
   {
     throw std::runtime_error{ "Vulkan: Failed to get swapchain images." };
   }
@@ -1319,7 +1293,7 @@ void sdlxvulkan::Application::Implementation::init_swapchain(VkSwapchainKHR a_ol
 
 void sdlxvulkan::Application::Implementation::recreate_swapchain()
 {
-  vkDeviceWaitIdle(m_device);
+  m_device.vk_functions().vkDeviceWaitIdle(m_device);
 
   quit_command_buffers();
   quit_framebuffer();
@@ -1330,7 +1304,7 @@ void sdlxvulkan::Application::Implementation::recreate_swapchain()
 
   VkSwapchainKHR l_old_swapchain{ m_swapchain };
   init_swapchain(l_old_swapchain); 
-  s_device_functions.vkDestroySwapchainKHR(m_device, l_old_swapchain, nullptr);
+  m_device.vk_functions().vkDestroySwapchainKHR(m_device, l_old_swapchain, nullptr);
 
   init_swapchain_image_views();
   init_render_pass();
@@ -1345,7 +1319,7 @@ void sdlxvulkan::Application::Implementation::recreate_swapchain()
 void sdlxvulkan::Application::Implementation::quit_swapchain()
 {
   // Destroy the swapchain
-  s_device_functions.vkDestroySwapchainKHR(m_device, m_swapchain, nullptr);
+  m_device.vk_functions().vkDestroySwapchainKHR(m_device, m_swapchain, nullptr);
 }
 
 void sdlxvulkan::Application::Implementation::init_swapchain_image_views()
@@ -1368,7 +1342,7 @@ void sdlxvulkan::Application::Implementation::init_swapchain_image_views()
   {
     VkImageViewCreateInfo l_color_image_view = {};
     l_color_image_view.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-    l_color_image_view.pNext = NULL;
+    l_color_image_view.pNext = nullptr;
     l_color_image_view.flags = 0;
     l_color_image_view.image = m_swapchain_images[l_index];
     l_color_image_view.viewType = VK_IMAGE_VIEW_TYPE_2D;
@@ -1383,7 +1357,7 @@ void sdlxvulkan::Application::Implementation::init_swapchain_image_views()
     l_color_image_view.subresourceRange.baseArrayLayer = 0;
     l_color_image_view.subresourceRange.layerCount = 1;
 
-    if (s_device_functions.vkCreateImageView(m_device, &l_color_image_view, nullptr, &m_swapchain_image_views[l_index]) != VK_SUCCESS)
+    if (m_device.vk_functions().vkCreateImageView(m_device, &l_color_image_view, nullptr, &m_swapchain_image_views[l_index]) != VK_SUCCESS)
     {
       throw std::runtime_error{ "Vulkan: Failed to get swapchain image views." };
     }
@@ -1397,12 +1371,13 @@ void sdlxvulkan::Application::Implementation::quit_swapchain_image_views()
   // Destroy the swapchain image views
   for (auto const& l_image_view : m_swapchain_image_views)
   {
-    s_device_functions.vkDestroyImageView(m_device, l_image_view, nullptr);
+    m_device.vk_functions().vkDestroyImageView(m_device, l_image_view, nullptr);
   }
 }
 
 void sdlxvulkan::Application::Implementation::init_render_pass()
 {
+
   VkAttachmentDescription l_colour_attachment{};
   l_colour_attachment.flags = 0;
   l_colour_attachment.format = m_swapchain_format;
@@ -1452,7 +1427,7 @@ void sdlxvulkan::Application::Implementation::init_render_pass()
   l_render_pass_info.pDependencies = &l_dependency;
 
 
-  if (s_device_functions.vkCreateRenderPass(m_device, &l_render_pass_info, nullptr, &m_render_pass) != VK_SUCCESS)
+  if (m_device.vk_functions().vkCreateRenderPass(m_device, &l_render_pass_info, nullptr, &m_render_pass) != VK_SUCCESS)
   {
     throw std::runtime_error{ "Vulkan: Failed to create render pass." };
   }
@@ -1462,7 +1437,7 @@ void sdlxvulkan::Application::Implementation::init_render_pass()
 
 void sdlxvulkan::Application::Implementation::quit_render_pass()
 {
-  s_device_functions.vkDestroyRenderPass(m_device, m_render_pass, nullptr);
+  m_device.vk_functions().vkDestroyRenderPass(m_device, m_render_pass, nullptr);
 }
 
 void sdlxvulkan::Application::Implementation::init_descriptor_set_layout()
@@ -1481,7 +1456,7 @@ void sdlxvulkan::Application::Implementation::init_descriptor_set_layout()
   l_layout_info.bindingCount = 1;
   l_layout_info.pBindings = &l_ubo_layout_binding;
 
-  if (s_device_functions.vkCreateDescriptorSetLayout(m_device, &l_layout_info, nullptr, &m_descriptor_set_layout) != VK_SUCCESS)
+  if (m_device.vk_functions().vkCreateDescriptorSetLayout(m_device, &l_layout_info, nullptr, &m_descriptor_set_layout) != VK_SUCCESS)
   {
     throw std::runtime_error("Vulkan: Failed to create descriptor set layout.");
   }
@@ -1489,7 +1464,7 @@ void sdlxvulkan::Application::Implementation::init_descriptor_set_layout()
 
 void sdlxvulkan::Application::Implementation::quit_descriptor_set_layout()
 {
-  s_device_functions.vkDestroyDescriptorSetLayout(m_device, m_descriptor_set_layout, nullptr);
+  m_device.vk_functions().vkDestroyDescriptorSetLayout(m_device, m_descriptor_set_layout, nullptr);
 }
 
 
@@ -1691,7 +1666,7 @@ void sdlxvulkan::Application::Implementation::init_pipeline()
   l_pipeline_info.basePipelineIndex = -1; // optional
   
 
-  if(s_device_functions.vkCreateGraphicsPipelines(m_device, VK_NULL_HANDLE, 1, &l_pipeline_info, nullptr, &m_pipeline) != VK_SUCCESS)
+  if(m_device.vk_functions().vkCreateGraphicsPipelines(m_device, VK_NULL_HANDLE, 1, &l_pipeline_info, nullptr, &m_pipeline) != VK_SUCCESS)
   {
     throw std::runtime_error{ "Vulkan: Failed to create graphics pipeline." };
   }
@@ -1700,8 +1675,8 @@ void sdlxvulkan::Application::Implementation::init_pipeline()
 
 void sdlxvulkan::Application::Implementation::quit_pipeline()
 {
-  s_device_functions.vkDestroyPipeline(m_device, m_pipeline, nullptr);
-  s_device_functions.vkDestroyPipelineLayout(m_device, m_pipeline_layout, nullptr);
+  m_device.vk_functions().vkDestroyPipeline(m_device, m_pipeline, nullptr);
+  m_device.vk_functions().vkDestroyPipelineLayout(m_device, m_pipeline_layout, nullptr);
 }
 
 void sdlxvulkan::Application::Implementation::init_framebuffer()
@@ -1733,7 +1708,7 @@ void sdlxvulkan::Application::Implementation::quit_framebuffer()
 {
   for (auto l_framebuffer : m_swapchain_framebuffers) 
   {
-    s_device_functions.vkDestroyFramebuffer(m_device, l_framebuffer, nullptr);
+    m_device.vk_functions().vkDestroyFramebuffer(m_device, l_framebuffer, nullptr);
   }
 }
 
@@ -1753,7 +1728,7 @@ void sdlxvulkan::Application::Implementation::init_command_buffers()
   
   //auto l_vkAllocateCommandBuffers = (PFN_vkAllocateCommandBuffers)(m_get_instance_func(m_instance, "vkAllocateCommandBuffers"));
   // BEWARE the last arg is expected to be a pointer to an array if more than one...
-  if (s_device_functions.vkAllocateCommandBuffers(m_device, &l_command_buffer_allocate_info, m_command_buffers.data()) != VK_SUCCESS)
+  if (m_device.vk_functions().vkAllocateCommandBuffers(m_device, &l_command_buffer_allocate_info, m_command_buffers.data()) != VK_SUCCESS)
   {
     throw std::runtime_error("Vulkan: Failed to create command buffers.");
   }
@@ -1766,7 +1741,7 @@ void sdlxvulkan::Application::Implementation::quit_command_buffers()
 {
   // Destroy the command buffers
   // BEWARE the last arg is expected to be a pointer to an array if more than one...
-  s_device_functions.vkFreeCommandBuffers(m_device, m_command_pool, static_cast<uint32_t>(m_command_buffers.size()), m_command_buffers.data());
+  m_device.vk_functions().vkFreeCommandBuffers(m_device, m_command_pool, static_cast<uint32_t>(m_command_buffers.size()), m_command_buffers.data());
 }
 
 
@@ -1779,7 +1754,7 @@ void sdlxvulkan::Application::Implementation::do_commands()
     l_begin_info.flags = VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT;
     l_begin_info.pInheritanceInfo = nullptr; // Optional
 
-    if (s_device_functions.vkBeginCommandBuffer(m_command_buffers[l_index], &l_begin_info) != VK_SUCCESS)
+    if (m_device.vk_functions().vkBeginCommandBuffer(m_command_buffers[l_index], &l_begin_info) != VK_SUCCESS)
     {
       throw std::runtime_error("Vulkan: Failed to begin recording command buffer.");
     }
@@ -1795,23 +1770,23 @@ void sdlxvulkan::Application::Implementation::do_commands()
     l_render_pass_info.clearValueCount = 1;
     l_render_pass_info.pClearValues = &l_clear_colour;
 
-    s_device_functions.vkCmdBeginRenderPass(m_command_buffers[l_index], &l_render_pass_info, VK_SUBPASS_CONTENTS_INLINE);
+    m_device.vk_functions().vkCmdBeginRenderPass(m_command_buffers[l_index], &l_render_pass_info, VK_SUBPASS_CONTENTS_INLINE);
 
-    s_device_functions.vkCmdBindPipeline(m_command_buffers[l_index], VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipeline);
+    m_device.vk_functions().vkCmdBindPipeline(m_command_buffers[l_index], VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipeline);
 
     //vkCmdDraw(m_command_buffers[l_index], 3, 1, 0, 0);
 
     VkBuffer l_vertex_buffers[] { m_vertex_buffer };
     VkDeviceSize l_offsets[] = { 0 };
-    s_device_functions.vkCmdBindVertexBuffers(m_command_buffers[l_index], 0, 1, l_vertex_buffers, l_offsets);
+    m_device.vk_functions().vkCmdBindVertexBuffers(m_command_buffers[l_index], 0, 1, l_vertex_buffers, l_offsets);
 
     // Bind the index buffer - there can be only one
-    s_device_functions.vkCmdBindIndexBuffer(m_command_buffers[l_index], m_index_buffer, 0, VK_INDEX_TYPE_UINT16);
+    m_device.vk_functions().vkCmdBindIndexBuffer(m_command_buffers[l_index], m_index_buffer, 0, VK_INDEX_TYPE_UINT16);
 
-    s_device_functions.vkCmdBindDescriptorSets(m_command_buffers[l_index], VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipeline_layout, 0, 1, &m_descriptor_set, 0, nullptr);
+    m_device.vk_functions().vkCmdBindDescriptorSets(m_command_buffers[l_index], VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipeline_layout, 0, 1, &m_descriptor_set, 0, nullptr);
 
     // Now we draw using the indices
-    s_device_functions.vkCmdDrawIndexed(m_command_buffers[l_index], static_cast<uint32_t>(c_indices.size()), 1, 0, 0, 0);
+    m_device.vk_functions().vkCmdDrawIndexed(m_command_buffers[l_index], static_cast<uint32_t>(c_indices.size()), 1, 0, 0, 0);
 
 
 
@@ -1822,9 +1797,9 @@ void sdlxvulkan::Application::Implementation::do_commands()
     //vkCmdDraw(m_command_buffers[l_index], l_vertex_count, 1, 0, 0);
 
 
-    s_device_functions.vkCmdEndRenderPass(m_command_buffers[l_index]);
+    m_device.vk_functions().vkCmdEndRenderPass(m_command_buffers[l_index]);
 
-    if (s_device_functions.vkEndCommandBuffer(m_command_buffers[l_index]) != VK_SUCCESS)
+    if (m_device.vk_functions().vkEndCommandBuffer(m_command_buffers[l_index]) != VK_SUCCESS)
     {
       throw std::runtime_error("Vulkan: Failed to record command buffer.");
     }
@@ -1851,9 +1826,9 @@ void sdlxvulkan::Application::Implementation::init_sync_objects()
 
   for (size_t l_index = 0; l_index != c_frames_in_flight; ++l_index)
   {
-    if (s_device_functions.vkCreateSemaphore(m_device, &l_semaphore_info, nullptr, &m_image_available_semaphores[l_index]) != VK_SUCCESS ||
-      s_device_functions.vkCreateSemaphore(m_device, &l_semaphore_info, nullptr, &m_render_finished_semaphores[l_index]) != VK_SUCCESS ||
-      s_device_functions.vkCreateFence(m_device, &l_fence_info, nullptr, &m_fences[l_index]) != VK_SUCCESS)
+    if (m_device.vk_functions().vkCreateSemaphore(m_device, &l_semaphore_info, nullptr, &m_image_available_semaphores[l_index]) != VK_SUCCESS ||
+      m_device.vk_functions().vkCreateSemaphore(m_device, &l_semaphore_info, nullptr, &m_render_finished_semaphores[l_index]) != VK_SUCCESS ||
+      m_device.vk_functions().vkCreateFence(m_device, &l_fence_info, nullptr, &m_fences[l_index]) != VK_SUCCESS)
     {
 
       throw std::runtime_error("Vulkan: Failed to create sync objects for a frame.");
@@ -1866,26 +1841,26 @@ void sdlxvulkan::Application::Implementation::quit_sync_objects()
 {
   for (size_t l_index = 0; l_index != c_frames_in_flight; ++l_index)
   {
-    s_device_functions.vkDestroyFence(m_device, m_fences[l_index], nullptr);
-    s_device_functions.vkDestroySemaphore(m_device, m_render_finished_semaphores[l_index], nullptr);
-    s_device_functions.vkDestroySemaphore(m_device, m_image_available_semaphores[l_index], nullptr);
+    m_device.vk_functions().vkDestroyFence(m_device, m_fences[l_index], nullptr);
+    m_device.vk_functions().vkDestroySemaphore(m_device, m_render_finished_semaphores[l_index], nullptr);
+    m_device.vk_functions().vkDestroySemaphore(m_device, m_image_available_semaphores[l_index], nullptr);
   }  
 }
 
 void sdlxvulkan::Application::Implementation::draw_frame()
 {
   //std::cout << "Draw Frame Start" << std::endl;
-  s_device_functions.vkWaitForFences(m_device, 1, &m_fences[m_current_frame], VK_TRUE, std::numeric_limits<uint64_t>::max());
+  m_device.vk_functions().vkWaitForFences(m_device, 1, &m_fences[m_current_frame], VK_TRUE, std::numeric_limits<uint64_t>::max());
   //std::cout << "waiting for fence "<< m_fences[m_current_frame] << std::endl;
   //vkResetFences(m_device, 1, &m_fences[m_current_frame]);
-  if (s_device_functions.vkResetFences(m_device, 1, &m_fences[m_current_frame]) != VK_SUCCESS)
+  if (m_device.vk_functions().vkResetFences(m_device, 1, &m_fences[m_current_frame]) != VK_SUCCESS)
   {
     throw std::runtime_error{ "Vulkan: Failed to reset fence." };
   }
   //std::cout << "fence done" << std::endl;
 
   uint32_t l_image_index{0};
-  VkResult l_result = s_device_functions.vkAcquireNextImageKHR(m_device, m_swapchain, std::numeric_limits<uint64_t>::max(), m_image_available_semaphores[m_current_frame], VK_NULL_HANDLE, &l_image_index);
+  VkResult l_result = m_device.vk_functions().vkAcquireNextImageKHR(m_device, m_swapchain, std::numeric_limits<uint64_t>::max(), m_image_available_semaphores[m_current_frame], VK_NULL_HANDLE, &l_image_index);
   if (l_result != VK_SUCCESS)
   {
     std::cout << vulkan_result_string(l_result) << std::endl;
@@ -1917,7 +1892,7 @@ void sdlxvulkan::Application::Implementation::draw_frame()
 
 
   // Finally we send the commands off to be done
-  if (s_device_functions.vkQueueSubmit(m_graphics_queue, 1, &l_submit_info, m_fences[m_current_frame]) != VK_SUCCESS)
+  if (m_device.vk_functions().vkQueueSubmit(m_graphics_queue, 1, &l_submit_info, m_fences[m_current_frame]) != VK_SUCCESS)
   {
     throw std::runtime_error{ "Vulkan: Failed to submit command queue." };
   }
@@ -1967,9 +1942,9 @@ void sdlxvulkan::Application::Implementation::update_uniform_buffer()
   l_ubo.proj[1][1] *= -1;
   
   void* l_data;
-  s_device_functions.vkMapMemory(m_device, m_uniform_buffer_memory, 0, sizeof(l_ubo), 0, &l_data);
+  m_device.vk_functions().vkMapMemory(m_device, m_uniform_buffer_memory, 0, sizeof(l_ubo), 0, &l_data);
   memcpy(l_data, &l_ubo, sizeof(l_ubo));
-  s_device_functions.vkUnmapMemory(m_device, m_uniform_buffer_memory);
+  m_device.vk_functions().vkUnmapMemory(m_device, m_uniform_buffer_memory);
 }
 
 void sdlxvulkan::Application::Implementation::create_buffer(VkDeviceSize a_size, VkBufferUsageFlags a_usage, VkMemoryPropertyFlags a_properties, VkBuffer& a_buffer, VkDeviceMemory& a_buffer_memory)
@@ -1990,7 +1965,7 @@ void sdlxvulkan::Application::Implementation::create_buffer(VkDeviceSize a_size,
   }
 
   VkMemoryRequirements l_mem_reqs{};
-  s_device_functions.vkGetBufferMemoryRequirements(m_device, a_buffer, &l_mem_reqs);
+  m_device.vk_functions().vkGetBufferMemoryRequirements(m_device, a_buffer, &l_mem_reqs);
 
   VkMemoryAllocateInfo l_alloc_info{};
   l_alloc_info.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
@@ -2004,14 +1979,14 @@ void sdlxvulkan::Application::Implementation::create_buffer(VkDeviceSize a_size,
   }*/
 
   // Allocate the memory
-  if (s_device_functions.vkAllocateMemory(m_device, &l_alloc_info, NULL, &a_buffer_memory) != VK_SUCCESS)
+  if (m_device.vk_functions().vkAllocateMemory(m_device, &l_alloc_info, NULL, &a_buffer_memory) != VK_SUCCESS)
   {
     throw std::runtime_error{ "Vulkan: Failed to allocate buffer memory." };
   }
   assert(a_buffer != VK_NULL_HANDLE);
   assert(a_buffer_memory != VK_NULL_HANDLE);
   // Bind it
-  if (s_device_functions.vkBindBufferMemory(m_device, a_buffer, a_buffer_memory, 0) != VK_SUCCESS)
+  if (m_device.vk_functions().vkBindBufferMemory(m_device, a_buffer, a_buffer_memory, 0) != VK_SUCCESS)
   {
     throw std::runtime_error{ "Vulkan: Failed to bind a buffer." };
   }
@@ -2029,7 +2004,7 @@ void sdlxvulkan::Application::Implementation::copy_buffer(VkBuffer a_source, VkB
   l_alloc_info.commandBufferCount = 1;
 
   VkCommandBuffer l_command_buffers[1]{};
-  s_device_functions.vkAllocateCommandBuffers(m_device, &l_alloc_info, l_command_buffers);
+  m_device.vk_functions().vkAllocateCommandBuffers(m_device, &l_alloc_info, l_command_buffers);
   assert(l_command_buffers[0] != VK_NULL_HANDLE);
 
   VkCommandBufferBeginInfo l_begin_info{};
@@ -2039,7 +2014,7 @@ void sdlxvulkan::Application::Implementation::copy_buffer(VkBuffer a_source, VkB
   l_begin_info.pInheritanceInfo = nullptr;
 
 
-  if (s_device_functions.vkBeginCommandBuffer(l_command_buffers[0], &l_begin_info) != VK_SUCCESS)
+  if (m_device.vk_functions().vkBeginCommandBuffer(l_command_buffers[0], &l_begin_info) != VK_SUCCESS)
   {
     throw std::runtime_error{ "Vulkan: Copying Buffer: Failed to begin command buffer." };
   }
@@ -2050,9 +2025,9 @@ void sdlxvulkan::Application::Implementation::copy_buffer(VkBuffer a_source, VkB
   l_copy_regions[0].dstOffset = 0; // Optional
   l_copy_regions[0].size = a_size;
 
-  s_device_functions.vkCmdCopyBuffer(l_command_buffers[0], a_source, a_dest, 1, l_copy_regions);
+  m_device.vk_functions().vkCmdCopyBuffer(l_command_buffers[0], a_source, a_dest, 1, l_copy_regions);
 
-  s_device_functions.vkEndCommandBuffer(l_command_buffers[0]);
+  m_device.vk_functions().vkEndCommandBuffer(l_command_buffers[0]);
 
   VkSubmitInfo l_submit_info = {};
   l_submit_info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
@@ -2066,14 +2041,14 @@ void sdlxvulkan::Application::Implementation::copy_buffer(VkBuffer a_source, VkB
   l_submit_info.pSignalSemaphores = nullptr;
 
   std::cout << "submit" << std::endl;
-  if (s_device_functions.vkQueueSubmit(m_graphics_queue, 1, &l_submit_info, VK_NULL_HANDLE) != VK_SUCCESS)
+  if (m_device.vk_functions().vkQueueSubmit(m_graphics_queue, 1, &l_submit_info, VK_NULL_HANDLE) != VK_SUCCESS)
   {
     throw std::runtime_error{ "Vulkan: Copying Buffer: Failed to submit command buffer." };
   }
   //vkQueueSubmit(this->m_graphics_queue, 1, &l_submit_info, VK_NULL_HANDLE);
-  s_device_functions.vkQueueWaitIdle(m_graphics_queue);
+  m_device.vk_functions().vkQueueWaitIdle(m_graphics_queue);
 
-  s_device_functions.vkFreeCommandBuffers(m_device, m_command_pool, 1, l_command_buffers);
+  m_device.vk_functions().vkFreeCommandBuffers(m_device, m_command_pool, 1, l_command_buffers);
 }
 //------------------------------------------------------------------------------------------------------------------------------------------------------
 

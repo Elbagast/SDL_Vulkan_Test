@@ -45,15 +45,15 @@ namespace sdlxvulkan
     // DO NOT CALL THESE FUNCTIONS BEFORE A System OBJECT HAS BEEN 
     // SUCCESSFULLY CONSTRUCTED.
 
-    static Global_Functions const& vk_functions();
+    Global_Functions const& vk_functions() const;
 
     // Simplified access to the above data.
-    static Result<std::vector<VkExtensionProperties>> instance_extension_properties(char const* a_layer_name);
-    static Result<std::vector<VkLayerProperties>> instance_layer_properties();
-    static uint32_t vulkan_api_version();
+    Result<std::vector<VkExtensionProperties>> instance_extension_properties(char const* a_layer_name) const;
+    Result<std::vector<VkLayerProperties>> instance_layer_properties() const;
+    uint32_t vulkan_api_version() const;
 
-    static bool supports_layer(std::string const& a_layer_name);
-    static bool supports_layers(std::vector<std::string> const& a_layer_names);
+    bool supports_layer(std::string const& a_layer_name) const;
+    bool supports_layers(std::vector<std::string> const& a_layer_names) const;
   };
 }
 

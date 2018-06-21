@@ -16,15 +16,15 @@ namespace sdlxvulkan
   //---------------------------------------------------------------------------
   // Manages the SDL window with reference counting.
 
-  class Window :
-    private Handle<SDL_Window>
+  class Window
   {
   private:
-    using Inherited_Type = Handle<SDL_Window>;
-  public:
-    using Inherited_Type::get;
-    using Inherited_Type::operator Pointer;
+    // Member Data
+    //============================================================   
+    using Data_Type = Handle<SDL_Window>;
+    Data_Type m_data;
 
+  public:
     // Special 6
     //============================================================
     Window(System const& a_system, std::string const& a_title, int a_xpos, int a_ypos, int a_width, int a_height, uint32_t a_flags);
@@ -38,6 +38,8 @@ namespace sdlxvulkan
     
     // Interface
     //============================================================
+    Data_Type::Pointer get() const noexcept       { return m_data.get(); }
+    operator Data_Type::Pointer() const noexcept  { return m_data.get(); }
 
     uint32_t id() const;
 

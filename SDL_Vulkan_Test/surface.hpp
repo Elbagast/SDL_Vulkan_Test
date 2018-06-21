@@ -16,15 +16,15 @@ namespace sdlxvulkan
   //---------------------------------------------------------------------------
   // Manages the Vulkan surface with reference counting.
 
-  class Surface :
-    private Vulkan_Handle<VkSurfaceKHR>
+  class Surface
   {
   private:
-    using Inherited_Type = Vulkan_Handle<VkSurfaceKHR>;
-  public:
-    using Inherited_Type::get;
-    using Inherited_Type::operator Pointer;
+    // Member Data
+    //============================================================   
+    using Data_Type = Vulkan_Handle<VkSurfaceKHR>;
+    Data_Type m_data;
 
+  public:
     // Special 6
     //============================================================
     Surface(Window const& a_window, Instance const& a_instance);
@@ -38,6 +38,10 @@ namespace sdlxvulkan
 
     // Interface
     //============================================================
+    Data_Type::Pointer get() const noexcept       { return m_data.get(); }
+    operator Data_Type::Pointer() const noexcept  { return m_data.get(); }
+
+    Instance const& get_instance() const noexcept;
   };
 }
 
