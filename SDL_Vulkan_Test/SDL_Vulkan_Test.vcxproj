@@ -20,6 +20,8 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="application.cpp" />
+    <ClCompile Include="command_buffer.cpp" />
+    <ClCompile Include="command_pool.cpp" />
     <ClCompile Include="debug_callback.cpp" />
     <ClCompile Include="device.cpp" />
     <ClCompile Include="device_functions.cpp" />
@@ -35,6 +37,8 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="application.hpp" />
+    <ClInclude Include="command_buffer.hpp" />
+    <ClInclude Include="command_pool.hpp" />
     <ClInclude Include="debug_callback.hpp" />
     <ClInclude Include="device.hpp" />
     <ClInclude Include="device_functions.hpp" />

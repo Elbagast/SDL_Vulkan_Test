@@ -23,6 +23,8 @@
 #include "physical_device.hpp"
 #include "device.hpp"
 #include "queue.hpp"
+#include "command_pool.hpp"
+#include "command_buffer.hpp"
 
 #include <SDL.h>
 #include <SDL_vulkan.h>
@@ -248,7 +250,7 @@ namespace sdlxvulkan
     Queue m_present_queue;
 
     // Command Pool
-    VkCommandPool m_command_pool;
+    Command_Pool m_command_pool;
 
     // Vertex Buffer
     VkBuffer m_vertex_buffer;
@@ -306,7 +308,7 @@ namespace sdlxvulkan
     std::vector<VkFramebuffer> m_swapchain_framebuffers;
     
     // Command Buffer(s)
-    std::vector<VkCommandBuffer> m_command_buffers;
+    std::vector<Command_Buffer> m_command_buffers;
 
     // Sync Objects
     std::vector<VkSemaphore> m_image_available_semaphores;
@@ -339,8 +341,8 @@ namespace sdlxvulkan
     //void init_logical_device();
     //void quit_logical_device();
 
-    void init_command_pool();
-    void quit_command_pool();
+    //void init_command_pool();
+    //void quit_command_pool();
 
     void init_vertex_buffer();
     void quit_vertex_buffer();
@@ -380,7 +382,7 @@ namespace sdlxvulkan
     void quit_framebuffer();
     
     void init_command_buffers();
-    void quit_command_buffers();
+    //void quit_command_buffers();
     
     void do_commands();
 
@@ -444,7 +446,7 @@ sdlxvulkan::Application::Implementation::Implementation(int argc, char** argv) :
   m_graphics_queue{ m_device, m_graphics_qfi, 0 },
   m_present_queue{ m_device, m_present_qfi, 0 },
 
-  m_command_pool{},
+  m_command_pool{ m_device, m_graphics_qfi, 0 },
 
   m_vertex_buffer{},
   m_vertex_buffer_memory{},
@@ -492,7 +494,7 @@ sdlxvulkan::Application::Implementation::Implementation(int argc, char** argv) :
 
   m_swapchain_framebuffers{},
   
-  m_command_buffers{},
+  m_command_buffers{  },
 
   // Sync Objects
   m_image_available_semaphores{},
@@ -541,7 +543,7 @@ void sdlxvulkan::Application::Implementation::init()
 {
   std::cout << "Application::Implementation::init()" << std::endl;
 
-  init_command_pool();
+  //init_command_pool();
   init_vertex_buffer();
   init_index_buffer();
   init_uniform_buffer();
@@ -563,7 +565,7 @@ void sdlxvulkan::Application::Implementation::init()
 void sdlxvulkan::Application::Implementation::quit()
 {
   quit_sync_objects();
-  quit_command_buffers();
+  //quit_command_buffers();
   quit_framebuffer();
   quit_pipeline();
   quit_descriptor_set();
@@ -576,7 +578,7 @@ void sdlxvulkan::Application::Implementation::quit()
   quit_uniform_buffer();
   quit_index_buffer();
   quit_vertex_buffer();
-  quit_command_pool();
+  //quit_command_pool();
 }
 
 void sdlxvulkan::Application::Implementation::main_loop()
@@ -718,7 +720,7 @@ namespace
 
 }
 
-
+/*
 void sdlxvulkan::Application::Implementation::init_command_pool()
 {
   // Command Buffer Pool
@@ -746,7 +748,7 @@ void sdlxvulkan::Application::Implementation::quit_command_pool()
   // Destroy the command pool
   m_device.vk_functions().vkDestroyCommandPool(m_device, m_command_pool, nullptr);
 }
-
+*/
 
 void sdlxvulkan::Application::Implementation::init_vertex_buffer()
 {
@@ -1293,9 +1295,13 @@ void sdlxvulkan::Application::Implementation::init_swapchain(VkSwapchainKHR a_ol
 
 void sdlxvulkan::Application::Implementation::recreate_swapchain()
 {
+  std::cout << "sdlxvulkan::Application::Implementation::recreate_swapchain()" << std::endl;
   m_device.vk_functions().vkDeviceWaitIdle(m_device);
 
-  quit_command_buffers();
+  // reset all the associated command buffers instead of completely remaking them
+  m_command_pool.reset();
+  //m_device.vk_functions().vkResetCommandPool(m_device, m_command_pool, 0);
+  //quit_command_buffers();
   quit_framebuffer();
   quit_pipeline();
   //quit_descriptor_set_layout();
@@ -1311,7 +1317,7 @@ void sdlxvulkan::Application::Implementation::recreate_swapchain()
   //init_descriptor_set_layout();
   init_pipeline();
   init_framebuffer();
-  init_command_buffers();
+  //init_command_buffers();
 
   do_commands();
 }
@@ -1715,12 +1721,14 @@ void sdlxvulkan::Application::Implementation::quit_framebuffer()
 
 void sdlxvulkan::Application::Implementation::init_command_buffers()
 {
+  m_command_buffers = make_command_buffer_vector(static_cast<uint32_t>(m_swapchain_framebuffers.size()), m_command_pool, VK_COMMAND_BUFFER_LEVEL_PRIMARY);
+  /*
   // one per swapchain image
   m_command_buffers.resize(m_swapchain_framebuffers.size());
   
   VkCommandBufferAllocateInfo l_command_buffer_allocate_info = {};
   l_command_buffer_allocate_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-  l_command_buffer_allocate_info.pNext = NULL;
+  l_command_buffer_allocate_info.pNext = nullptr;
   l_command_buffer_allocate_info.commandPool = m_command_pool;
   l_command_buffer_allocate_info.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
   l_command_buffer_allocate_info.commandBufferCount = static_cast<uint32_t>(m_command_buffers.size());
@@ -1733,17 +1741,17 @@ void sdlxvulkan::Application::Implementation::init_command_buffers()
     throw std::runtime_error("Vulkan: Failed to create command buffers.");
   }
   //m_command_buffer = m_command_buffers[0];
-
+  */
   std::cout << "Command Buffers initialised." << std::endl;
 }
-
+/*
 void sdlxvulkan::Application::Implementation::quit_command_buffers()
 {
   // Destroy the command buffers
   // BEWARE the last arg is expected to be a pointer to an array if more than one...
   m_device.vk_functions().vkFreeCommandBuffers(m_device, m_command_pool, static_cast<uint32_t>(m_command_buffers.size()), m_command_buffers.data());
 }
-
+*/
 
 void sdlxvulkan::Application::Implementation::do_commands()
 {
@@ -1878,6 +1886,16 @@ void sdlxvulkan::Application::Implementation::draw_frame()
   VkSemaphore l_wait_semaphores[] = { m_image_available_semaphores[m_current_frame] };
   VkPipelineStageFlags l_wait_stages[] = { VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT }; 
   VkSemaphore l_signal_semaphores[] = { m_render_finished_semaphores[m_current_frame] };
+  /*
+  std::vector<VkCommandBuffer> l_command_buffers{};
+  l_command_buffers.reserve(m_command_buffers.size());
+  for (auto const& l_cb : m_command_buffers)
+  {
+    l_command_buffers.push_back(l_cb);
+  }*/
+
+  VkCommandBuffer l_command_buffers[1]{};
+  l_command_buffers[0] = m_command_buffers[l_image_index];
 
   VkSubmitInfo l_submit_info {};
   l_submit_info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
@@ -1886,7 +1904,7 @@ void sdlxvulkan::Application::Implementation::draw_frame()
   l_submit_info.pWaitSemaphores = l_wait_semaphores;
   l_submit_info.pWaitDstStageMask = l_wait_stages;
   l_submit_info.commandBufferCount = 1;
-  l_submit_info.pCommandBuffers = &m_command_buffers[l_image_index];
+  l_submit_info.pCommandBuffers = l_command_buffers;
   l_submit_info.signalSemaphoreCount = 1;
   l_submit_info.pSignalSemaphores = l_signal_semaphores;
 
@@ -1996,6 +2014,7 @@ void sdlxvulkan::Application::Implementation::create_buffer(VkDeviceSize a_size,
 void sdlxvulkan::Application::Implementation::copy_buffer(VkBuffer a_source, VkBuffer a_dest, VkDeviceSize a_size)
 {
   std::cout << "begin buffer copy, size = " << a_size << std::endl;
+  /*
   VkCommandBufferAllocateInfo l_alloc_info{};
   l_alloc_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
   l_alloc_info.pNext = nullptr;
@@ -2006,6 +2025,8 @@ void sdlxvulkan::Application::Implementation::copy_buffer(VkBuffer a_source, VkB
   VkCommandBuffer l_command_buffers[1]{};
   m_device.vk_functions().vkAllocateCommandBuffers(m_device, &l_alloc_info, l_command_buffers);
   assert(l_command_buffers[0] != VK_NULL_HANDLE);
+  */
+  Command_Buffer l_command_buffer{ m_command_pool,VK_COMMAND_BUFFER_LEVEL_PRIMARY };
 
   VkCommandBufferBeginInfo l_begin_info{};
   l_begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
@@ -2014,7 +2035,7 @@ void sdlxvulkan::Application::Implementation::copy_buffer(VkBuffer a_source, VkB
   l_begin_info.pInheritanceInfo = nullptr;
 
 
-  if (m_device.vk_functions().vkBeginCommandBuffer(l_command_buffers[0], &l_begin_info) != VK_SUCCESS)
+  if (m_device.vk_functions().vkBeginCommandBuffer(l_command_buffer, &l_begin_info) != VK_SUCCESS)
   {
     throw std::runtime_error{ "Vulkan: Copying Buffer: Failed to begin command buffer." };
   }
@@ -2025,9 +2046,11 @@ void sdlxvulkan::Application::Implementation::copy_buffer(VkBuffer a_source, VkB
   l_copy_regions[0].dstOffset = 0; // Optional
   l_copy_regions[0].size = a_size;
 
-  m_device.vk_functions().vkCmdCopyBuffer(l_command_buffers[0], a_source, a_dest, 1, l_copy_regions);
+  m_device.vk_functions().vkCmdCopyBuffer(l_command_buffer, a_source, a_dest, 1, l_copy_regions);
 
-  m_device.vk_functions().vkEndCommandBuffer(l_command_buffers[0]);
+  m_device.vk_functions().vkEndCommandBuffer(l_command_buffer);
+
+  VkCommandBuffer l_command_buffers_temp[1]{ l_command_buffer };
 
   VkSubmitInfo l_submit_info = {};
   l_submit_info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
@@ -2036,7 +2059,7 @@ void sdlxvulkan::Application::Implementation::copy_buffer(VkBuffer a_source, VkB
   l_submit_info.pWaitSemaphores = nullptr;
   l_submit_info.pWaitDstStageMask = 0;
   l_submit_info.commandBufferCount = 1;
-  l_submit_info.pCommandBuffers = l_command_buffers;
+  l_submit_info.pCommandBuffers = l_command_buffers_temp;
   l_submit_info.signalSemaphoreCount = 0;
   l_submit_info.pSignalSemaphores = nullptr;
 
@@ -2045,10 +2068,10 @@ void sdlxvulkan::Application::Implementation::copy_buffer(VkBuffer a_source, VkB
   {
     throw std::runtime_error{ "Vulkan: Copying Buffer: Failed to submit command buffer." };
   }
-  //vkQueueSubmit(this->m_graphics_queue, 1, &l_submit_info, VK_NULL_HANDLE);
-  m_device.vk_functions().vkQueueWaitIdle(m_graphics_queue);
+  m_graphics_queue.vkWaitIdle();
+  //m_device.vk_functions().vkQueueWaitIdle(m_graphics_queue);
 
-  m_device.vk_functions().vkFreeCommandBuffers(m_device, m_command_pool, 1, l_command_buffers);
+  //m_device.vk_functions().vkFreeCommandBuffers(m_device, m_command_pool, 1, l_command_buffers);
 }
 //------------------------------------------------------------------------------------------------------------------------------------------------------
 
