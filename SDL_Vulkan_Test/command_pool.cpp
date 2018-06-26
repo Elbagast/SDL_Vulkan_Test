@@ -5,16 +5,58 @@
 
 #include <iostream>
 
-
 namespace sdlxvulkan
 {
   namespace
   {
-    VkCommandPool make_except_command_pool
+    //---------------------------------------------------------------------------
+    // Command_Pool_Destroyer
+    //---------------------------------------------------------------------------
+    // Does the actual work.
+
+    class Command_Pool_Destroyer
+    {
+    public:
+      // Member Data
+      //============================================================
+      Device m_device;
+      uint32_t m_queue_family_index;
+      VkCommandPoolCreateFlags m_flags;
+      VkAllocationCallbacks const* m_allocation_callbacks;
+
+      // Special 6
+      //============================================================
+      explicit Command_Pool_Destroyer
+      (
+        Device const& a_device,
+        uint32_t a_queue_family_index,
+        VkCommandPoolCreateFlags a_flags,
+        VkAllocationCallbacks const* a_allocation_callbacks
+      ):
+        m_device{ a_device },
+        m_queue_family_index{ a_queue_family_index },
+        m_flags{ a_flags },
+        m_allocation_callbacks{ a_allocation_callbacks }
+      {
+        std::cout << "sdlxvulkan::Command_Pool_Destroyer::Command_Pool_Destroyer()" << std::endl;
+      }
+
+      // Interface
+      //============================================================
+      void operator()(VkCommandPool a_command_pool) const noexcept
+      {
+        m_device.vk_functions().vkDestroyCommandPool(m_device, a_command_pool, nullptr);
+        std::cout << "sdlxvulkan::Command_Pool_Destroyer::operator()" << std::endl;
+      }
+    };
+
+
+    decltype(auto) make_except_command_pool
     (
       Device const& a_device,
       uint32_t a_queue_family_index,
-      VkCommandPoolCreateFlags a_flags
+      VkCommandPoolCreateFlags a_flags,
+      VkAllocationCallbacks const* a_allocation_callbacks
     )
     {
       // Initialise some creation info
@@ -26,55 +68,13 @@ namespace sdlxvulkan
 
       VkCommandPool l_command_pool{ VK_NULL_HANDLE };
       // Make the pool using the device.
-      if (a_device.vk_functions().vkCreateCommandPool(a_device, &l_command_pool_info, nullptr, &l_command_pool) != VK_SUCCESS)
+      if (a_device.vk_functions().vkCreateCommandPool(a_device, &l_command_pool_info, a_allocation_callbacks, &l_command_pool) != VK_SUCCESS)
       {
         throw std::runtime_error("Vulkan: Failed to create command pool.");
       }
 
-      return l_command_pool;
+      return make_except_vulkan_sptr<VkCommandPool, Command_Pool_Destroyer>(l_command_pool, a_device, a_queue_family_index, a_flags, a_allocation_callbacks);
     }
-
-
-    //---------------------------------------------------------------------------
-    // Command_Pool_Destroyer
-    //---------------------------------------------------------------------------
-    // Does the actual work.
-
-    class Command_Pool_Destroyer
-    {
-    private:
-      // Member Data
-      //============================================================
-      Device m_device;
-
-    public:
-      // Special 6
-      //============================================================
-      explicit Command_Pool_Destroyer(Device const& a_device) :
-        m_device{ a_device }
-      {
-      }
-      ~Command_Pool_Destroyer() = default;
-
-      Command_Pool_Destroyer(Command_Pool_Destroyer const& a_other) = default;
-      Command_Pool_Destroyer& operator=(Command_Pool_Destroyer const& a_other) = default;
-
-      Command_Pool_Destroyer(Command_Pool_Destroyer && a_other) = default;
-      Command_Pool_Destroyer& operator=(Command_Pool_Destroyer && a_other) = default;
-
-      // Interface
-      //============================================================
-      void operator()(VkCommandPool a_command_pool) const noexcept
-      {
-        m_device.vk_functions().vkDestroyCommandPool(m_device, a_command_pool, nullptr);
-        std::cout << "sdlxvulkan::Command_Pool_Destroyer::operator()" << std::endl;
-      }
-
-      Device const& get_device() const
-      {
-        return m_device;
-      }
-    };
   } // namespace  
 } // namespace sdlxvulkan
 
@@ -93,24 +93,41 @@ sdlxvulkan::Command_Pool::Command_Pool
 (
   Device const& a_device,
   uint32_t a_queue_family_index,
-  VkCommandPoolCreateFlags a_flags
+  VkCommandPoolCreateFlags a_flags,
+  VkAllocationCallbacks const* a_allocation_callbacks
 ) :
-  m_data{ make_except_command_pool(a_device, a_queue_family_index, a_flags), Command_Pool_Destroyer{ a_device } }
+  m_data{ make_except_command_pool(a_device, a_queue_family_index, a_flags, a_allocation_callbacks) }
 {
-  std::cout << "sdlxvulkan::Command_Pool::~Command_Pool()" << std::endl;
+  //std::cout << "sdlxvulkan::Command_Pool::~Command_Pool()" << std::endl;
 }
 
 sdlxvulkan::Command_Pool::~Command_Pool()
 {
-  std::cout << "sdlxvulkan::Command_Pool::~Command_Pool()" << std::endl;
+  //std::cout << "sdlxvulkan::Command_Pool::~Command_Pool()" << std::endl;
 }
 
 // Interface
 //============================================================
 sdlxvulkan::Device const& sdlxvulkan::Command_Pool::get_device() const noexcept
 {
-  return m_data.get_destroyer<Command_Pool_Destroyer>()->get_device();
+  return std::get_deleter<Command_Pool_Destroyer>(m_data)->m_device;
 }
+
+uint32_t sdlxvulkan::Command_Pool::get_queue_family_index() const noexcept
+{
+  return std::get_deleter<Command_Pool_Destroyer>(m_data)->m_queue_family_index;
+}
+
+VkCommandPoolCreateFlags sdlxvulkan::Command_Pool::get_flags() const noexcept
+{
+  return std::get_deleter<Command_Pool_Destroyer>(m_data)->m_flags;
+}
+
+VkAllocationCallbacks const* sdlxvulkan::Command_Pool::get_allocation_callbacks() const noexcept
+{
+  return std::get_deleter<Command_Pool_Destroyer>(m_data)->m_allocation_callbacks;
+}
+
 // Analagous to vkResetCommandPool on this.
 // Flags CAN be set to a mask of VkCommandPoolResetFlagBits values.
 void sdlxvulkan::Command_Pool::reset(VkCommandPoolResetFlags a_flags)

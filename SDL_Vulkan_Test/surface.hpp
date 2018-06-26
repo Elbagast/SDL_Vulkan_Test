@@ -1,7 +1,7 @@
 #ifndef SDLXVULKAN_SURFACE_HPP
 #define SDLXVULKAN_SURFACE_HPP
 
-#include "handle.hpp"
+#include "vulkan_ptr.hpp"
 #ifndef VULKAN_H_
 #include <vulkan/vulkan.h>
 #endif 
@@ -21,13 +21,15 @@ namespace sdlxvulkan
   private:
     // Member Data
     //============================================================   
-    using Data_Type = Vulkan_Handle<VkSurfaceKHR>;
+    using Data_Type = Vulkan_Sptr<VkSurfaceKHR>;
     Data_Type m_data;
 
   public:
     // Special 6
     //============================================================
+    // SDL supplies no means to use an allocator for the Vulkan surface.
     Surface(Window const& a_window, Instance const& a_instance);
+    //Surface(Window const& a_window, Instance const& a_instance, VkAllocationCallbacks const* a_allocation_callbacks = nullptr);
     ~Surface();
 
     Surface(Surface const& a_other);
@@ -38,8 +40,8 @@ namespace sdlxvulkan
 
     // Interface
     //============================================================
-    Data_Type::Pointer get() const noexcept       { return m_data.get(); }
-    operator Data_Type::Pointer() const noexcept  { return m_data.get(); }
+    VkSurfaceKHR get() const noexcept       { return m_data.get(); }
+    operator VkSurfaceKHR() const noexcept  { return m_data.get(); }
 
     Instance const& get_instance() const noexcept;
   };

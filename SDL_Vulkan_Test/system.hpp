@@ -55,6 +55,6 @@ namespace sdlxvulkan
     bool supports_layer(std::string const& a_layer_name) const;
     bool supports_layers(std::vector<std::string> const& a_layer_names) const;
   };
-}
+} // namespace sdlxvulkan
 
 #endif // SDLXVULKAN_SYSTEM_HPP

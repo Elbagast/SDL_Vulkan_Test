@@ -117,28 +117,16 @@ namespace
   uint32_t const c_engine_version = VK_MAKE_VERSION(1, 0, 0);
   uint32_t const c_vulkan_version = VK_API_VERSION_1_1;
   
-  static VKAPI_ATTR VkBool32 VKAPI_CALL debug_callback(VkDebugReportFlagsEXT a_flags, VkDebugReportObjectTypeEXT a_obj_type, uint64_t a_obj, size_t a_location, int32_t a_code, const char* a_layer_prefix, const char* a_msg, void* a_user_data)
-  {
-    std::cerr << "[validation layer] " << a_msg << std::endl << std::endl;
-
-    return VK_FALSE;
-  }
-
 
   std::vector<std::string> const c_device_extension_names{ VK_KHR_SWAPCHAIN_EXTENSION_NAME };
 
 }
-
-
-#define LOCAL_VULKAN_INTANCE_FUNC(_name) PFN_##_name l_##_name = (PFN_##_name)(m_get_instance_func(m_instance, #_name));
 
 //---------------------------------------------------------------------------
 // Application::Implementation
 //---------------------------------------------------------------------------
 // Hide all the implementation details and private functions for the 
 // application state.
-
-#define DECLARE_VULKAN_FUNC(a_func_name) static PFN_##a_func_name a_func_name{nullptr};
 
 namespace sdlxvulkan
 {
@@ -237,7 +225,7 @@ namespace sdlxvulkan
     System m_system;
     Window m_window;
     Instance m_instance;
-    Debug_Callback m_debug_callback;
+    Debug_Callback_Message_Cerr m_debug_callback;
     Surface m_surface;
     Physical_Device m_physical_device;
 
@@ -338,12 +326,6 @@ namespace sdlxvulkan
     void init();
     void quit();
         
-    //void init_logical_device();
-    //void quit_logical_device();
-
-    //void init_command_pool();
-    //void quit_command_pool();
-
     void init_vertex_buffer();
     void quit_vertex_buffer();
 
@@ -434,9 +416,9 @@ sdlxvulkan::Application::Implementation::Implementation(int argc, char** argv) :
   m_window{ m_system, "SDL x Vulkan", 100, 100, c_start_width, c_start_height, SDL_WINDOW_VULKAN | SDL_WINDOW_RESIZABLE | SDL_WINDOW_SHOWN },
   
   m_instance{ m_system, m_window, c_extension_names, c_validation_layers, c_application_name, c_application_version, c_engine_name, c_engine_version, c_vulkan_version },
-  m_debug_callback{ m_instance, debug_callback, VK_DEBUG_REPORT_ERROR_BIT_EXT | VK_DEBUG_REPORT_WARNING_BIT_EXT },
+  m_debug_callback{ m_instance },
   m_surface{ m_window, m_instance },
-  m_physical_device{ m_instance.get_first_physical_device(), m_instance },
+  m_physical_device{ m_instance.get_physical_devices().front() },
 
   // If we wanted to manage queue families in more detail then stuff goes here.
   m_graphics_qfi{ m_physical_device.first_graphics_qfi() },

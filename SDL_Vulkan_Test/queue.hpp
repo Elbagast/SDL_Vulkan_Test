@@ -1,7 +1,9 @@
 #ifndef SDLXVULKAN_QUEUE_HPP
 #define SDLXVULKAN_QUEUE_HPP
 
-#include "handle.hpp"
+#ifndef SDLXVULKAN_VULKAN_PTR_HPP
+#include "vulkan_ptr.hpp"
+#endif
 #ifndef VULKAN_H_
 #include <vulkan/vulkan.h>
 #endif 
@@ -20,7 +22,7 @@ namespace sdlxvulkan
   private:
     // Member Data
     //============================================================   
-    using Data_Type = Vulkan_Handle<VkQueue>;
+    using Data_Type = Vulkan_Sptr<VkQueue>;
     Data_Type m_data;
 
   public:
@@ -42,10 +44,12 @@ namespace sdlxvulkan
 
     // Interface
     //============================================================
-    Data_Type::Pointer get() const noexcept       { return m_data.get(); }
-    operator Data_Type::Pointer() const noexcept  { return m_data.get(); }
+    VkQueue get() const noexcept       { return m_data.get(); }
+    operator VkQueue() const noexcept  { return m_data.get(); }
     
     Device const& get_device() const noexcept;
+    uint32_t get_queue_family_index() const noexcept;
+    uint32_t get_queue_index() const noexcept;
 
     VkResult vkBindSparse(uint32_t bindInfoCount, VkBindSparseInfo const* pBindInfo, VkFence fence) const;
     VkResult vkSubmit(uint32_t submitCount, VkSubmitInfo const* pSubmits, VkFence fence) const;

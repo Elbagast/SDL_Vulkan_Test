@@ -1,7 +1,6 @@
 #ifndef SDLXVULKAN_WINDOW_HPP
 #define SDLXVULKAN_WINDOW_HPP
 
-#include "handle.hpp"
 #include <vector>
 #include <string>
 
@@ -21,7 +20,7 @@ namespace sdlxvulkan
   private:
     // Member Data
     //============================================================   
-    using Data_Type = Handle<SDL_Window>;
+    using Data_Type = std::shared_ptr<SDL_Window>;
     Data_Type m_data;
 
   public:
@@ -38,8 +37,10 @@ namespace sdlxvulkan
     
     // Interface
     //============================================================
-    Data_Type::Pointer get() const noexcept       { return m_data.get(); }
-    operator Data_Type::Pointer() const noexcept  { return m_data.get(); }
+    SDL_Window* get() const noexcept       { return m_data.get(); }
+    operator SDL_Window*() const noexcept  { return m_data.get(); }
+
+    System const& get_system() const noexcept;
 
     uint32_t id() const;
 

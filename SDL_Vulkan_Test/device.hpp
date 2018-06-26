@@ -1,7 +1,9 @@
 #ifndef SDLXVULKAN_DEVICE_HPP
 #define SDLXVULKAN_DEVICE_HPP
 
-#include "handle.hpp"
+#ifndef SDLXVULKAN_VULKAN_PTR_HPP
+#include "vulkan_ptr.hpp"
+#endif
 #include <vector>
 #ifndef VULKAN_H_
 #include <vulkan/vulkan.h>
@@ -28,7 +30,7 @@ namespace sdlxvulkan
   private:
     // Member Data
     //============================================================   
-    using Data_Type = Vulkan_Handle<VkDevice>;
+    using Data_Type = Vulkan_Sptr<VkDevice>;
     Data_Type m_data;
     
   public:
@@ -39,7 +41,8 @@ namespace sdlxvulkan
       Physical_Device const& a_physical_device, 
       uint32_t a_graphics_qfi, 
       uint32_t a_present_qfi, 
-      std::vector<std::string> const& a_extensions
+      std::vector<std::string> const& a_extensions,
+      VkAllocationCallbacks const* a_allocation_callbacks = nullptr
     );
     ~Device();
 
@@ -51,12 +54,15 @@ namespace sdlxvulkan
 
     // Interface
     //============================================================
-    Data_Type::Pointer get() const noexcept { return m_data.get(); }
-    operator Data_Type::Pointer() const noexcept { return m_data.get(); }
+    VkDevice get() const noexcept { return m_data.get(); }
+    operator VkDevice() const noexcept { return m_data.get(); }
 
     Device_Functions const& vk_functions() const noexcept;
 
     Physical_Device const& get_physical_device() const noexcept;
+    uint32_t get_graphics_qfi() const noexcept;
+    uint32_t get_present_qfi() const noexcept;
+    std::vector<std::string> const& get_extensions() const noexcept;
   };
 }
 

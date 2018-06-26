@@ -1,7 +1,9 @@
 #ifndef SDLXVULKAN_COMMAND_BUFFER_HPP
 #define SDLXVULKAN_COMMAND_BUFFER_HPP
 
-#include "handle.hpp"
+#ifndef SDLXVULKAN_VULKAN_PTR_HPP
+#include "vulkan_ptr.hpp"
+#endif
 #include <array>
 #include <vector>
 #ifndef VULKAN_H_
@@ -27,7 +29,7 @@ namespace sdlxvulkan
   private:
     // Member Data
     //============================================================   
-    using Data_Type = Vulkan_Handle<VkCommandBuffer>;
+    using Data_Type = Vulkan_Sptr<VkCommandBuffer>;
     Data_Type m_data;
 
   public:
@@ -59,8 +61,8 @@ namespace sdlxvulkan
 
     // Interface
     //============================================================
-    Data_Type::Pointer get() const noexcept { return m_data.get(); }
-    operator Data_Type::Pointer() const noexcept { return m_data.get(); }
+    VkCommandBuffer get() const noexcept      { return m_data.get(); }
+    operator VkCommandBuffer() const noexcept { return m_data.get(); }
 
     Command_Pool const& get_pool() const noexcept;
 

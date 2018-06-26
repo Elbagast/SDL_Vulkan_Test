@@ -4,6 +4,7 @@
 #include "global_functions.hpp"
 #include "window.hpp"
 #include "instance_functions.hpp"
+#include "physical_device.hpp"
 
 #include <cassert>
 #include <iostream>
@@ -12,9 +13,53 @@ namespace sdlxvulkan
 {
   namespace
   {
+    // Hiding this entirely.
     static Instance_Functions s_instance_functions{};
 
-    VkInstance make_except_instance
+    //---------------------------------------------------------------------------
+    // Instance_Destroyer
+    //---------------------------------------------------------------------------
+    // Hold the state that must be destroyed after this and supply a means of 
+    // destroying this. 
+
+    class Instance_Destroyer
+    {
+    public:
+      // Member Data
+      //============================================================
+      System m_system;
+      Window m_window;
+      VkAllocationCallbacks const* m_allocation_callbacks;
+
+      // Special 6
+      //============================================================
+      Instance_Destroyer
+      (
+        System const& a_system,
+        Window const& a_window,
+        VkAllocationCallbacks const* a_allocation_callbacks
+      ) noexcept :
+        m_system{ a_system },
+        m_window{ a_window },
+        m_allocation_callbacks{ a_allocation_callbacks }
+      {
+        std::cout << "sdlxvulkan::Instance_Destroyer::Instance_Destroyer()" << std::endl;
+      }
+
+      // Interface
+      //============================================================
+      void operator()(VkInstance a_instance) const noexcept
+      {
+        // Could use system to get the destroy proc and execute it.
+        // This means if Instance hides the Vulkan functions this one
+        // can still be accessed without needing friend status.
+        s_instance_functions.vkDestroyInstance(a_instance, m_allocation_callbacks);
+        std::cout << "sdlxvulkan::Instance_Destroyer::operator()" << std::endl;
+      }
+    };
+
+
+    decltype(auto) make_except_instance
     (
       System const& a_system,
       Window const& a_window,
@@ -24,7 +69,8 @@ namespace sdlxvulkan
       uint32_t a_application_version,
       std::string const& a_engine_name,
       uint32_t a_engine_version,
-      uint32_t a_vulkan_version
+      uint32_t a_vulkan_version,
+      VkAllocationCallbacks const* a_allocation_callbacks
     )
     {
       // If validation layers supplied, and the ones requested are not available, stop.
@@ -78,7 +124,7 @@ namespace sdlxvulkan
       std::cout << "========================================" << std::endl;
       for (auto const& l_ext : l_required_extensions)
       {
-        std::cout << l_ext << std::endl;
+      std::cout << l_ext << std::endl;
 
       }
       std::cout << std::endl;
@@ -137,72 +183,18 @@ namespace sdlxvulkan
 
       VkInstance l_instance{ VK_NULL_HANDLE };
 
-      //d::cout << "create instance...";
-
-      if (a_system.vk_functions().vkCreateInstance(&l_create_info, nullptr, &l_instance) != VK_SUCCESS)
+      if (a_system.vk_functions().vkCreateInstance(&l_create_info, a_allocation_callbacks, &l_instance) != VK_SUCCESS)
       {
         throw std::runtime_error{ "sdlxvulkan::Instance: Failed to create VkInstance." };
       }
-      //std::cout << "done" << std::endl;
 
-      std::cout << l_instance << std::endl;
+      // got to initialise these before the destroyer might use it
+      s_instance_functions = Instance_Functions{ l_instance, a_system.vk_functions() };
 
-      return l_instance;
+      return make_except_vulkan_sptr<VkInstance, Instance_Destroyer>(l_instance, a_system, a_window, a_allocation_callbacks);
     }
+    
 
-    PFN_vkDestroyInstance get_destroy_func(System const& a_system, VkInstance a_instance)
-    {
-      auto l_destroy_func = reinterpret_cast<PFN_vkDestroyInstance>(a_system.vk_functions().vkGetInstanceProcAddr(a_instance, "vkDestroyInstance"));
-      assert(l_destroy_func != nullptr);
-      return l_destroy_func;
-    }
-
-
-    //---------------------------------------------------------------------------
-    // Instance_Destroyer
-    //---------------------------------------------------------------------------
-    // Hold the state that must be destroyed after this and supply a means of 
-    // destroying this. This would probably have to hold the allocator too.
-
-    class Instance_Destroyer
-    {
-    private:
-      // Member Data
-      //============================================================
-      System m_system;
-      Window m_window;
-
-    public:
-      // Special 6
-      //============================================================
-      Instance_Destroyer
-      (
-        System const& a_system,
-        Window const& a_window
-      ) :
-        m_system{ a_system },
-        m_window{ a_window }
-      {
-      }
-      ~Instance_Destroyer() = default;
-
-      Instance_Destroyer(Instance_Destroyer const& a_other) = default;
-      Instance_Destroyer& operator=(Instance_Destroyer const& a_other) = default;
-
-      Instance_Destroyer(Instance_Destroyer && a_other) = default;
-      Instance_Destroyer& operator=(Instance_Destroyer && a_other) = default;
-
-      // Interface
-      //============================================================
-      void operator()(VkInstance a_instance) const
-      {
-        // Could use system to get the destroy proc and execute it.
-        // This means if Instance hides the Vulkan functions this one
-        // can still be accessed without needing friend status.
-        s_instance_functions.vkDestroyInstance(a_instance, nullptr);
-        std::cout << "sdlxvulkan::Instance_Destroyer::operator()" << std::endl;
-      }
-    };
   } // namespace  
 } // namespace sdlxvulkan
 
@@ -219,18 +211,18 @@ sdlxvulkan::Instance::Instance
   uint32_t a_application_version,
   std::string const& a_engine_name,
   uint32_t a_engine_version,
-  uint32_t a_vulkan_version
+  uint32_t a_vulkan_version,
+  VkAllocationCallbacks const* a_allocation_callbacks
 ) :
-  m_data{ make_except_instance(a_system, a_window, a_extension_names, a_layer_names, a_application_name, a_application_version, a_engine_name, a_engine_version, a_vulkan_version), Instance_Destroyer{ a_system, a_window } }
+  m_data{ make_except_instance(a_system, a_window, a_extension_names, a_layer_names, a_application_name, a_application_version, a_engine_name, a_engine_version, a_vulkan_version, a_allocation_callbacks) }
 {
-  s_instance_functions = Instance_Functions{ get(), a_system.vk_functions() };
   //init_instance_functions(s_instance_functions, get(), a_system.vk_functions());
-  std::cout << "sdlxvulkan::Instance::Instance()" << std::endl;
+  //std::cout << "sdlxvulkan::Instance::Instance()" << std::endl;
 }
 
 sdlxvulkan::Instance::~Instance()
 {
-  std::cout << "sdlxvulkan::Instance::~Instance()" << std::endl;
+  //std::cout << "sdlxvulkan::Instance::~Instance()" << std::endl;
 }
 
 // Interface
@@ -240,26 +232,43 @@ sdlxvulkan::Instance_Functions const& sdlxvulkan::Instance::vk_functions() const
   return s_instance_functions;
 }
 
-
-
-std::vector<VkPhysicalDevice> sdlxvulkan::Instance::get_physical_devices() const
+sdlxvulkan::System const& sdlxvulkan::Instance::get_system() const noexcept
 {
-  //assert(s_instance_functions.vkEnumeratePhysicalDevices != nullptr);
-
-  uint32_t l_count{ 0 };
-  s_instance_functions.vkEnumeratePhysicalDevices(get(), &l_count, nullptr);
-
-  std::vector<VkPhysicalDevice> l_result{};
-  l_result.resize(l_count);
-
-  s_instance_functions.vkEnumeratePhysicalDevices(get(), &l_count, l_result.data());
-
-  return l_result;
+  return std::get_deleter<Instance_Destroyer>(m_data)->m_system;
 }
 
-VkPhysicalDevice sdlxvulkan::Instance::get_first_physical_device() const
+sdlxvulkan::Window const& sdlxvulkan::Instance::get_window() const noexcept
 {
-  auto l_devices = get_physical_devices();
-  assert(l_devices.size() >= 1);
-  return l_devices.front();
+  return std::get_deleter<Instance_Destroyer>(m_data)->m_window;
+}
+
+VkAllocationCallbacks const* sdlxvulkan::Instance::get_allocation_callbacks() const noexcept
+{
+  return std::get_deleter<Instance_Destroyer>(m_data)->m_allocation_callbacks;
+}
+
+uint32_t sdlxvulkan::Instance::get_physical_device_count() const noexcept
+{
+  uint32_t l_count{ 0 };
+  s_instance_functions.vkEnumeratePhysicalDevices(get(), &l_count, nullptr);
+  return l_count;
+}
+
+std::vector<sdlxvulkan::Physical_Device> sdlxvulkan::Instance::get_physical_devices() const
+{
+  auto l_count = get_physical_device_count();
+
+  std::vector<VkPhysicalDevice> l_handles{};
+  l_handles.resize(l_count);
+
+  s_instance_functions.vkEnumeratePhysicalDevices(get(), &l_count, l_handles.data());
+
+  std::vector<Physical_Device> l_result{};
+  l_result.reserve(l_count);
+  for (auto l_handle : l_handles)
+  {
+    l_result.emplace_back(l_handle, *this);
+  }
+
+  return l_result;
 }

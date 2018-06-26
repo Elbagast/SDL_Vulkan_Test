@@ -10,7 +10,57 @@ namespace sdlxvulkan
 {
   namespace
   {
-    VkDebugReportCallbackEXT make_debug_callback(Instance const& a_instance, PFN_vkDebugReportCallbackEXT a_callback, VkDebugReportFlagsEXT a_flags)
+    //---------------------------------------------------------------------------
+    // Debug_Callback_Destroyer
+    //---------------------------------------------------------------------------
+
+    class Debug_Callback_Destroyer
+    {
+    public:
+      // Member Data
+      //============================================================
+      Instance m_instance;
+      VkAllocationCallbacks const* m_allocation_callbacks;
+
+      // Special 6
+      //============================================================
+      Debug_Callback_Destroyer(Instance const& a_instance, VkAllocationCallbacks const* a_allocation_callbacks) noexcept :
+        m_instance{ a_instance },
+        m_allocation_callbacks{ a_allocation_callbacks }
+      {
+        std::cout << "sdlxvulkan::Debug_Callback_Destroyer::Debug_Callback_Destroyer()" << std::endl;
+      }
+
+      // Interface
+      //============================================================
+      void operator()(VkDebugReportCallbackEXT a_debug_callback) const noexcept
+      {
+        //assert(m_instance.vk_functions().vkDestroyDebugReportCallbackEXT != nullptr);
+        m_instance.vk_functions().vkDestroyDebugReportCallbackEXT(m_instance, a_debug_callback, m_allocation_callbacks);
+        std::cout << "sdlxvulkan::Debug_Callback_Destroyer::operator()" << std::endl;
+      }
+    };
+    
+
+    // Callback function that is given to Vulkan. It will interpret
+    // the user data void* as an Abstract_Debug_Callback* and call
+    // Abstract_Debug_Callback::do_callback on it with the arguments.
+    // Always returns VK_FALSE.
+    VKAPI_ATTR VkBool32 VKAPI_CALL imp_callback(VkDebugReportFlagsEXT a_flags, VkDebugReportObjectTypeEXT a_obj_type, uint64_t a_obj, size_t a_location, int32_t a_code, const char* a_layer_prefix, const char* a_msg, void* a_user_data)
+    {
+      static_cast<Abstract_Debug_Callback*>(a_user_data)->do_callback(a_flags, a_obj_type, a_obj, a_location, a_code, a_layer_prefix, a_msg);
+      return VK_FALSE;
+    }
+
+    
+    decltype(auto) make_except_debug_callback
+    (
+      Instance const& a_instance,
+      PFN_vkDebugReportCallbackEXT a_callback,
+      VkDebugReportFlagsEXT a_flags,
+      void* a_user_data,
+      VkAllocationCallbacks const* a_allocation_callbacks
+    )
     {
       // If we break here then the instance initialisation failed to get the extension function pointers.
       // This probably means VK_EXT_DEBUG_REPORT_EXTENSION_NAME was not in the extension names used to
@@ -23,70 +73,72 @@ namespace sdlxvulkan
       l_callback_info.pNext = nullptr;
       l_callback_info.flags = VK_DEBUG_REPORT_ERROR_BIT_EXT | VK_DEBUG_REPORT_WARNING_BIT_EXT;
       l_callback_info.pfnCallback = a_callback;
-      l_callback_info.pUserData = nullptr;
+      l_callback_info.pUserData = a_user_data;
 
-      if (a_instance.vk_functions().vkCreateDebugReportCallbackEXT(a_instance, &l_callback_info, nullptr, &l_debug_callback) != VK_SUCCESS)
+      // Maybe an extension readiness check here via the instance functions?
+      if (a_instance.vk_functions().vkCreateDebugReportCallbackEXT(a_instance, &l_callback_info, a_allocation_callbacks, &l_debug_callback) != VK_SUCCESS)
       {
         throw std::runtime_error("Vulkan: Failed to set up debug callback!");
       }
-      return l_debug_callback;
+      return make_except_vulkan_sptr<VkDebugReportCallbackEXT, Debug_Callback_Destroyer>(l_debug_callback, a_instance, a_allocation_callbacks);
     }
-
-
-    //---------------------------------------------------------------------------
-    // Debug_Callback_Destroyer
-    //---------------------------------------------------------------------------
-
-    class Debug_Callback_Destroyer
-    {
-    private:
-      // Member Data
-      //============================================================
-      mutable Instance m_instance;
-
-    public:
-      // Special 6
-      //============================================================
-      Debug_Callback_Destroyer(Instance const& a_instance) :
-        m_instance{ a_instance }
-      {
-      }
-      ~Debug_Callback_Destroyer() = default;
-
-      Debug_Callback_Destroyer(Debug_Callback_Destroyer const& a_other) = default;
-      Debug_Callback_Destroyer& operator=(Debug_Callback_Destroyer const& a_other) = default;
-
-      Debug_Callback_Destroyer(Debug_Callback_Destroyer && a_other) = default;
-      Debug_Callback_Destroyer& operator=(Debug_Callback_Destroyer && a_other) = default;
-
-      // Interface
-      //============================================================
-      void operator()(VkDebugReportCallbackEXT a_debug_callback) const noexcept
-      {
-        //assert(m_instance.vk_functions().vkDestroyDebugReportCallbackEXT != nullptr);
-        m_instance.vk_functions().vkDestroyDebugReportCallbackEXT(m_instance, a_debug_callback, nullptr);
-        std::cout << "sdlxvulkan::Debug_Callback_Destroyer::operator()" << std::endl;
-      }
-    };
   }
 }
 
 //------------------------------------------------------------------------------------------------------------------------------------------------------
 
 //---------------------------------------------------------------------------
-// Surface
+// Abstract_Debug_Callback
 //---------------------------------------------------------------------------
+
 
 // Special 6
 //============================================================
 
-sdlxvulkan::Debug_Callback::Debug_Callback(Instance const& a_instance, PFN_vkDebugReportCallbackEXT a_callback, VkDebugReportFlagsEXT a_flags) :
-  Inherited_Type{ make_debug_callback(a_instance, a_callback, a_flags), Debug_Callback_Destroyer{ a_instance } }
+sdlxvulkan::Abstract_Debug_Callback::Abstract_Debug_Callback
+(
+  Instance const& a_instance,
+  VkDebugReportFlagsEXT a_flags,
+  VkAllocationCallbacks const* a_allocation_callbacks
+) :
+  m_data{ make_except_debug_callback(a_instance, sdlxvulkan::imp_callback, a_flags, static_cast<void*>(this), a_allocation_callbacks) }
 {
-  std::cout << "sdlxvulkan::Debug_Callback::Debug_Callback()" << std::endl;
+  //std::cout << "sdlxvulkan::Debug_Callback::Debug_Callback()" << std::endl;
 }
 
-sdlxvulkan::Debug_Callback::~Debug_Callback()
+sdlxvulkan::Abstract_Debug_Callback::~Abstract_Debug_Callback()
 {
-  std::cout << "sdlxvulkan::Debug_Callback::~Debug_Callback()" << std::endl;
+  //std::cout << "sdlxvulkan::Debug_Callback::~Debug_Callback()" << std::endl;
+}
+
+sdlxvulkan::Instance const& sdlxvulkan::Abstract_Debug_Callback::get_instance() const noexcept
+{
+  return std::get_deleter<Debug_Callback_Destroyer>(m_data)->m_instance;
+}
+
+//------------------------------------------------------------------------------------------------------------------------------------------------------
+
+//---------------------------------------------------------------------------
+// Debug_Callback_Message_Cerr
+//---------------------------------------------------------------------------
+
+
+// Special 6
+//============================================================
+sdlxvulkan::Debug_Callback_Message_Cerr::Debug_Callback_Message_Cerr
+(
+  Instance const& a_instance,
+  VkAllocationCallbacks const* a_allocation_callbacks
+) :
+  Abstract_Debug_Callback{ a_instance, VK_DEBUG_REPORT_ERROR_BIT_EXT | VK_DEBUG_REPORT_WARNING_BIT_EXT, a_allocation_callbacks }
+{
+}
+sdlxvulkan::Debug_Callback_Message_Cerr::~Debug_Callback_Message_Cerr() = default;
+
+// Interface
+//============================================================
+// Implement this to use the data and do whatever.
+void sdlxvulkan::Debug_Callback_Message_Cerr::do_callback(VkDebugReportFlagsEXT a_flags, VkDebugReportObjectTypeEXT a_obj_type, uint64_t a_obj, size_t a_location, int32_t a_code, const char* a_layer_prefix, const char* a_msg)
+{
+  std::cerr << "DEBUG: " << a_msg << std::endl << std::endl;
 }

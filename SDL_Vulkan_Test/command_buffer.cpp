@@ -7,11 +7,42 @@
 #include <iostream>
 #include <cassert>
 
-
 namespace sdlxvulkan
 {
   namespace
   {
+    //---------------------------------------------------------------------------
+    // Command_Buffer_Destroyer
+    //---------------------------------------------------------------------------
+    // Does the actual work.
+
+    class Command_Buffer_Destroyer
+    {
+    public:
+      // Member Data
+      //============================================================
+      Command_Pool m_command_pool;
+
+      // Special 6
+      //============================================================
+      explicit Command_Buffer_Destroyer(Command_Pool const& a_command_pool) :
+        m_command_pool{ a_command_pool }
+      {
+        std::cout << "sdlxvulkan::Command_Buffer_Destroyer::Command_Buffer_Destroyer()" << std::endl;
+      }
+
+      // Interface
+      //============================================================
+      void operator()(VkCommandBuffer a_command_buffer) const noexcept
+      {
+        auto const& l_device = m_command_pool.get_device();
+        l_device.vk_functions().vkFreeCommandBuffers(l_device, m_command_pool, 1, std::addressof(a_command_buffer));
+        std::cout << "sdlxvulkan::Command_Buffer_Destroyer::operator()" << std::endl;
+      }
+    };
+
+
+
     std::vector<VkCommandBuffer> make_except_command_buffers
     (
       uint32_t a_count, 
@@ -49,47 +80,7 @@ namespace sdlxvulkan
     }
 
 
-    //---------------------------------------------------------------------------
-    // Command_Buffer_Destroyer
-    //---------------------------------------------------------------------------
-    // Does the actual work.
 
-    class Command_Buffer_Destroyer
-    {
-    private:
-      // Member Data
-      //============================================================
-      Command_Pool m_command_pool;
-
-    public:
-      // Special 6
-      //============================================================
-      explicit Command_Buffer_Destroyer(Command_Pool const& a_command_pool) :
-        m_command_pool{ a_command_pool }
-      {
-      }
-      ~Command_Buffer_Destroyer() = default;
-
-      Command_Buffer_Destroyer(Command_Buffer_Destroyer const& a_other) = default;
-      Command_Buffer_Destroyer& operator=(Command_Buffer_Destroyer const& a_other) = default;
-
-      Command_Buffer_Destroyer(Command_Buffer_Destroyer && a_other) = default;
-      Command_Buffer_Destroyer& operator=(Command_Buffer_Destroyer && a_other) = default;
-
-      // Interface
-      //============================================================
-      void operator()(VkCommandBuffer a_command_buffer) const noexcept
-      {
-        auto const& l_device = m_command_pool.get_device();
-        l_device.vk_functions().vkFreeCommandBuffers(l_device, m_command_pool, 1, std::addressof(a_command_buffer));
-        std::cout << "sdlxvulkan::Command_Buffer_Destroyer::operator()" << std::endl;
-      }
-
-      Command_Pool const& get_pool() const
-      {
-        return m_command_pool;
-      }
-    };
   } // namespace  
 } // namespace sdlxvulkan
 
@@ -114,7 +105,7 @@ sdlxvulkan::Command_Buffer::Command_Buffer
 ) :
   m_data{ a_command_buffer, Command_Buffer_Destroyer{ a_command_pool } }
 {
-  std::cout << "sdlxvulkan::Command_Buffer::Command_Buffer( raw )" << std::endl;
+  //std::cout << "sdlxvulkan::Command_Buffer::Command_Buffer( raw )" << std::endl;
 }
 
 
@@ -127,12 +118,12 @@ sdlxvulkan::Command_Buffer::Command_Buffer
 ) :
   m_data{ make_except_command_buffer(a_command_pool, a_level), Command_Buffer_Destroyer{ a_command_pool } }
 {
-  std::cout << "sdlxvulkan::Command_Buffer::Command_Buffer()" << std::endl;
+  //std::cout << "sdlxvulkan::Command_Buffer::Command_Buffer()" << std::endl;
 }
 
 sdlxvulkan::Command_Buffer::~Command_Buffer()
 {
-  std::cout << "sdlxvulkan::Command_Buffer::~Command_Buffer()" << std::endl;
+  //std::cout << "sdlxvulkan::Command_Buffer::~Command_Buffer()" << std::endl;
 }
 
 
@@ -140,7 +131,7 @@ sdlxvulkan::Command_Buffer::~Command_Buffer()
 //============================================================
 sdlxvulkan::Command_Pool const& sdlxvulkan::Command_Buffer::get_pool() const noexcept
 {
-  return m_data.get_destroyer<Command_Buffer_Destroyer>()->get_pool();
+  return std::get_deleter<Command_Buffer_Destroyer>(m_data)->m_command_pool;
 }
 
 
@@ -152,10 +143,9 @@ sdlxvulkan::Command_Pool const& sdlxvulkan::Command_Buffer::get_pool() const noe
 std::vector<sdlxvulkan::Command_Buffer> sdlxvulkan::make_command_buffer_vector(uint32_t a_count, Command_Pool const& a_command_pool, VkCommandBufferLevel a_level)
 {
   assert(a_count != 0);
+  auto l_raw_command_buffers = make_except_command_buffers(a_count, a_command_pool, a_level); // if this breaks no resources leak
   std::vector<Command_Buffer> l_result{};
 
-  auto l_raw_command_buffers = make_except_command_buffers(a_count, a_command_pool, a_level); // if this breaks no resources leak
-  
   try
   {
     l_result.reserve(a_count);
@@ -172,11 +162,11 @@ std::vector<sdlxvulkan::Command_Buffer> sdlxvulkan::make_command_buffer_vector(u
     // if a bad alloc occured it was in the construction of a Command_Buffer.
     // We have to clean up all raw command buffers not yet inside l_result.
     // Those inside l_result will be cleaned by the destructors.
-    std::size_t l_count = l_raw_command_buffers.size() - l_result.size();
+    auto l_count = l_raw_command_buffers.size() - l_result.size();
 
     auto const& l_device = a_command_pool.get_device();
     VkCommandBuffer* l_raw_ptr = l_raw_command_buffers.data() + l_count;
-    l_device.vk_functions().vkFreeCommandBuffers(l_device, a_command_pool, l_count, l_raw_ptr);
+    l_device.vk_functions().vkFreeCommandBuffers(l_device, a_command_pool, static_cast<uint32_t>(l_count), l_raw_ptr);
 
     throw a_exception;
   }

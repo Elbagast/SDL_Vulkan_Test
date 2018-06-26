@@ -174,25 +174,19 @@ namespace sdlxvulkan
 
     class Physical_Device_Destroyer
     {
-    private:
+    public:
       // Member Data
       //============================================================
       Instance m_instance;
+      // Caching goes here...
 
-    public:
       // Special 6
       //============================================================
-      Physical_Device_Destroyer(Instance const& a_instance) :
+      Physical_Device_Destroyer(Instance const& a_instance) noexcept :
         m_instance{ a_instance }
       {
+        std::cout << "sdlxvulkan::Physical_Device_Destroyer::Physical_Device_Destroyer()" << std::endl;
       }
-      ~Physical_Device_Destroyer() = default;
-
-      Physical_Device_Destroyer(Physical_Device_Destroyer const& a_other) = default;
-      Physical_Device_Destroyer& operator=(Physical_Device_Destroyer const& a_other) = default;
-
-      Physical_Device_Destroyer(Physical_Device_Destroyer && a_other) = default;
-      Physical_Device_Destroyer& operator=(Physical_Device_Destroyer && a_other) = default;
 
       // Interface
       //============================================================
@@ -201,11 +195,14 @@ namespace sdlxvulkan
         std::cout << "sdlxvulkan::Physical_Device_Destroyer::operator() - does nothing" << std::endl;
       }
 
-      Instance const& get_instance() const noexcept
-      {
-        return m_instance;
-      }
     };
+
+
+    decltype(auto) make_except_physical_device(VkPhysicalDevice a_physical_device, Instance const& a_instance)
+    {
+      assert(a_physical_device != VK_NULL_HANDLE);
+      return make_except_vulkan_sptr<VkPhysicalDevice, Physical_Device_Destroyer>(a_physical_device, a_instance);
+    }
   } // namespace  
 } // namespace sdlxvulkan
 
@@ -219,12 +216,12 @@ namespace sdlxvulkan
 sdlxvulkan::Physical_Device::Physical_Device(VkPhysicalDevice a_physical_device, Instance const& a_instance) :
   m_data{ a_physical_device, Physical_Device_Destroyer{a_instance} }
 {
-  std::cout << "sdlxvulkan::Physical_Device::Physical_Device()" << std::endl;
+  //std::cout << "sdlxvulkan::Physical_Device::Physical_Device()" << std::endl;
 }
 
 sdlxvulkan::Physical_Device::~Physical_Device()
 {
-  std::cout << "sdlxvulkan::Physical_Device::~Physical_Device()" << std::endl;
+  //std::cout << "sdlxvulkan::Physical_Device::~Physical_Device()" << std::endl;
 }
 
 // Interface
@@ -232,29 +229,29 @@ sdlxvulkan::Physical_Device::~Physical_Device()
 
 sdlxvulkan::Instance const& sdlxvulkan::Physical_Device::get_instance() const noexcept
 {
-  return m_data.get_destroyer<Physical_Device_Destroyer>()->get_instance();
+  return std::get_deleter<Physical_Device_Destroyer>(m_data)->m_instance;
 }
 
 
 
 VkPhysicalDeviceProperties sdlxvulkan::Physical_Device::get_properties() const
 {
-  return imp_get_properties(m_data.get_destroyer<Physical_Device_Destroyer>()->get_instance(), get());
+  return imp_get_properties(get_instance(), get());
 }
 
 VkPhysicalDeviceMemoryProperties sdlxvulkan::Physical_Device::get_memory_properties() const
 {
-  return imp_get_memory_properties(m_data.get_destroyer<Physical_Device_Destroyer>()->get_instance(), get());
+  return imp_get_memory_properties(get_instance(), get());
 }
 
 std::vector<VkQueueFamilyProperties> sdlxvulkan::Physical_Device::get_queue_familiy_properties() const
 {
-  return imp_get_queue_familiy_properties(m_data.get_destroyer<Physical_Device_Destroyer>()->get_instance(), get());
+  return imp_get_queue_familiy_properties(get_instance(), get());
 }
 
 std::vector<VkExtensionProperties> sdlxvulkan::Physical_Device::get_extension_properties() const
 {
-  return imp_get_extension_properties(m_data.get_destroyer<Physical_Device_Destroyer>()->get_instance(), get());
+  return imp_get_extension_properties(get_instance(), get());
 }
 
 // Using the supplied properties, determine the right kind of memory to allocate.
@@ -278,12 +275,12 @@ uint32_t sdlxvulkan::Physical_Device::first_graphics_qfi() const
 
 bool sdlxvulkan::Physical_Device::can_present(Surface const& a_surface) const
 {
-  return imp_can_present(get(), get_queue_familiy_properties(), a_surface, m_data.get_destroyer<Physical_Device_Destroyer>()->get_instance());
+  return imp_can_present(get(), get_queue_familiy_properties(), a_surface, get_instance());
 }
 
 uint32_t sdlxvulkan::Physical_Device::first_present_qfi(Surface const& a_surface) const
 {
-  return imp_get_first_present_qfi(get(), get_queue_familiy_properties(), a_surface, m_data.get_destroyer<Physical_Device_Destroyer>()->get_instance());
+  return imp_get_first_present_qfi(get(), get_queue_familiy_properties(), a_surface, get_instance());
 }
 
 
@@ -291,17 +288,17 @@ uint32_t sdlxvulkan::Physical_Device::first_present_qfi(Surface const& a_surface
 
 VkSurfaceCapabilitiesKHR sdlxvulkan::Physical_Device::get_surface_cababilites(Surface const& a_surface) const
 {
-  return imp_get_surface_cababilites(get(), m_data.get_destroyer<Physical_Device_Destroyer>()->get_instance(), a_surface);
+  return imp_get_surface_cababilites(get(), get_instance(), a_surface);
 }
 
 std::vector<VkSurfaceFormatKHR> sdlxvulkan::Physical_Device::get_surface_formats(Surface const& a_surface) const
 {
-  return imp_get_surface_formats(get(), m_data.get_destroyer<Physical_Device_Destroyer>()->get_instance(), a_surface);
+  return imp_get_surface_formats(get(), get_instance(), a_surface);
 }
 
 std::vector<VkPresentModeKHR> sdlxvulkan::Physical_Device::get_present_modes(Surface const& a_surface) const
 {
-  return imp_get_present_modes(get(), m_data.get_destroyer<Physical_Device_Destroyer>()->get_instance(), a_surface);
+  return imp_get_present_modes(get(), get_instance(), a_surface);
 }
 
 // Using the supplied properties, determine the right kind of memory to allocate.

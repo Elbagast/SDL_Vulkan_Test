@@ -10,21 +10,7 @@
 namespace sdlxvulkan
 {
   namespace
-  {
-    // Factory function for the actual window.
-    SDL_Window* make_except_window(System const& a_system, std::string const& a_title, int a_xpos, int a_ypos, int a_width, int a_height, uint32_t a_flags)
-    {
-      // make sure we have this flag
-      auto l_flags = a_flags | SDL_WINDOW_VULKAN;
-      SDL_Window* l_result = SDL_CreateWindow(a_title.c_str(), a_xpos, a_ypos, a_width, a_height, l_flags);
-      if (l_result == nullptr)
-      {
-        throw std::runtime_error{ "SDL: Failed to create window." };
-      }
-      return l_result;
-    }
-
-
+  { 
     //---------------------------------------------------------------------------
     // Window_Destroyer
     //---------------------------------------------------------------------------
@@ -32,26 +18,19 @@ namespace sdlxvulkan
 
     class Window_Destroyer
     {
-    private:
+    public:
       // Member Data
       //============================================================
       System m_system;
 
-    public:
       // Special 6
       //============================================================
       explicit Window_Destroyer(System const& a_system) :
         m_system{ a_system }
       {
+        std::cout << "sdlxvulkan::Window_Destroyer::Window_Destroyer()" << std::endl;
       }
-      ~Window_Destroyer() = default;
-
-      Window_Destroyer(Window_Destroyer const& a_other) = default;
-      Window_Destroyer& operator=(Window_Destroyer const& a_other) = default;
-
-      Window_Destroyer(Window_Destroyer && a_other) = default;
-      Window_Destroyer& operator=(Window_Destroyer && a_other) = default;
-
+      
       // Interface
       //============================================================
       void operator()(SDL_Window* a_window) const noexcept
@@ -60,6 +39,23 @@ namespace sdlxvulkan
         std::cout << "sdlxvulkan::Window_Destroyer::operator()" << std::endl;
       }
     };
+
+
+    // Factory function for the actual window.
+    decltype(auto) make_except_window(System const& a_system, std::string const& a_title, int a_xpos, int a_ypos, int a_width, int a_height, uint32_t a_flags)
+    {
+      // make sure we have this flag
+      auto l_flags = a_flags | SDL_WINDOW_VULKAN;
+      SDL_Window* l_result = SDL_CreateWindow(a_title.c_str(), a_xpos, a_ypos, a_width, a_height, l_flags);
+      if (l_result == nullptr)
+      {
+        throw std::runtime_error{ "SDL: Failed to create window." };
+      }
+
+      std::unique_ptr<SDL_Window, Window_Destroyer> l_capture{ l_result, Window_Destroyer{ a_system } };
+
+      return std::shared_ptr<SDL_Window>{std::move(l_capture)};
+    }
   }
 }
 
@@ -73,18 +69,23 @@ namespace sdlxvulkan
 // Special 6
 //============================================================
 sdlxvulkan::Window::Window(System const& a_system, std::string const& a_title, int a_xpos, int a_ypos, int a_width, int a_height, uint32_t a_flags) :
-  m_data{ make_except_window(a_system,a_title, a_xpos, a_ypos, a_width, a_height, a_flags), Window_Destroyer{ a_system } }
+  m_data{ make_except_window(a_system,a_title, a_xpos, a_ypos, a_width, a_height, a_flags) }
 {
-  std::cout << "sdlxvulkan::Window::Window()" << std::endl;
+  //std::cout << "sdlxvulkan::Window::Window()" << std::endl;
 }
 sdlxvulkan::Window::~Window()
 {
-  std::cout << "sdlxvulkan::Window::~Window()" << std::endl;
+  //std::cout << "sdlxvulkan::Window::~Window()" << std::endl;
 }
 
 
 // Interface
 //============================================================
+
+sdlxvulkan::System const& sdlxvulkan::Window::get_system() const noexcept
+{
+  return std::get_deleter<Window_Destroyer>(m_data)->m_system;
+}
 
 uint32_t sdlxvulkan::Window::id() const
 {

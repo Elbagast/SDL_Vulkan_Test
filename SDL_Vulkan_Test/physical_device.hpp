@@ -1,7 +1,9 @@
 #ifndef SDLXVULKAN_PHYSICAL_DEVICE_HPP
 #define SDLXVULKAN_PHYSICAL_DEVICE_HPP
 
-#include "handle.hpp"
+#ifndef SDLXVULKAN_VULKAN_PTR_HPP
+#include "vulkan_ptr.hpp"
+#endif
 #include <vector>
 #ifndef VULKAN_H_
 #include <vulkan/vulkan.h>
@@ -22,10 +24,9 @@ namespace sdlxvulkan
   private:
     // Member Data
     //============================================================   
-    using Data_Type = Vulkan_Handle<VkPhysicalDevice>;
+    using Data_Type = Vulkan_Sptr<VkPhysicalDevice>;
     Data_Type m_data;
-
-    
+        
   public:
     // Special 6
     //============================================================
@@ -40,8 +41,8 @@ namespace sdlxvulkan
 
     // Interface
     //============================================================
-    Data_Type::Pointer get() const noexcept       { return m_data.get(); }
-    operator Data_Type::Pointer() const noexcept  { return m_data.get(); }
+    VkPhysicalDevice get() const noexcept       { return m_data.get(); }
+    operator VkPhysicalDevice() const noexcept  { return m_data.get(); }
 
     Instance const& get_instance() const noexcept;
 
@@ -75,7 +76,7 @@ namespace sdlxvulkan
   // Failure throws if no matching memory found.
   uint32_t get_memory_type_from_properties(VkPhysicalDeviceMemoryProperties const& a_properties, uint32_t a_typebits, VkMemoryPropertyFlags a_requirements);
 
-}
+} // namespace sdlxvulkan
 
 
 //------------------------------------------------------------------------------------------------------------------------------------------------------

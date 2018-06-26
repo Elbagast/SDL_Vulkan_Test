@@ -5,67 +5,61 @@
 
 #include <iostream>
 
-
 namespace sdlxvulkan
 {
   namespace
   {
-    VkQueue make_except_queue
-    (
-      Device const& a_device,
-      uint32_t a_queue_family_index,
-      uint32_t a_queue_index
-    )
-    {
-      VkQueue l_queue{ VK_NULL_HANDLE};
-      a_device.vk_functions().vkGetDeviceQueue(a_device, a_queue_family_index, a_queue_index, &l_queue);
-      if (l_queue == VK_NULL_HANDLE)
-      {
-        throw std::runtime_error{ "Vulkan: Failed to create a queue." };
-      }
-      return l_queue;
-    }
-
-
     //---------------------------------------------------------------------------
-    // Queue
+    // Queue_Destroyer
     //---------------------------------------------------------------------------
     // Does the actual work.
 
     class Queue_Destroyer
     {
-    private:
+    public:
       // Member Data
       //============================================================
       Device m_device;
+      uint32_t m_queue_family_index;
+      uint32_t m_queue_index;
 
-    public:
       // Special 6
       //============================================================
-      explicit Queue_Destroyer(Device const& a_device) :
-        m_device{ a_device }
+      explicit Queue_Destroyer
+      (
+        Device const& a_device,
+        uint32_t a_queue_family_index,
+        uint32_t a_queue_index
+      ) :
+        m_device{ a_device },
+        m_queue_family_index{ a_queue_family_index },
+        m_queue_index{ a_queue_index }
       {
+        std::cout << "sdlxvulkan::Queue_Destroyer::Queue_Destroyer()" << std::endl;
       }
-      ~Queue_Destroyer() = default;
-
-      Queue_Destroyer(Queue_Destroyer const& a_other) = default;
-      Queue_Destroyer& operator=(Queue_Destroyer const& a_other) = default;
-
-      Queue_Destroyer(Queue_Destroyer && a_other) = default;
-      Queue_Destroyer& operator=(Queue_Destroyer && a_other) = default;
-
       // Interface
       //============================================================
       void operator()(VkQueue) const noexcept
       {
         std::cout << "sdlxvulkan::Queue_Destroyer::operator() - does nothing" << std::endl;
       }
-
-      Device const& get_device() const
-      {
-        return m_device;
-      }
     };
+
+    decltype(auto) make_except_queue
+    (
+      Device const& a_device,
+      uint32_t a_queue_family_index,
+      uint32_t a_queue_index
+    )
+    {
+      VkQueue l_queue{ VK_NULL_HANDLE };
+      a_device.vk_functions().vkGetDeviceQueue(a_device, a_queue_family_index, a_queue_index, &l_queue);
+      if (l_queue == VK_NULL_HANDLE)
+      {
+        throw std::runtime_error{ "Vulkan: Failed to create a queue." };
+      }
+      return make_except_vulkan_sptr<VkQueue, Queue_Destroyer>(l_queue, a_device, a_queue_family_index, a_queue_index);
+    }
   } // namespace  
 } // namespace sdlxvulkan
 
@@ -86,53 +80,62 @@ sdlxvulkan::Queue::Queue
   uint32_t a_queue_family_index,
   uint32_t a_queue_index
 ) :
-  m_data{ make_except_queue(a_device, a_queue_family_index, a_queue_index), Queue_Destroyer{ a_device } }
+  m_data{ make_except_queue(a_device, a_queue_family_index, a_queue_index) }
 {
-  std::cout << "sdlxvulkan::Queue::Queue()" << std::endl;
+  //std::cout << "sdlxvulkan::Queue::Queue()" << std::endl;
 }
 
 sdlxvulkan::Queue::~Queue()
 {
-  std::cout << "sdlxvulkan::Queue::~Queue()" << std::endl;
+  //std::cout << "sdlxvulkan::Queue::~Queue()" << std::endl;
 }
 
 sdlxvulkan::Device const& sdlxvulkan::Queue::get_device() const noexcept
 {
-  return m_data.get_destroyer<Queue_Destroyer>()->get_device();
+  return std::get_deleter<Queue_Destroyer>(m_data)->m_device;
 }
 
+uint32_t sdlxvulkan::Queue::get_queue_family_index() const noexcept
+{
+  return std::get_deleter<Queue_Destroyer>(m_data)->m_queue_family_index;
+}
+
+uint32_t sdlxvulkan::Queue::get_queue_index() const noexcept
+{
+  return std::get_deleter<Queue_Destroyer>(m_data)->m_queue_index;
+}
 
 VkResult sdlxvulkan::Queue::vkBindSparse(uint32_t bindInfoCount, VkBindSparseInfo const* pBindInfo, VkFence fence) const
 {
-  return m_data.get_destroyer<Queue_Destroyer>()->get_device().vk_functions().vkQueueBindSparse(get(), bindInfoCount, pBindInfo, fence);
+  return std::get_deleter<Queue_Destroyer>(m_data)->m_device.vk_functions().vkQueueBindSparse(get(), bindInfoCount, pBindInfo, fence);
 }
 
 VkResult sdlxvulkan::Queue::vkSubmit(uint32_t submitCount, VkSubmitInfo const* pSubmits, VkFence fence) const
 {
-  return m_data.get_destroyer<Queue_Destroyer>()->get_device().vk_functions().vkQueueSubmit(get(), submitCount, pSubmits, fence);
+  return std::get_deleter<Queue_Destroyer>(m_data)->m_device.vk_functions().vkQueueSubmit(get(), submitCount, pSubmits, fence);
 }
 
 VkResult sdlxvulkan::Queue::vkWaitIdle() const
 {
-  return m_data.get_destroyer<Queue_Destroyer>()->get_device().vk_functions().vkQueueWaitIdle(get());
+  return std::get_deleter<Queue_Destroyer>(m_data)->m_device.vk_functions().vkQueueWaitIdle(get());
 }
 
 void sdlxvulkan::Queue::vkBeginDebugUtilsLabelEXT(VkDebugUtilsLabelEXT const* pLabelInfo) const
 {
-  m_data.get_destroyer<Queue_Destroyer>()->get_device().vk_functions().vkQueueBeginDebugUtilsLabelEXT(get(), pLabelInfo);
+  std::get_deleter<Queue_Destroyer>(m_data)->m_device.vk_functions().vkQueueBeginDebugUtilsLabelEXT(get(), pLabelInfo);
 }
 
 void sdlxvulkan::Queue::vkEndDebugUtilsLabelEXT() const
 {
-  m_data.get_destroyer<Queue_Destroyer>()->get_device().vk_functions().vkQueueEndDebugUtilsLabelEXT(get());
+  std::get_deleter<Queue_Destroyer>(m_data)->m_device.vk_functions().vkQueueEndDebugUtilsLabelEXT(get());
 }
 
 void sdlxvulkan::Queue::vkInsertDebugUtilsLabelEXT(VkDebugUtilsLabelEXT const* pLabelInfo) const
 {
-  m_data.get_destroyer<Queue_Destroyer>()->get_device().vk_functions().vkQueueInsertDebugUtilsLabelEXT(get(), pLabelInfo);
+  std::get_deleter<Queue_Destroyer>(m_data)->m_device.vk_functions().vkQueueInsertDebugUtilsLabelEXT(get(), pLabelInfo);
 }
 
 VkResult sdlxvulkan::Queue::vkPresentKHR(VkPresentInfoKHR const* pPresentInfo) const
 {
-  return m_data.get_destroyer<Queue_Destroyer>()->get_device().vk_functions().vkQueuePresentKHR(get(), pPresentInfo);
+  return std::get_deleter<Queue_Destroyer>(m_data)->m_device.vk_functions().vkQueuePresentKHR(get(), pPresentInfo);
 }

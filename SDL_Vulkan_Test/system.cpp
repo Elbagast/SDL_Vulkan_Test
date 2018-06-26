@@ -94,12 +94,12 @@ sdlxvulkan::System::Implementation::~Implementation()
 sdlxvulkan::System::System(uint32_t a_flags) :
   m_implementation{ std::make_shared<Implementation>(a_flags)}
 {
-  std::cout << "sdlxvulkan::System::System()" << std::endl;
+  //std::cout << "sdlxvulkan::System::System()" << std::endl;
 }
 
 sdlxvulkan::System::~System()
 {
-  std::cout << "sdlxvulkan::System::~System()" << std::endl;
+  //std::cout << "sdlxvulkan::System::~System()" << std::endl;
 }
 
 sdlxvulkan::System::System(System const& a_other) = default;

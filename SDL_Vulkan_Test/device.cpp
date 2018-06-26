@@ -22,68 +22,67 @@ namespace sdlxvulkan
 
     class Device_Destroyer
     {
-    private:
+    public:
       // Member Data
       //============================================================
       Physical_Device m_physical_device;
+      uint32_t m_graphics_qfi;
+      uint32_t m_present_qfi;
+      std::vector<std::string> const& m_extensions;
+      VkAllocationCallbacks const* m_allocation_callbacks;
+
 #ifndef SDLXVULKAN_SINGLE_DEVICE
       Device_Functions m_functions;
 #endif
 
-    public:
       // Special 6
       //============================================================
+
+      Device_Destroyer
+      (
+        Physical_Device const& a_physical_device,
+        uint32_t a_graphics_qfi,
+        uint32_t a_present_qfi,
+        std::vector<std::string> const& a_extensions,
+        VkAllocationCallbacks const* a_allocation_callbacks
+
 #ifndef SDLXVULKAN_SINGLE_DEVICE
-      Device_Destroyer(Physical_Device const& a_physical_device, Device_Functions const& a_functions) :
-        m_physical_device{ a_physical_device },
-        m_functions{ a_functions }
-      {
-      }
-#else
-      Device_Destroyer(Physical_Device const& a_physical_device) :
-        m_physical_device{ a_physical_device }
-      {
-      }
+        ,Device_Functions const& a_functions
 #endif
-      ~Device_Destroyer() = default;
+      ) :
+        m_physical_device{ a_physical_device },
+        m_graphics_qfi{ a_graphics_qfi },
+        m_present_qfi{ a_present_qfi },
+        m_extensions{ a_extensions },
+        m_allocation_callbacks{ a_allocation_callbacks }
 
-      Device_Destroyer(Device_Destroyer const& a_other) = default;
-      Device_Destroyer& operator=(Device_Destroyer const& a_other) = default;
-
-      Device_Destroyer(Device_Destroyer && a_other) = default;
-      Device_Destroyer& operator=(Device_Destroyer && a_other) = default;
-
+#ifndef SDLXVULKAN_SINGLE_DEVICE
+       , m_functions{ a_functions }
+#endif
+      {
+        std::cout << "sdlxvulkan::Device_Destroyer::Device_Destroyer()" << std::endl;
+      }
+      
       // Interface
       //============================================================
       void operator()(VkDevice a_device) const noexcept
       {
 #ifndef SDLXVULKAN_SINGLE_DEVICE
-        m_functions.vkDestroyDevice(a_device, nullptr);
+        m_functions.vkDestroyDevice(a_device, m_allocation_callbacks);
 #else
-        s_functions.vkDestroyDevice(a_device, nullptr);
+        s_functions.vkDestroyDevice(a_device, m_allocation_callbacks);
 #endif
         std::cout << "sdlxvulkan::Device_Destroyer::operator()" << std::endl;
       }
-
-      Physical_Device const& get_physical_device() const noexcept
-      {
-        return m_physical_device;
-      }
-
-#ifndef SDLXVULKAN_SINGLE_DEVICE
-      Device_Functions const& get_functions() const noexcept
-      {
-        return m_functions;
-      }
-#endif
     };
 
-    Vulkan_Handle<VkDevice> make_except_simple_device
+    decltype(auto) make_except_simple_device
     (
       Physical_Device const& a_physical_device,
       uint32_t a_graphics_qfi,
       uint32_t a_present_qfi,
-      std::vector<std::string> const& a_extensions
+      std::vector<std::string> const& a_extensions,
+      VkAllocationCallbacks const* a_allocation_callbacks
     )
     {
       //m_graphics_qfi = m_physical_device.first_graphics_qfi();
@@ -157,17 +156,17 @@ namespace sdlxvulkan
 
       VkDevice l_device{};
       // Create the device
-      if (vkCreateDevice(a_physical_device, &l_device_info, nullptr, &l_device) != VK_SUCCESS)
+      if (vkCreateDevice(a_physical_device, &l_device_info, a_allocation_callbacks, &l_device) != VK_SUCCESS)
       {
         throw std::runtime_error("Vulkan: Failed to create logical device.");
       }
 
       auto l_functions = Device_Functions{ l_device, a_physical_device.get_instance().vk_functions() };
 #ifndef SDLXVULKAN_SINGLE_DEVICE
-      return Vulkan_Handle<VkDevice>{l_device, Device_Destroyer{ a_physical_device, l_functions } };
+      return make_except_vulkan_sptr<VkDevice, Device_Destroyer>(l_device, a_physical_device, a_graphics_qfi, a_present_qfi, a_extensions, a_allocation_callbacks, l_functions);
 #else
       s_functions = l_functions;
-      return Vulkan_Handle<VkDevice>{l_device, Device_Destroyer{ a_physical_device } };
+      return make_except_vulkan_sptr<VkDevice, Device_Destroyer>(l_device, a_physical_device, a_graphics_qfi, a_present_qfi, a_extensions, a_allocation_callbacks);
 #endif
     }
 
@@ -186,15 +185,16 @@ sdlxvulkan::Device::Device
   Physical_Device const& a_physical_device,
   uint32_t a_graphics_qfi,
   uint32_t a_present_qfi,
-  std::vector<std::string> const& a_extensions
+  std::vector<std::string> const& a_extensions,
+  VkAllocationCallbacks const* a_allocation_callbacks
 ) :
-  m_data{ make_except_simple_device(a_physical_device, a_graphics_qfi, a_present_qfi,a_extensions) }
+  m_data{ make_except_simple_device(a_physical_device, a_graphics_qfi, a_present_qfi, a_extensions, a_allocation_callbacks) }
 {
-  std::cout << "sdlxvulkan::Device::Device()" << std::endl;
+  //std::cout << "sdlxvulkan::Device::Device()" << std::endl;
 }
 sdlxvulkan::Device::~Device()
 {
-  std::cout << "sdlxvulkan::Device::~Device()" << std::endl;
+  //std::cout << "sdlxvulkan::Device::~Device()" << std::endl;
 }
 
 
@@ -204,7 +204,7 @@ sdlxvulkan::Device::~Device()
 sdlxvulkan::Device_Functions const& sdlxvulkan::Device::vk_functions() const noexcept
 {
 #ifndef SDLXVULKAN_SINGLE_DEVICE
-  return m_data.get_destroyer<Device_Destroyer>()->get_functions();
+  return std::get_deleter<Device_Destroyer>(m_data)->m_functions;
 #else
   return s_functions;
 #endif
@@ -212,5 +212,20 @@ sdlxvulkan::Device_Functions const& sdlxvulkan::Device::vk_functions() const noe
 
 sdlxvulkan::Physical_Device const& sdlxvulkan::Device::get_physical_device() const noexcept
 {
-  return m_data.get_destroyer<Device_Destroyer>()->get_physical_device();
+  return std::get_deleter<Device_Destroyer>(m_data)->m_physical_device;
+}
+
+uint32_t sdlxvulkan::Device::get_graphics_qfi() const noexcept
+{
+  return std::get_deleter<Device_Destroyer>(m_data)->m_graphics_qfi;
+}
+
+uint32_t sdlxvulkan::Device::get_present_qfi() const noexcept
+{
+  return std::get_deleter<Device_Destroyer>(m_data)->m_present_qfi;
+}
+
+std::vector<std::string> const& sdlxvulkan::Device::get_extensions() const noexcept
+{
+  return std::get_deleter<Device_Destroyer>(m_data)->m_extensions;
 }
