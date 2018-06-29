@@ -1,4 +1,4 @@
-#include "vulkan_ptr.hpp"
+#include "handles.hpp"
 
 #include "global_functions.hpp"
 #include "instance_functions.hpp"
@@ -6,7 +6,6 @@
 #include "window.hpp"
 #include "system.hpp"
 #include <SDL_vulkan.h>
-#include <vulkan/vulkan.h>
 #include <cassert>
 #include <tuple>
 #include <algorithm>
@@ -854,7 +853,9 @@ namespace sdlxvulkan
   }
 }
 
-bool sdlxvulkan::can_present(Physical_Device const& a_physical_device, Surface const& a_surface)
+// Can this physical device present to this surface?
+// Returns false it either are null.
+bool sdlxvulkan::can_present(Physical_Device const& a_physical_device, Surface const& a_surface) noexcept
 {
   if (a_physical_device && a_surface)
   {
@@ -873,6 +874,10 @@ bool sdlxvulkan::can_present(Physical_Device const& a_physical_device, Surface c
   return false;
 }
 
+// Get the index of the first queue family that can present to this surface.
+// Returns std::numeric_limits<uint32_t>::max() if either are null.
+// Returns std::numeric_limits<uint32_t>::max() if no present queue family is
+// found.
 uint32_t sdlxvulkan::first_present_qfi(Physical_Device const& a_physical_device, Surface const& a_surface)
 {
   if (a_physical_device && a_surface)
@@ -891,7 +896,6 @@ uint32_t sdlxvulkan::first_present_qfi(Physical_Device const& a_physical_device,
   return std::numeric_limits<uint32_t>::max();
 }
 
-// Since these can change everytime the surface changes these shouldn't be stashed
 VkSurfaceCapabilitiesKHR sdlxvulkan::get_surface_cababilites(Physical_Device const& a_physical_device, Surface const& a_surface)
 {
   if (!a_physical_device || !a_surface)
@@ -973,6 +977,23 @@ sdlxvulkan::Debug_Report_Callback_Ext sdlxvulkan::make_debug_report_callback_ext
   return make_instance_child(a_instance, a_create_info, a_allocation_callbacks, l_functions->vkCreateDebugReportCallbackEXT, l_functions->vkDestroyDebugReportCallbackEXT);
 }
 
+sdlxvulkan::Debug_Report_Callback_Ext sdlxvulkan::make_debug_report_callback_ext_limited
+(
+  Instance const& a_instance,
+  VkDebugReportFlagsEXT a_flags,
+  PFN_vkDebugReportCallbackEXT a_callback,
+  VkAllocationCallbacks const* a_allocation_callbacks
+)
+{
+  VkDebugReportCallbackCreateInfoEXT l_callback_info{};
+  l_callback_info.sType = VK_STRUCTURE_TYPE_DEBUG_REPORT_CALLBACK_CREATE_INFO_EXT;
+  l_callback_info.pNext = nullptr;
+  l_callback_info.flags = a_flags;
+  l_callback_info.pfnCallback = a_callback;
+  l_callback_info.pUserData = nullptr;
+
+  return make_debug_report_callback_ext(a_instance, l_callback_info, a_allocation_callbacks);
+}
 
 //------------------------------------------------------------------------------------------------------------------------------------------------------
 // VkDevice
@@ -1192,7 +1213,58 @@ namespace sdlxvulkan
       }
     };
 
+    template <typename T_Vk_Handle, typename T_Vk_Parent>//, typename...Args>
+    class Vulkan_Array_Destroyer
+    {
+    public:
+      using Destroyer_Func_Type = void(VKAPI_PTR *)(VkDevice, T_Vk_Parent, uint32_t, T_Vk_Handle const*);
+      //using Destroyer_Func_Type = PFN_vkFreeCommandBuffers;
+      //using Store_Type = std::tuple<std::remove_reference_t<Args>...>;
 
+      Handle<T_Vk_Parent> m_parent;
+      uint32_t m_size;
+      Destroyer_Func_Type m_destroyer;
+      //Store_Type m_store;
+
+    public:
+      Vulkan_Array_Destroyer
+      (
+        Handle<T_Vk_Parent> const& a_parent,
+        uint32_t a_size,
+        Destroyer_Func_Type a_destroyer//,
+        //Args&&...a_args
+      ) :
+        m_parent{ a_parent },
+        m_size{ a_size },
+        m_destroyer{ a_destroyer }//,
+        //m_store{ std::forward<Args>(a_args)... }
+      {
+        assert(m_parent != nullptr);
+        assert(m_destroyer != nullptr);
+      }
+      void operator()(T_Vk_Handle* a_vk_handles) const noexcept
+      {
+        Device const& l_device = get_device(m_parent);
+        m_destroyer(l_device.get(), m_parent.get(), m_size, a_vk_handles);
+        delete[] a_vk_handles;
+      }
+      Handle<T_Vk_Parent> const& parent() const noexcept
+      {
+        return m_parent;
+      }
+      uint32_t size() const noexcept
+      {
+        return m_size;
+      }
+      Destroyer_Func_Type destroyer() const noexcept
+      {
+        return m_destroyer;
+      }
+      //Store_Type const& store()  const noexcept
+      //{
+      //  return m_store;
+      //}
+    };
 
     std::vector<VkCommandBuffer> imp_make_except_command_buffers
     (
@@ -1255,7 +1327,7 @@ sdlxvulkan::Command_Buffer sdlxvulkan::make_command_buffer
   return Command_Buffer{ Vulkan_Sptr<VkCommandBuffer>{std::move(l_caught)} };
 }
 
-// Make a batch of self-destroying VkCommandBuffer with this level. 
+// Make a batch of self-destroying VkCommandBuffer.
 // Destruction is independent for each so there's no batch freeing.
 std::vector<sdlxvulkan::Command_Buffer> sdlxvulkan::make_command_buffers
 (
@@ -1276,8 +1348,8 @@ std::vector<sdlxvulkan::Command_Buffer> sdlxvulkan::make_command_buffers
   std::vector<Command_Buffer> l_result{};
   try
   {
-    l_result.reserve(a_allocate_info.commandBufferCount);
-    // allocation could fail here......  
+    l_result.reserve(a_allocate_info.commandBufferCount); // allocation could fail here......  
+    
     for (auto l_raw_command_buffer : l_raw_command_buffers)
     {
       assert(l_raw_command_buffer != VK_NULL_HANDLE);
@@ -1301,6 +1373,75 @@ std::vector<sdlxvulkan::Command_Buffer> sdlxvulkan::make_command_buffers
   }
   assert(l_result.size() == a_allocate_info.commandBufferCount);
   return l_result;
+}
+
+// Make a batch of self-destroying VkCommandBuffer.
+// Destruction is of the entire array.
+sdlxvulkan::Command_Buffer_Array sdlxvulkan::make_command_buffers_array
+(
+  Command_Pool const& a_command_pool,
+  VkCommandBufferAllocateInfo const& a_allocate_info
+)
+{
+  assert(a_command_pool);
+  assert(a_allocate_info.commandPool == a_command_pool.get());
+  auto const& l_device = std::get_deleter<Vulkan_Destroyer<VkCommandPool, VkDevice>>(a_command_pool.get_data())->parent();
+  auto l_functions = get_device_functions(l_device);
+  assert(l_functions);
+  assert(l_functions->vkAllocateCommandBuffers != nullptr);
+  assert(l_functions->vkFreeCommandBuffers != nullptr);
+
+  auto l_raw_command_buffers = imp_make_except_command_buffers(a_command_pool, a_allocate_info); // if this breaks no resources leak
+  
+  VkCommandBuffer* l_raw{ nullptr };
+  uint32_t l_size = static_cast<uint32_t>(l_raw_command_buffers.size());
+  uint32_t l_reached = 0;
+  try
+  {
+    // make a new, raw pointer array
+    l_raw = new VkCommandBuffer[l_size]{VK_NULL_HANDLE}; // if this breaks then resources leak
+  }
+  catch (std::bad_alloc& a_exception)
+  {
+    // clean up all the vector, we couldn't make a pointer to capture the data.
+    l_functions->vkFreeCommandBuffers(l_device, a_command_pool, l_size, l_raw_command_buffers.data());
+
+    // Tell the world it failed.
+    throw a_exception;
+  }
+  // copy the data from the vector to the raw pointer
+  for (uint32_t l_index = 0; l_index != l_size; ++l_index)
+  {
+    assert(l_raw_command_buffers[l_index] != VK_NULL_HANDLE);
+    l_raw[l_index] = l_raw_command_buffers[l_index];
+  }
+  
+  using Deleter_Type = Vulkan_Array_Destroyer<VkCommandBuffer, VkCommandPool>;
+  static_assert(std::is_same_v<typename Deleter_Type::Destroyer_Func_Type, PFN_vkFreeCommandBuffers>, "Bad function pointer type");
+  Deleter_Type l_deleter{ a_command_pool, l_size, l_functions->vkFreeCommandBuffers };
+  std::unique_ptr<VkCommandBuffer[], Deleter_Type> l_caught{ l_raw, std::move(l_deleter) };
+  assert(l_caught[0] == l_raw_command_buffers[0]);
+  // If this throws it was the shared_ptr, and the resources should clean up fine.
+  return Command_Buffer_Array{ l_size, std::shared_ptr<VkCommandBuffer[]>{ std::move(l_caught) } };
+}
+
+// Make a batch of self-destroying VkCommandBuffer.
+// Destruction is of the entire array.
+sdlxvulkan::Command_Buffer_Array sdlxvulkan::make_command_buffers_array_limited
+(
+  Command_Pool const& a_command_pool,
+  VkCommandBufferLevel a_level,
+  uint32_t a_count
+)
+{
+  VkCommandBufferAllocateInfo l_alloc_info{};
+  l_alloc_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+  l_alloc_info.pNext = nullptr;
+  l_alloc_info.commandPool = a_command_pool.get();
+  l_alloc_info.level = a_level;
+  l_alloc_info.commandBufferCount = a_count;
+
+  return make_command_buffers_array(a_command_pool, l_alloc_info);
 }
 //------------------------------------------------------------------------------------------------------------------------------------------------------
 // VkQueue

@@ -1,7 +1,7 @@
-#ifndef SDLXVULKAN_VULKAN_PTR_HPP
-#define SDLXVULKAN_VULKAN_PTR_HPP
+#ifndef SDLXVULKAN_HANDLES_HPP
+#define SDLXVULKAN_HANDLES_HPP
 
-#include <stdexcept>
+//#include <stdexcept>
 #include <type_traits>
 #include <memory>
 #include <vector>
@@ -47,23 +47,7 @@ namespace sdlxvulkan
   // not publically available, allowing the smart handle to reveal what it wants.
   template <typename T>
   using Vulkan_Sptr = std::shared_ptr<internal::Vulkan_Handle_Typechecker_T<T>>;
-
-  // Once we have a Vulkan handle, we need to bind it to a destroyer so that it
-  // cleans up properly regardless of whether or not the shared_ptr creation
-  // fails. To do this we put it in a unique_ptr first with a noexcept 
-  // constructor. Then we try and make the shared_ptr.
-  template <typename T, typename Destroyer, typename...Args>
-  Vulkan_Sptr<T> make_except_vulkan_sptr(T a_vkhandle, Args&&... a_args)
-  {
-    Vulkan_Uptr<T,Destroyer> l_capture{ a_vkhandle, Destroyer{std::forward<Args>(a_args)...} };
-    return Vulkan_Sptr<T>{std::move(l_capture)};
-  }
-  // If we wanted to wrap this in a class that supplies new things like 
-  // implicit conversion to the Vulkan handle then we have to expose
-  // the deleter if we want access to it...
-
-  // This is no longer used internally
-
+  
 
   //---------------------------------------------------------------------------
   // Handle<T>
@@ -101,12 +85,67 @@ namespace sdlxvulkan
     {
       return static_cast<bool>(m_data);
     }
-    void swap(Vulkan_Sptr<T>& a_other) noexcept
+    void swap(Handle<T>& a_other) noexcept
     {
       std::swap(this->m_data, a_other.m_data);
     }
   };
   
+  //---------------------------------------------------------------------------
+  // Handle_Array<T>
+  //---------------------------------------------------------------------------
+  // Holds a std::shared_ptr<T[]> and supplies access to the Vulkan type values.
+  // Size is fixed on construction.
+
+  template <typename T>
+  class Handle_Array
+  {
+  private:
+    uint32_t m_size;
+    std::shared_ptr<T[]> m_data;
+  public:
+    Handle_Array() noexcept :
+      m_size{0},
+      m_data{}
+    {}
+    Handle_Array(uint32_t a_size, std::shared_ptr<T[]> const& a_data) noexcept :
+      m_size{ a_size },
+      m_data{ a_data }
+    {}
+    Handle_Array(uint32_t a_size, std::shared_ptr<T[]> && a_data) noexcept :
+      m_size{ a_size },
+      m_data{ std::move(a_data) }
+    {}
+    std::shared_ptr<T[]> const& get_data()  const noexcept
+    {
+      return m_data;
+    }
+    T* get() const noexcept
+    {
+      return m_data.get();
+    }
+    operator T*() const noexcept
+    {
+      return m_data.get();
+    }
+    T operator[](std::ptrdiff_t a_index)
+    {
+      return m_data[a_index];
+    }
+    explicit operator bool() const noexcept
+    {
+      return static_cast<bool>(m_data);
+    }
+    uint32_t size() const noexcept
+    {
+      return m_data ? m_size : 0;
+    }
+    void swap(Handle_Array<T>& a_other) noexcept
+    {
+      std::swap(this->m_data, a_other.m_data);
+    }
+  };
+
   //------------------------------------------------------------------------------------------------------------------------------------------------------
   // VkInstance
 
@@ -123,8 +162,7 @@ namespace sdlxvulkan
     System const& a_system,
     Window const& a_window,
     VkInstanceCreateInfo const& a_create_info,
-    VkAllocationCallbacks const* a_allocation_callbacks//,
-    //Global_Functions const& a_global_functions
+    VkAllocationCallbacks const* a_allocation_callbacks = nullptr
   );
 
   Instance make_instance_limited
@@ -215,11 +253,17 @@ namespace sdlxvulkan
     Window const& a_window
   );
 
+  // Can this physical device present to this surface?
+  // Returns false it either are null.
+  bool can_present(Physical_Device const& a_physical_device, Surface const& a_surface) noexcept;
 
-  bool can_present(Physical_Device const& a_physical_device, Surface const& a_surface);
+  // Get the index of the first queue family that can present to this surface.
+  // Returns std::numeric_limits<uint32_t>::max() if either are null.
+  // Returns std::numeric_limits<uint32_t>::max() if no present queue family is
+  // found.
   uint32_t first_present_qfi(Physical_Device const& a_physical_device, Surface const& a_surface);
 
-  // Since these can change everytime the surface changes these shouldn't be stashed
+
   VkSurfaceCapabilitiesKHR get_surface_cababilites(Physical_Device const& a_physical_device, Surface const& a_surface);
   std::vector<VkSurfaceFormatKHR> get_surface_formats(Physical_Device const& a_physical_device, Surface const& a_surface);
   std::vector<VkPresentModeKHR> get_present_modes(Physical_Device const& a_physical_device, Surface const& a_surface);
@@ -242,7 +286,15 @@ namespace sdlxvulkan
   (
     Instance const& a_instance,
     VkDebugReportCallbackCreateInfoEXT const& a_create_info,
-    VkAllocationCallbacks const* a_allocation_callbacks
+    VkAllocationCallbacks const* a_allocation_callbacks = nullptr
+  );
+
+  Debug_Report_Callback_Ext make_debug_report_callback_ext_limited
+  (
+    Instance const& a_instance,
+    VkDebugReportFlagsEXT a_flags,
+    PFN_vkDebugReportCallbackEXT a_callback,
+    VkAllocationCallbacks const* a_allocation_callbacks = nullptr
   );
 
   //------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -261,7 +313,7 @@ namespace sdlxvulkan
   (
     Physical_Device const& a_physical_device, 
     VkDeviceCreateInfo const& a_create_info,
-    VkAllocationCallbacks const* a_allocation_callbacks
+    VkAllocationCallbacks const* a_allocation_callbacks = nullptr
   );
 
   Device make_device_limited
@@ -290,7 +342,7 @@ namespace sdlxvulkan
   (
     Device const& a_device,
     VkCommandPoolCreateInfo const& a_create_info,
-    VkAllocationCallbacks const* a_allocation_callbacks
+    VkAllocationCallbacks const* a_allocation_callbacks = nullptr
   ); 
   
   Command_Pool make_command_pool_limited
@@ -308,6 +360,7 @@ namespace sdlxvulkan
   // Command_Buffer
   //---------------------------------------------------------------------------
   using Command_Buffer = Handle<VkCommandBuffer>;
+  using Command_Buffer_Array = Handle_Array<VkCommandBuffer>;
 
   // Make a single self-destroying VkCommandBuffer.
   // Take note that one buffer is created regardless of 'commandBufferCount'
@@ -318,12 +371,29 @@ namespace sdlxvulkan
     VkCommandBufferAllocateInfo const& a_allocate_info
   );
 
-  // Make a batch of self-destroying VkCommandBuffer with this level. 
+  // Make a batch of self-destroying VkCommandBuffer.
   // Destruction is independent for each so there's no batch freeing.
   std::vector<Command_Buffer> make_command_buffers
   (
     Command_Pool const& a_command_pool,
     VkCommandBufferAllocateInfo const& a_allocate_info
+  );
+
+  // Make a batch of self-destroying VkCommandBuffer.
+  // Destruction is of the entire array.
+  Command_Buffer_Array make_command_buffers_array
+  (
+    Command_Pool const& a_command_pool,
+    VkCommandBufferAllocateInfo const& a_allocate_info
+  );
+
+  // Make a batch of self-destroying VkCommandBuffer.
+  // Destruction is of the entire array.
+  Command_Buffer_Array make_command_buffers_array_limited
+  (
+    Command_Pool const& a_command_pool,
+    VkCommandBufferLevel a_level,
+    uint32_t a_count
   );
 
   //------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -345,4 +415,4 @@ namespace sdlxvulkan
 
 //------------------------------------------------------------------------------------------------------------------------------------------------------
 
-#endif // SDLXVULKAN_VULKAN_PTR_HPP
+#endif // SDLXVULKAN_HANDLES_HPP

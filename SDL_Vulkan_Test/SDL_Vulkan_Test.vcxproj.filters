@@ -27,22 +27,10 @@
     <ClCompile Include="application.cpp">
       <Filter>Source Files\sdlxvulkan</Filter>
     </ClCompile>
-    <ClCompile Include="instance.cpp">
-      <Filter>Source Files\sdlxvulkan</Filter>
-    </ClCompile>
     <ClCompile Include="system.cpp">
       <Filter>Source Files\sdlxvulkan</Filter>
     </ClCompile>
     <ClCompile Include="window.cpp">
-      <Filter>Source Files\sdlxvulkan</Filter>
-    </ClCompile>
-    <ClCompile Include="surface.cpp">
-      <Filter>Source Files\sdlxvulkan</Filter>
-    </ClCompile>
-    <ClCompile Include="debug_callback.cpp">
-      <Filter>Source Files\sdlxvulkan</Filter>
-    </ClCompile>
-    <ClCompile Include="physical_device.cpp">
       <Filter>Source Files\sdlxvulkan</Filter>
     </ClCompile>
     <ClCompile Include="global_functions.cpp">
@@ -54,19 +42,7 @@
     <ClCompile Include="device_functions.cpp">
       <Filter>Source Files\sdlxvulkan</Filter>
     </ClCompile>
-    <ClCompile Include="device.cpp">
-      <Filter>Source Files\sdlxvulkan</Filter>
-    </ClCompile>
-    <ClCompile Include="queue.cpp">
-      <Filter>Source Files\sdlxvulkan</Filter>
-    </ClCompile>
-    <ClCompile Include="command_pool.cpp">
-      <Filter>Source Files\sdlxvulkan</Filter>
-    </ClCompile>
-    <ClCompile Include="command_buffer.cpp">
-      <Filter>Source Files\sdlxvulkan</Filter>
-    </ClCompile>
-    <ClCompile Include="vulkan_ptr.cpp">
+    <ClCompile Include="handles.cpp">
       <Filter>Source Files\sdlxvulkan</Filter>
     </ClCompile>
   </ItemGroup>
@@ -74,25 +50,10 @@
     <ClInclude Include="application.hpp">
       <Filter>Header Files\sdlxvulkan</Filter>
     </ClInclude>
-    <ClInclude Include="instance.hpp">
-      <Filter>Header Files\sdlxvulkan</Filter>
-    </ClInclude>
     <ClInclude Include="result.hpp">
       <Filter>Header Files\sdlxvulkan</Filter>
     </ClInclude>
     <ClInclude Include="window.hpp">
-      <Filter>Header Files\sdlxvulkan</Filter>
-    </ClInclude>
-    <ClInclude Include="surface.hpp">
-      <Filter>Header Files\sdlxvulkan</Filter>
-    </ClInclude>
-    <ClInclude Include="debug_callback.hpp">
-      <Filter>Header Files\sdlxvulkan</Filter>
-    </ClInclude>
-    <ClInclude Include="handle.hpp">
-      <Filter>Header Files\sdlxvulkan</Filter>
-    </ClInclude>
-    <ClInclude Include="physical_device.hpp">
       <Filter>Header Files\sdlxvulkan</Filter>
     </ClInclude>
     <ClInclude Include="event_string.hpp">
@@ -110,22 +71,7 @@
     <ClInclude Include="device_functions.hpp">
       <Filter>Header Files\sdlxvulkan</Filter>
     </ClInclude>
-    <ClInclude Include="device.hpp">
-      <Filter>Header Files\sdlxvulkan</Filter>
-    </ClInclude>
-    <ClInclude Include="queue.hpp">
-      <Filter>Header Files\sdlxvulkan</Filter>
-    </ClInclude>
-    <ClInclude Include="command_pool.hpp">
-      <Filter>Header Files\sdlxvulkan</Filter>
-    </ClInclude>
-    <ClInclude Include="command_buffer.hpp">
-      <Filter>Header Files\sdlxvulkan</Filter>
-    </ClInclude>
-    <ClInclude Include="vulkan_ptr.hpp">
-      <Filter>Header Files\sdlxvulkan</Filter>
-    </ClInclude>
-    <ClInclude Include="buffer.hpp">
+    <ClInclude Include="handles.hpp">
       <Filter>Header Files\sdlxvulkan</Filter>
     </ClInclude>
   </ItemGroup>

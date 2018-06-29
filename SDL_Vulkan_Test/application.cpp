@@ -13,27 +13,16 @@
 
 #include "system.hpp"
 #include "window.hpp"
-#include "instance.hpp"
 
-#include "vulkan_ptr.hpp"
+#include "handles.hpp"
 #include "event_string.hpp"
 #include "global_functions.hpp"
 #include "instance_functions.hpp"
 #include "device_functions.hpp"
-/*
-#include "surface.hpp"
-#include "debug_callback.hpp"
-#include "physical_device.hpp"
-#include "device.hpp"
-#include "queue.hpp"
-#include "command_pool.hpp"
-#include "command_buffer.hpp"
-*/
+
 #include <SDL.h>
 #include <SDL_vulkan.h>
 #include <vulkan/vulkan.h>
-#include <vulkan/vulkan_core.h>
-//#include <vulkan/vulkan_win32.h>
 
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
@@ -123,6 +112,15 @@ namespace
 
   std::vector<std::string> const c_device_extension_names{ VK_KHR_SWAPCHAIN_EXTENSION_NAME };
 
+  // Callback function that is given to Vulkan. It will interpret
+  // the user data void* as an Abstract_Debug_Callback* and call
+  // Abstract_Debug_Callback::do_callback on it with the arguments.
+  // Always returns VK_FALSE.
+  VKAPI_ATTR VkBool32 VKAPI_CALL debug_callback(VkDebugReportFlagsEXT a_flags, VkDebugReportObjectTypeEXT a_obj_type, uint64_t a_obj, size_t a_location, int32_t a_code, const char* a_layer_prefix, const char* a_msg, void* a_user_data)
+  {
+    std::cerr << "DEBUG: " << a_msg << std::endl << std::endl;
+    return VK_FALSE;
+  }
 }
 
 //---------------------------------------------------------------------------
@@ -230,7 +228,7 @@ namespace sdlxvulkan
     Instance m_instance;
     Instance_Functions const* m_instance_functions;
 
-    //Debug_Callback_Message_Cerr m_debug_callback;
+    Debug_Report_Callback_Ext m_debug_callback;
     Surface m_surface;
     Physical_Device m_physical_device;
 
@@ -302,7 +300,8 @@ namespace sdlxvulkan
     std::vector<VkFramebuffer> m_swapchain_framebuffers;
     
     // Command Buffer(s)
-    std::vector<Command_Buffer> m_command_buffers;
+    Command_Buffer_Array m_command_buffers;
+    //std::vector<Command_Buffer> m_command_buffers;
 
     // Sync Objects
     std::vector<VkSemaphore> m_image_available_semaphores;
@@ -423,7 +422,7 @@ sdlxvulkan::Application::Implementation::Implementation(int argc, char** argv) :
   
   m_instance{ make_instance_limited(m_system, m_window, c_extension_names, c_validation_layers, c_application_name, c_application_version, c_engine_name, c_engine_version, c_vulkan_version) },
   m_instance_functions{ get_instance_functions(m_instance) },
-  //m_debug_callback{ m_instance },
+  m_debug_callback{ make_debug_report_callback_ext_limited(m_instance, VK_DEBUG_REPORT_ERROR_BIT_EXT | VK_DEBUG_REPORT_WARNING_BIT_EXT, debug_callback) },
   m_surface{ make_surface_khr(m_instance, m_window) },
   m_physical_device{ get_physical_devices(m_instance).front() },
 
@@ -483,8 +482,9 @@ sdlxvulkan::Application::Implementation::Implementation(int argc, char** argv) :
   m_pipeline{},
 
   m_swapchain_framebuffers{},
-  
-  m_command_buffers{  },
+  // delay init for now, relies on the number of swapchain images in this build.
+  // Need to know if that is going to change, or if this is going to be packaged into another object.
+  m_command_buffers{ },//make_command_buffers_array_limited(m_command_pool, VK_COMMAND_BUFFER_LEVEL_PRIMARY, static_cast<uint32_t>(m_swapchain_framebuffers.size())) },
 
   // Sync Objects
   m_image_available_semaphores{},
@@ -1711,15 +1711,19 @@ void sdlxvulkan::Application::Implementation::quit_framebuffer()
 
 void sdlxvulkan::Application::Implementation::init_command_buffers()
 {
-
+  /*
   VkCommandBufferAllocateInfo l_alloc_info{};
   l_alloc_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
   l_alloc_info.pNext = nullptr;
   l_alloc_info.commandPool = m_command_pool;
   l_alloc_info.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
   l_alloc_info.commandBufferCount = static_cast<uint32_t>(m_swapchain_framebuffers.size());
-
-  m_command_buffers = make_command_buffers(m_command_pool, l_alloc_info);
+  m_command_buffers = make_command_buffers_array(m_command_pool, l_alloc_info);
+  */
+  //std::cout << "making Command Buffers..." << std::endl;
+  m_command_buffers = make_command_buffers_array_limited(m_command_pool, VK_COMMAND_BUFFER_LEVEL_PRIMARY, static_cast<uint32_t>(m_swapchain_framebuffers.size()));
+  //std::cout << m_command_buffers.size() << std::endl;
+  
   //m_command_buffers = make_command_buffer_vector(static_cast<uint32_t>(m_swapchain_framebuffers.size()), m_command_pool, VK_COMMAND_BUFFER_LEVEL_PRIMARY);
   /*
   // one per swapchain image
