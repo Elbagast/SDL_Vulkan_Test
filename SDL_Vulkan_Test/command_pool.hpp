@@ -10,7 +10,7 @@
 
 namespace sdlxvulkan
 {
-  class Device;
+  class Device_OLD;
 
   //---------------------------------------------------------------------------
   // Command_Pool
@@ -18,7 +18,7 @@ namespace sdlxvulkan
   // Holds a VkCommandPool with reference counting and cleans up properly. 
   // Allows wrapped manipulation of the VkCommandPool.
 
-  class Command_Pool
+  class Command_Pool_OLD
   {
   private:
     // Member Data
@@ -51,28 +51,28 @@ namespace sdlxvulkan
     //============================================================
     // Create using for a given device and queue family, setting its create 
     // flags. Refer to VkCommandPoolCreateFlagBits documentation.
-    Command_Pool
+    Command_Pool_OLD
     (
-      Device const& a_device,
+      Device_OLD const& a_device,
       uint32_t a_queue_family_index,
       VkCommandPoolCreateFlags a_flags = 0,
       VkAllocationCallbacks const* a_allocation_callbacks = nullptr
     );
 
-    ~Command_Pool();
+    ~Command_Pool_OLD();
 
-    Command_Pool(Command_Pool const& a_other);
-    Command_Pool& operator=(Command_Pool const& a_other);
+    Command_Pool_OLD(Command_Pool_OLD const& a_other);
+    Command_Pool_OLD& operator=(Command_Pool_OLD const& a_other);
 
-    Command_Pool(Command_Pool && a_other);
-    Command_Pool& operator=(Command_Pool && a_other);
+    Command_Pool_OLD(Command_Pool_OLD && a_other);
+    Command_Pool_OLD& operator=(Command_Pool_OLD && a_other);
 
     // Interface
     //============================================================
     VkCommandPool get() const noexcept       { return m_data.get(); }
     operator VkCommandPool() const noexcept  { return m_data.get(); }
 
-    Device const& get_device() const noexcept;
+    Device_OLD const& get_device() const noexcept;
 
     uint32_t get_queue_family_index() const noexcept;
     VkCommandPoolCreateFlags get_flags() const noexcept;
@@ -96,10 +96,10 @@ namespace sdlxvulkan
 
 // Special 6
 //============================================================
-inline sdlxvulkan::Command_Pool::Command_Pool(Command_Pool const& a_other) = default;
-inline sdlxvulkan::Command_Pool& sdlxvulkan::Command_Pool::operator=(Command_Pool const& a_other) = default;
+inline sdlxvulkan::Command_Pool_OLD::Command_Pool_OLD(Command_Pool_OLD const& a_other) = default;
+inline sdlxvulkan::Command_Pool_OLD& sdlxvulkan::Command_Pool_OLD::operator=(Command_Pool_OLD const& a_other) = default;
 
-inline sdlxvulkan::Command_Pool::Command_Pool(Command_Pool && a_other) = default;
-inline sdlxvulkan::Command_Pool& sdlxvulkan::Command_Pool::operator=(Command_Pool && a_other) = default;
+inline sdlxvulkan::Command_Pool_OLD::Command_Pool_OLD(Command_Pool_OLD && a_other) = default;
+inline sdlxvulkan::Command_Pool_OLD& sdlxvulkan::Command_Pool_OLD::operator=(Command_Pool_OLD && a_other) = default;
 
 #endif // SDLXVULKAN_COMMAND_POOL_HPP

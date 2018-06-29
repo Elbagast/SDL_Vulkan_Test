@@ -19,7 +19,7 @@ namespace sdlxvulkan
     public:
       // Member Data
       //============================================================
-      Device m_device;
+      Device_OLD m_device;
       uint32_t m_queue_family_index;
       VkCommandPoolCreateFlags m_flags;
       VkAllocationCallbacks const* m_allocation_callbacks;
@@ -28,7 +28,7 @@ namespace sdlxvulkan
       //============================================================
       explicit Command_Pool_Destroyer
       (
-        Device const& a_device,
+        Device_OLD const& a_device,
         uint32_t a_queue_family_index,
         VkCommandPoolCreateFlags a_flags,
         VkAllocationCallbacks const* a_allocation_callbacks
@@ -53,7 +53,7 @@ namespace sdlxvulkan
 
     decltype(auto) make_except_command_pool
     (
-      Device const& a_device,
+      Device_OLD const& a_device,
       uint32_t a_queue_family_index,
       VkCommandPoolCreateFlags a_flags,
       VkAllocationCallbacks const* a_allocation_callbacks
@@ -89,9 +89,9 @@ namespace sdlxvulkan
 //============================================================
 // Create using for a given device and queue family, setting its create 
 // flags. Refer to VkCommandPoolCreateFlagBits documentation.
-sdlxvulkan::Command_Pool::Command_Pool
+sdlxvulkan::Command_Pool_OLD::Command_Pool_OLD
 (
-  Device const& a_device,
+  Device_OLD const& a_device,
   uint32_t a_queue_family_index,
   VkCommandPoolCreateFlags a_flags,
   VkAllocationCallbacks const* a_allocation_callbacks
@@ -101,43 +101,43 @@ sdlxvulkan::Command_Pool::Command_Pool
   //std::cout << "sdlxvulkan::Command_Pool::~Command_Pool()" << std::endl;
 }
 
-sdlxvulkan::Command_Pool::~Command_Pool()
+sdlxvulkan::Command_Pool_OLD::~Command_Pool_OLD()
 {
   //std::cout << "sdlxvulkan::Command_Pool::~Command_Pool()" << std::endl;
 }
 
 // Interface
 //============================================================
-sdlxvulkan::Device const& sdlxvulkan::Command_Pool::get_device() const noexcept
+sdlxvulkan::Device_OLD const& sdlxvulkan::Command_Pool_OLD::get_device() const noexcept
 {
   return std::get_deleter<Command_Pool_Destroyer>(m_data)->m_device;
 }
 
-uint32_t sdlxvulkan::Command_Pool::get_queue_family_index() const noexcept
+uint32_t sdlxvulkan::Command_Pool_OLD::get_queue_family_index() const noexcept
 {
   return std::get_deleter<Command_Pool_Destroyer>(m_data)->m_queue_family_index;
 }
 
-VkCommandPoolCreateFlags sdlxvulkan::Command_Pool::get_flags() const noexcept
+VkCommandPoolCreateFlags sdlxvulkan::Command_Pool_OLD::get_flags() const noexcept
 {
   return std::get_deleter<Command_Pool_Destroyer>(m_data)->m_flags;
 }
 
-VkAllocationCallbacks const* sdlxvulkan::Command_Pool::get_allocation_callbacks() const noexcept
+VkAllocationCallbacks const* sdlxvulkan::Command_Pool_OLD::get_allocation_callbacks() const noexcept
 {
   return std::get_deleter<Command_Pool_Destroyer>(m_data)->m_allocation_callbacks;
 }
 
 // Analagous to vkResetCommandPool on this.
 // Flags CAN be set to a mask of VkCommandPoolResetFlagBits values.
-void sdlxvulkan::Command_Pool::reset(VkCommandPoolResetFlags a_flags)
+void sdlxvulkan::Command_Pool_OLD::reset(VkCommandPoolResetFlags a_flags)
 {
   get_device().vk_functions().vkResetCommandPool(get_device(), get(), a_flags);
 }
 
 // Analagous to vkTrimCommandPool on this.
 // Flags are reserved and MUST be zero.
-void sdlxvulkan::Command_Pool::trim(VkCommandPoolTrimFlags a_flags)
+void sdlxvulkan::Command_Pool_OLD::trim(VkCommandPoolTrimFlags a_flags)
 {
   get_device().vk_functions().vkTrimCommandPool(get_device(), get(), a_flags);
 }

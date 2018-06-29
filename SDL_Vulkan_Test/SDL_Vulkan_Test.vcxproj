@@ -33,10 +33,12 @@
     <ClCompile Include="queue.cpp" />
     <ClCompile Include="surface.cpp" />
     <ClCompile Include="system.cpp" />
+    <ClCompile Include="vulkan_ptr.cpp" />
     <ClCompile Include="window.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="application.hpp" />
+    <ClInclude Include="buffer.hpp" />
     <ClInclude Include="command_buffer.hpp" />
     <ClInclude Include="command_pool.hpp" />
     <ClInclude Include="debug_callback.hpp" />

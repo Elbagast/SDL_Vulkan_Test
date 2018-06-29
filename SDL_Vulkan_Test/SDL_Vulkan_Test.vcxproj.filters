@@ -66,6 +66,9 @@
     <ClCompile Include="command_buffer.cpp">
       <Filter>Source Files\sdlxvulkan</Filter>
     </ClCompile>
+    <ClCompile Include="vulkan_ptr.cpp">
+      <Filter>Source Files\sdlxvulkan</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="application.hpp">
@@ -120,6 +123,9 @@
       <Filter>Header Files\sdlxvulkan</Filter>
     </ClInclude>
     <ClInclude Include="vulkan_ptr.hpp">
+      <Filter>Header Files\sdlxvulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="buffer.hpp">
       <Filter>Header Files\sdlxvulkan</Filter>
     </ClInclude>
   </ItemGroup>

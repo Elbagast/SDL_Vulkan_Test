@@ -20,12 +20,12 @@ namespace sdlxvulkan
     //---------------------------------------------------------------------------
     // Doesn't actually do anything but hold the dependent handles.
 
-    class Device_Destroyer
+    class Device_Destroyer2
     {
     public:
       // Member Data
       //============================================================
-      Physical_Device m_physical_device;
+      Physical_Device_OLD m_physical_device;
       uint32_t m_graphics_qfi;
       uint32_t m_present_qfi;
       std::vector<std::string> const& m_extensions;
@@ -38,9 +38,9 @@ namespace sdlxvulkan
       // Special 6
       //============================================================
 
-      Device_Destroyer
+      Device_Destroyer2
       (
-        Physical_Device const& a_physical_device,
+        Physical_Device_OLD const& a_physical_device,
         uint32_t a_graphics_qfi,
         uint32_t a_present_qfi,
         std::vector<std::string> const& a_extensions,
@@ -78,7 +78,7 @@ namespace sdlxvulkan
 
     decltype(auto) make_except_simple_device
     (
-      Physical_Device const& a_physical_device,
+      Physical_Device_OLD const& a_physical_device,
       uint32_t a_graphics_qfi,
       uint32_t a_present_qfi,
       std::vector<std::string> const& a_extensions,
@@ -163,10 +163,10 @@ namespace sdlxvulkan
 
       auto l_functions = Device_Functions{ l_device, a_physical_device.get_instance().vk_functions() };
 #ifndef SDLXVULKAN_SINGLE_DEVICE
-      return make_except_vulkan_sptr<VkDevice, Device_Destroyer>(l_device, a_physical_device, a_graphics_qfi, a_present_qfi, a_extensions, a_allocation_callbacks, l_functions);
+      return make_except_vulkan_sptr<VkDevice, Device_Destroyer2>(l_device, a_physical_device, a_graphics_qfi, a_present_qfi, a_extensions, a_allocation_callbacks, l_functions);
 #else
       s_functions = l_functions;
-      return make_except_vulkan_sptr<VkDevice, Device_Destroyer>(l_device, a_physical_device, a_graphics_qfi, a_present_qfi, a_extensions, a_allocation_callbacks);
+      return make_except_vulkan_sptr<VkDevice, Device_Destroyer2>(l_device, a_physical_device, a_graphics_qfi, a_present_qfi, a_extensions, a_allocation_callbacks);
 #endif
     }
 
@@ -180,9 +180,9 @@ namespace sdlxvulkan
 
 // Special 6
 //============================================================
-sdlxvulkan::Device::Device
+sdlxvulkan::Device_OLD::Device_OLD
 (
-  Physical_Device const& a_physical_device,
+  Physical_Device_OLD const& a_physical_device,
   uint32_t a_graphics_qfi,
   uint32_t a_present_qfi,
   std::vector<std::string> const& a_extensions,
@@ -192,7 +192,7 @@ sdlxvulkan::Device::Device
 {
   //std::cout << "sdlxvulkan::Device::Device()" << std::endl;
 }
-sdlxvulkan::Device::~Device()
+sdlxvulkan::Device_OLD::~Device_OLD()
 {
   //std::cout << "sdlxvulkan::Device::~Device()" << std::endl;
 }
@@ -201,31 +201,31 @@ sdlxvulkan::Device::~Device()
 // Interface
 //============================================================
 
-sdlxvulkan::Device_Functions const& sdlxvulkan::Device::vk_functions() const noexcept
+sdlxvulkan::Device_Functions const& sdlxvulkan::Device_OLD::vk_functions() const noexcept
 {
 #ifndef SDLXVULKAN_SINGLE_DEVICE
-  return std::get_deleter<Device_Destroyer>(m_data)->m_functions;
+  return std::get_deleter<Device_Destroyer2>(m_data)->m_functions;
 #else
   return s_functions;
 #endif
 }
 
-sdlxvulkan::Physical_Device const& sdlxvulkan::Device::get_physical_device() const noexcept
+sdlxvulkan::Physical_Device_OLD const& sdlxvulkan::Device_OLD::get_physical_device() const noexcept
 {
-  return std::get_deleter<Device_Destroyer>(m_data)->m_physical_device;
+  return std::get_deleter<Device_Destroyer2>(m_data)->m_physical_device;
 }
 
-uint32_t sdlxvulkan::Device::get_graphics_qfi() const noexcept
+uint32_t sdlxvulkan::Device_OLD::get_graphics_qfi() const noexcept
 {
-  return std::get_deleter<Device_Destroyer>(m_data)->m_graphics_qfi;
+  return std::get_deleter<Device_Destroyer2>(m_data)->m_graphics_qfi;
 }
 
-uint32_t sdlxvulkan::Device::get_present_qfi() const noexcept
+uint32_t sdlxvulkan::Device_OLD::get_present_qfi() const noexcept
 {
-  return std::get_deleter<Device_Destroyer>(m_data)->m_present_qfi;
+  return std::get_deleter<Device_Destroyer2>(m_data)->m_present_qfi;
 }
 
-std::vector<std::string> const& sdlxvulkan::Device::get_extensions() const noexcept
+std::vector<std::string> const& sdlxvulkan::Device_OLD::get_extensions() const noexcept
 {
-  return std::get_deleter<Device_Destroyer>(m_data)->m_extensions;
+  return std::get_deleter<Device_Destroyer2>(m_data)->m_extensions;
 }

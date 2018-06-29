@@ -15,22 +15,22 @@ namespace sdlxvulkan
   namespace
   {
     //---------------------------------------------------------------------------
-    // Surface_Destroyer
+    // Surface_Destroyer2
     //---------------------------------------------------------------------------
     // Does the actual work.
 
-    class Surface_Destroyer
+    class Surface_Destroyer2
     {
     public:
       // Member Data
       //============================================================
       Window m_window;
-      Instance m_instance;
+      Instance_OLD m_instance;
       VkAllocationCallbacks const* m_allocation_callbacks;
 
       // Special 6
       //============================================================
-      Surface_Destroyer(Window const& a_window, Instance const& a_instance, VkAllocationCallbacks const* a_allocation_callbacks) noexcept:
+      Surface_Destroyer2(Window const& a_window, Instance_OLD const& a_instance, VkAllocationCallbacks const* a_allocation_callbacks) noexcept:
         m_window{ a_window },
         m_instance{ a_instance },
         m_allocation_callbacks{ a_allocation_callbacks }
@@ -47,7 +47,7 @@ namespace sdlxvulkan
     };  
 
 
-    decltype(auto) make_except_surface(Window const& a_window, Instance const& a_instance)//, VkAllocationCallbacks const* a_allocation_callbacks)
+    decltype(auto) make_except_surface(Window const& a_window, Instance_OLD const& a_instance)//, VkAllocationCallbacks const* a_allocation_callbacks)
     {
       VkSurfaceKHR l_surface{};
       if (SDL_Vulkan_CreateSurface(a_window, a_instance, &l_surface) != SDL_TRUE)
@@ -55,7 +55,7 @@ namespace sdlxvulkan
         throw std::runtime_error("SDL: Failed to create a Vulkan surface.");
       }
 
-      return make_except_vulkan_sptr<VkSurfaceKHR, Surface_Destroyer>(l_surface, a_window, a_instance, nullptr);
+      return make_except_vulkan_sptr<VkSurfaceKHR, Surface_Destroyer2>(l_surface, a_window, a_instance, nullptr);
 
       //Surface_Uptr l_capture{ l_surface, Surface_Destroyer{ a_window, a_instance, nullptr } };
 
@@ -75,7 +75,7 @@ namespace sdlxvulkan
 // Special 6
 //============================================================
 
-sdlxvulkan::Surface::Surface(Window const& a_window, Instance const& a_instance):
+sdlxvulkan::Surface_OLD::Surface_OLD(Window const& a_window, Instance_OLD const& a_instance):
   m_data{ make_except_surface(a_window, a_instance) }
 {
   //std::cout << "sdlxvulkan::Surface::Surface()" << std::endl;
@@ -87,12 +87,12 @@ sdlxvulkan::Surface::Surface(Window const& a_window, Instance const& a_instance,
   //std::cout << "sdlxvulkan::Surface::Surface()" << std::endl;
 }
 */
-sdlxvulkan::Surface::~Surface()
+sdlxvulkan::Surface_OLD::~Surface_OLD()
 {
   //std::cout << "sdlxvulkan::Surface::~Surface()" << std::endl;
 }
 
-sdlxvulkan::Instance const& sdlxvulkan::Surface::get_instance() const noexcept
+sdlxvulkan::Instance_OLD const& sdlxvulkan::Surface_OLD::get_instance() const noexcept
 {
-  return std::get_deleter<Surface_Destroyer>(m_data)->m_instance;
+  return std::get_deleter<Surface_Destroyer2>(m_data)->m_instance;
 }

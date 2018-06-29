@@ -12,7 +12,7 @@
 
 namespace sdlxvulkan
 {
-  class Command_Pool;
+  class Command_Pool_OLD;
 
   //---------------------------------------------------------------------------
   // Command_Buffer
@@ -24,7 +24,7 @@ namespace sdlxvulkan
   // class Secondary_Command_Buffer;
 
 
-  class Command_Buffer
+  class Command_Buffer_OLD
   {
   private:
     // Member Data
@@ -37,34 +37,34 @@ namespace sdlxvulkan
     //============================================================
     // Make using an externally made VkCommandBuffer. This MUST have
     // been created using the supplied Command_Pool.
-    Command_Buffer
+    Command_Buffer_OLD
     (
       VkCommandBuffer a_command_buffer,
-      Command_Pool const& a_command_pool
+      Command_Pool_OLD const& a_command_pool
     );
 
     // Allocate a single command buffer for this command pool, with the
     // supplied level.
-    Command_Buffer
+    Command_Buffer_OLD
     (
-      Command_Pool const& a_command_pool,
+      Command_Pool_OLD const& a_command_pool,
       VkCommandBufferLevel a_level
     );
 
-    ~Command_Buffer();
+    ~Command_Buffer_OLD();
 
-    Command_Buffer(Command_Buffer const& a_other);
-    Command_Buffer& operator=(Command_Buffer const& a_other);
+    Command_Buffer_OLD(Command_Buffer_OLD const& a_other);
+    Command_Buffer_OLD& operator=(Command_Buffer_OLD const& a_other);
 
-    Command_Buffer(Command_Buffer && a_other);
-    Command_Buffer& operator=(Command_Buffer && a_other);
+    Command_Buffer_OLD(Command_Buffer_OLD && a_other);
+    Command_Buffer_OLD& operator=(Command_Buffer_OLD && a_other);
 
     // Interface
     //============================================================
     VkCommandBuffer get() const noexcept      { return m_data.get(); }
     operator VkCommandBuffer() const noexcept { return m_data.get(); }
 
-    Command_Pool const& get_pool() const noexcept;
+    Command_Pool_OLD const& get_pool() const noexcept;
 
     /*
     // Analagous to calling vkBeginCommandBuffer on this.
@@ -195,7 +195,7 @@ namespace sdlxvulkan
   // Non-Member Interface
   //============================================================
   // Create a batch of Command_Buffer in one go.
-  std::vector<Command_Buffer> make_command_buffer_vector(uint32_t a_count, Command_Pool const& a_command_pool, VkCommandBufferLevel a_level);
+  std::vector<Command_Buffer_OLD> make_command_buffer_vector(uint32_t a_count, Command_Pool_OLD const& a_command_pool, VkCommandBufferLevel a_level);
   
 }
 
@@ -207,11 +207,11 @@ namespace sdlxvulkan
 
 // Special 6
 //============================================================
-inline sdlxvulkan::Command_Buffer::Command_Buffer(Command_Buffer const& a_other) = default;
-inline sdlxvulkan::Command_Buffer& sdlxvulkan::Command_Buffer::operator=(Command_Buffer const& a_other) = default;
+inline sdlxvulkan::Command_Buffer_OLD::Command_Buffer_OLD(Command_Buffer_OLD const& a_other) = default;
+inline sdlxvulkan::Command_Buffer_OLD& sdlxvulkan::Command_Buffer_OLD::operator=(Command_Buffer_OLD const& a_other) = default;
 
-inline sdlxvulkan::Command_Buffer::Command_Buffer(Command_Buffer && a_other) = default;
-inline sdlxvulkan::Command_Buffer& sdlxvulkan::Command_Buffer::operator=(Command_Buffer && a_other) = default;
+inline sdlxvulkan::Command_Buffer_OLD::Command_Buffer_OLD(Command_Buffer_OLD && a_other) = default;
+inline sdlxvulkan::Command_Buffer_OLD& sdlxvulkan::Command_Buffer_OLD::operator=(Command_Buffer_OLD && a_other) = default;
 
 
 // Non-Member Interface

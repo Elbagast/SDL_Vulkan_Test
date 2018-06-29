@@ -8,27 +8,27 @@
 #include <iostream>
 #include <algorithm>
 #include <limits>
-#include <exception>
+#include <stdexcept>
 
 namespace sdlxvulkan
 {
   namespace
   {
-    VkPhysicalDeviceProperties imp_get_properties(Instance const& a_instance, VkPhysicalDevice a_physical_device) 
+    VkPhysicalDeviceProperties imp_get_properties(Instance_OLD const& a_instance, VkPhysicalDevice a_physical_device) 
     {
       VkPhysicalDeviceProperties l_result{};
       a_instance.vk_functions().vkGetPhysicalDeviceProperties(a_physical_device, &l_result);
       return l_result;
     }
 
-    VkPhysicalDeviceMemoryProperties imp_get_memory_properties(Instance const& a_instance, VkPhysicalDevice a_physical_device)
+    VkPhysicalDeviceMemoryProperties imp_get_memory_properties(Instance_OLD const& a_instance, VkPhysicalDevice a_physical_device)
     {
       VkPhysicalDeviceMemoryProperties l_result{};
       a_instance.vk_functions().vkGetPhysicalDeviceMemoryProperties(a_physical_device, &l_result);
       return l_result;
     }
 
-    std::vector<VkQueueFamilyProperties> imp_get_queue_familiy_properties(Instance const& a_instance, VkPhysicalDevice a_physical_device)
+    std::vector<VkQueueFamilyProperties> imp_get_queue_familiy_properties(Instance_OLD const& a_instance, VkPhysicalDevice a_physical_device)
     {
       uint32_t l_count{0};
       a_instance.vk_functions().vkGetPhysicalDeviceQueueFamilyProperties(a_physical_device, &l_count, nullptr);
@@ -41,7 +41,7 @@ namespace sdlxvulkan
       return l_result;
     }
 
-    std::vector<VkExtensionProperties> imp_get_extension_properties(Instance const& a_instance, VkPhysicalDevice a_physical_device)
+    std::vector<VkExtensionProperties> imp_get_extension_properties(Instance_OLD const& a_instance, VkPhysicalDevice a_physical_device)
     {
       uint32_t l_count{0};
       a_instance.vk_functions().vkEnumerateDeviceExtensionProperties(a_physical_device, nullptr, &l_count, nullptr);
@@ -89,7 +89,7 @@ namespace sdlxvulkan
       }
     }
     
-    bool is_present_capable(VkPhysicalDevice a_pd, uint32_t a_qfi, Surface const& a_surface, Instance const& a_instance)
+    bool is_present_capable(VkPhysicalDevice a_pd, uint32_t a_qfi, Surface_OLD const& a_surface, Instance_OLD const& a_instance)
     {
       VkBool32 l_qf_can_present{ VK_FALSE };
       a_instance.vk_functions().vkGetPhysicalDeviceSurfaceSupportKHR(a_pd, a_qfi, a_surface, &l_qf_can_present);
@@ -97,7 +97,7 @@ namespace sdlxvulkan
       return l_qf_can_present == VK_TRUE;
     }
 
-    bool imp_can_present(VkPhysicalDevice a_physical_device, std::vector<VkQueueFamilyProperties> const& a_queue_familiy_properties, Surface const& a_surface, Instance const& a_instance)
+    bool imp_can_present(VkPhysicalDevice a_physical_device, std::vector<VkQueueFamilyProperties> const& a_queue_familiy_properties, Surface_OLD const& a_surface, Instance_OLD const& a_instance)
     {
       for (uint32_t l_index = 0, l_end = static_cast<uint32_t>(a_queue_familiy_properties.size()); l_index != l_end; ++l_index)
       {
@@ -109,7 +109,7 @@ namespace sdlxvulkan
       return false;
     }
 
-    uint32_t imp_get_first_present_qfi(VkPhysicalDevice a_physical_device, std::vector<VkQueueFamilyProperties> const& a_queue_familiy_properties, Surface const& a_surface, Instance const& a_instance)
+    uint32_t imp_get_first_present_qfi(VkPhysicalDevice a_physical_device, std::vector<VkQueueFamilyProperties> const& a_queue_familiy_properties, Surface_OLD const& a_surface, Instance_OLD const& a_instance)
     {
       for (uint32_t l_index = 0, l_end = static_cast<uint32_t>(a_queue_familiy_properties.size()); l_index != l_end; ++l_index)
       {
@@ -121,7 +121,7 @@ namespace sdlxvulkan
       return c_invalid_index;
     }
 
-    VkSurfaceCapabilitiesKHR imp_get_surface_cababilites(VkPhysicalDevice a_physical_device, Instance const& a_instance, Surface const& a_surface)
+    VkSurfaceCapabilitiesKHR imp_get_surface_cababilites(VkPhysicalDevice a_physical_device, Instance_OLD const& a_instance, Surface_OLD const& a_surface)
     {
       VkSurfaceCapabilitiesKHR l_result{};
       // Get the capabilities
@@ -132,7 +132,7 @@ namespace sdlxvulkan
       return l_result;
     }
 
-    std::vector<VkSurfaceFormatKHR> imp_get_surface_formats(VkPhysicalDevice a_physical_device, Instance const& a_instance, Surface const& a_surface)
+    std::vector<VkSurfaceFormatKHR> imp_get_surface_formats(VkPhysicalDevice a_physical_device, Instance_OLD const& a_instance, Surface_OLD const& a_surface)
     {
       // Get the formats that can be used with this device/surface combo.
       uint32_t l_count{ 0 };
@@ -149,7 +149,7 @@ namespace sdlxvulkan
       return l_result;
     }
 
-    std::vector<VkPresentModeKHR> imp_get_present_modes(VkPhysicalDevice a_physical_device, Instance const& a_instance, Surface const& a_surface)
+    std::vector<VkPresentModeKHR> imp_get_present_modes(VkPhysicalDevice a_physical_device, Instance_OLD const& a_instance, Surface_OLD const& a_surface)
     {
       // Get the formats that can be used with this device/surface combo.
       uint32_t l_count{ 0 };
@@ -177,12 +177,12 @@ namespace sdlxvulkan
     public:
       // Member Data
       //============================================================
-      Instance m_instance;
+      Instance_OLD m_instance;
       // Caching goes here...
 
       // Special 6
       //============================================================
-      Physical_Device_Destroyer(Instance const& a_instance) noexcept :
+      Physical_Device_Destroyer(Instance_OLD const& a_instance) noexcept :
         m_instance{ a_instance }
       {
         std::cout << "sdlxvulkan::Physical_Device_Destroyer::Physical_Device_Destroyer()" << std::endl;
@@ -198,7 +198,7 @@ namespace sdlxvulkan
     };
 
 
-    decltype(auto) make_except_physical_device(VkPhysicalDevice a_physical_device, Instance const& a_instance)
+    decltype(auto) make_except_physical_device(VkPhysicalDevice a_physical_device, Instance_OLD const& a_instance)
     {
       assert(a_physical_device != VK_NULL_HANDLE);
       return make_except_vulkan_sptr<VkPhysicalDevice, Physical_Device_Destroyer>(a_physical_device, a_instance);
@@ -213,13 +213,13 @@ namespace sdlxvulkan
 
 // Special 6
 //============================================================
-sdlxvulkan::Physical_Device::Physical_Device(VkPhysicalDevice a_physical_device, Instance const& a_instance) :
+sdlxvulkan::Physical_Device_OLD::Physical_Device_OLD(VkPhysicalDevice a_physical_device, Instance_OLD const& a_instance) :
   m_data{ a_physical_device, Physical_Device_Destroyer{a_instance} }
 {
   //std::cout << "sdlxvulkan::Physical_Device::Physical_Device()" << std::endl;
 }
 
-sdlxvulkan::Physical_Device::~Physical_Device()
+sdlxvulkan::Physical_Device_OLD::~Physical_Device_OLD()
 {
   //std::cout << "sdlxvulkan::Physical_Device::~Physical_Device()" << std::endl;
 }
@@ -227,29 +227,29 @@ sdlxvulkan::Physical_Device::~Physical_Device()
 // Interface
 //============================================================
 
-sdlxvulkan::Instance const& sdlxvulkan::Physical_Device::get_instance() const noexcept
+sdlxvulkan::Instance_OLD const& sdlxvulkan::Physical_Device_OLD::get_instance() const noexcept
 {
   return std::get_deleter<Physical_Device_Destroyer>(m_data)->m_instance;
 }
 
 
 
-VkPhysicalDeviceProperties sdlxvulkan::Physical_Device::get_properties() const
+VkPhysicalDeviceProperties sdlxvulkan::Physical_Device_OLD::get_properties() const
 {
   return imp_get_properties(get_instance(), get());
 }
 
-VkPhysicalDeviceMemoryProperties sdlxvulkan::Physical_Device::get_memory_properties() const
+VkPhysicalDeviceMemoryProperties sdlxvulkan::Physical_Device_OLD::get_memory_properties() const
 {
   return imp_get_memory_properties(get_instance(), get());
 }
 
-std::vector<VkQueueFamilyProperties> sdlxvulkan::Physical_Device::get_queue_familiy_properties() const
+std::vector<VkQueueFamilyProperties> sdlxvulkan::Physical_Device_OLD::get_queue_familiy_properties() const
 {
   return imp_get_queue_familiy_properties(get_instance(), get());
 }
 
-std::vector<VkExtensionProperties> sdlxvulkan::Physical_Device::get_extension_properties() const
+std::vector<VkExtensionProperties> sdlxvulkan::Physical_Device_OLD::get_extension_properties() const
 {
   return imp_get_extension_properties(get_instance(), get());
 }
@@ -257,28 +257,28 @@ std::vector<VkExtensionProperties> sdlxvulkan::Physical_Device::get_extension_pr
 // Using the supplied properties, determine the right kind of memory to allocate.
 // Success returns the index to the value required to allocate the right type of memory. 
 // Failure throws if no matching memory found.
-uint32_t sdlxvulkan::Physical_Device::get_memory_type_from_properties(uint32_t a_typebits, VkMemoryPropertyFlags a_requirements) const
+uint32_t sdlxvulkan::Physical_Device_OLD::get_memory_type_from_properties(uint32_t a_typebits, VkMemoryPropertyFlags a_requirements) const
 {
   return sdlxvulkan::get_memory_type_from_properties(get_memory_properties(), a_typebits, a_requirements);
 }
 
-bool sdlxvulkan::Physical_Device::can_graphics() const
+bool sdlxvulkan::Physical_Device_OLD::can_graphics() const
 {
   return imp_can_graphics(get_queue_familiy_properties());
 }
 
-uint32_t sdlxvulkan::Physical_Device::first_graphics_qfi() const
+uint32_t sdlxvulkan::Physical_Device_OLD::first_graphics_qfi() const
 {
   return imp_get_first_graphics_qfi(get_queue_familiy_properties());
 }
 
 
-bool sdlxvulkan::Physical_Device::can_present(Surface const& a_surface) const
+bool sdlxvulkan::Physical_Device_OLD::can_present(Surface_OLD const& a_surface) const
 {
   return imp_can_present(get(), get_queue_familiy_properties(), a_surface, get_instance());
 }
 
-uint32_t sdlxvulkan::Physical_Device::first_present_qfi(Surface const& a_surface) const
+uint32_t sdlxvulkan::Physical_Device_OLD::first_present_qfi(Surface_OLD const& a_surface) const
 {
   return imp_get_first_present_qfi(get(), get_queue_familiy_properties(), a_surface, get_instance());
 }
@@ -286,21 +286,21 @@ uint32_t sdlxvulkan::Physical_Device::first_present_qfi(Surface const& a_surface
 
 
 
-VkSurfaceCapabilitiesKHR sdlxvulkan::Physical_Device::get_surface_cababilites(Surface const& a_surface) const
+VkSurfaceCapabilitiesKHR sdlxvulkan::Physical_Device_OLD::get_surface_cababilites(Surface_OLD const& a_surface) const
 {
   return imp_get_surface_cababilites(get(), get_instance(), a_surface);
 }
 
-std::vector<VkSurfaceFormatKHR> sdlxvulkan::Physical_Device::get_surface_formats(Surface const& a_surface) const
+std::vector<VkSurfaceFormatKHR> sdlxvulkan::Physical_Device_OLD::get_surface_formats(Surface_OLD const& a_surface) const
 {
   return imp_get_surface_formats(get(), get_instance(), a_surface);
 }
 
-std::vector<VkPresentModeKHR> sdlxvulkan::Physical_Device::get_present_modes(Surface const& a_surface) const
+std::vector<VkPresentModeKHR> sdlxvulkan::Physical_Device_OLD::get_present_modes(Surface_OLD const& a_surface) const
 {
   return imp_get_present_modes(get(), get_instance(), a_surface);
 }
-
+/*
 // Using the supplied properties, determine the right kind of memory to allocate.
 // Success returns the index to the value required to allocate the right type of memory. 
 // Failure throws if no matching memory found.
@@ -323,3 +323,4 @@ uint32_t sdlxvulkan::get_memory_type_from_properties(VkPhysicalDeviceMemoryPrope
   // No memory types matched, return failure
   throw std::runtime_error{ "Vulkan: Failed to find a suitable memory type." };
 }
+*/

@@ -19,7 +19,7 @@ namespace sdlxvulkan
     public:
       // Member Data
       //============================================================
-      Device m_device;
+      Device_OLD m_device;
       uint32_t m_queue_family_index;
       uint32_t m_queue_index;
 
@@ -27,7 +27,7 @@ namespace sdlxvulkan
       //============================================================
       explicit Queue_Destroyer
       (
-        Device const& a_device,
+        Device_OLD const& a_device,
         uint32_t a_queue_family_index,
         uint32_t a_queue_index
       ) :
@@ -47,7 +47,7 @@ namespace sdlxvulkan
 
     decltype(auto) make_except_queue
     (
-      Device const& a_device,
+      Device_OLD const& a_device,
       uint32_t a_queue_family_index,
       uint32_t a_queue_index
     )
@@ -74,9 +74,9 @@ namespace sdlxvulkan
 
 // Special 6
 //============================================================
-sdlxvulkan::Queue::Queue
+sdlxvulkan::Queue_OLD::Queue_OLD
 (
-  Device const& a_device,
+  Device_OLD const& a_device,
   uint32_t a_queue_family_index,
   uint32_t a_queue_index
 ) :
@@ -85,57 +85,57 @@ sdlxvulkan::Queue::Queue
   //std::cout << "sdlxvulkan::Queue::Queue()" << std::endl;
 }
 
-sdlxvulkan::Queue::~Queue()
+sdlxvulkan::Queue_OLD::~Queue_OLD()
 {
   //std::cout << "sdlxvulkan::Queue::~Queue()" << std::endl;
 }
 
-sdlxvulkan::Device const& sdlxvulkan::Queue::get_device() const noexcept
+sdlxvulkan::Device_OLD const& sdlxvulkan::Queue_OLD::get_device() const noexcept
 {
   return std::get_deleter<Queue_Destroyer>(m_data)->m_device;
 }
 
-uint32_t sdlxvulkan::Queue::get_queue_family_index() const noexcept
+uint32_t sdlxvulkan::Queue_OLD::get_queue_family_index() const noexcept
 {
   return std::get_deleter<Queue_Destroyer>(m_data)->m_queue_family_index;
 }
 
-uint32_t sdlxvulkan::Queue::get_queue_index() const noexcept
+uint32_t sdlxvulkan::Queue_OLD::get_queue_index() const noexcept
 {
   return std::get_deleter<Queue_Destroyer>(m_data)->m_queue_index;
 }
 
-VkResult sdlxvulkan::Queue::vkBindSparse(uint32_t bindInfoCount, VkBindSparseInfo const* pBindInfo, VkFence fence) const
+VkResult sdlxvulkan::Queue_OLD::vkBindSparse(uint32_t bindInfoCount, VkBindSparseInfo const* pBindInfo, VkFence fence) const
 {
   return std::get_deleter<Queue_Destroyer>(m_data)->m_device.vk_functions().vkQueueBindSparse(get(), bindInfoCount, pBindInfo, fence);
 }
 
-VkResult sdlxvulkan::Queue::vkSubmit(uint32_t submitCount, VkSubmitInfo const* pSubmits, VkFence fence) const
+VkResult sdlxvulkan::Queue_OLD::vkSubmit(uint32_t submitCount, VkSubmitInfo const* pSubmits, VkFence fence) const
 {
   return std::get_deleter<Queue_Destroyer>(m_data)->m_device.vk_functions().vkQueueSubmit(get(), submitCount, pSubmits, fence);
 }
 
-VkResult sdlxvulkan::Queue::vkWaitIdle() const
+VkResult sdlxvulkan::Queue_OLD::vkWaitIdle() const
 {
   return std::get_deleter<Queue_Destroyer>(m_data)->m_device.vk_functions().vkQueueWaitIdle(get());
 }
 
-void sdlxvulkan::Queue::vkBeginDebugUtilsLabelEXT(VkDebugUtilsLabelEXT const* pLabelInfo) const
+void sdlxvulkan::Queue_OLD::vkBeginDebugUtilsLabelEXT(VkDebugUtilsLabelEXT const* pLabelInfo) const
 {
   std::get_deleter<Queue_Destroyer>(m_data)->m_device.vk_functions().vkQueueBeginDebugUtilsLabelEXT(get(), pLabelInfo);
 }
 
-void sdlxvulkan::Queue::vkEndDebugUtilsLabelEXT() const
+void sdlxvulkan::Queue_OLD::vkEndDebugUtilsLabelEXT() const
 {
   std::get_deleter<Queue_Destroyer>(m_data)->m_device.vk_functions().vkQueueEndDebugUtilsLabelEXT(get());
 }
 
-void sdlxvulkan::Queue::vkInsertDebugUtilsLabelEXT(VkDebugUtilsLabelEXT const* pLabelInfo) const
+void sdlxvulkan::Queue_OLD::vkInsertDebugUtilsLabelEXT(VkDebugUtilsLabelEXT const* pLabelInfo) const
 {
   std::get_deleter<Queue_Destroyer>(m_data)->m_device.vk_functions().vkQueueInsertDebugUtilsLabelEXT(get(), pLabelInfo);
 }
 
-VkResult sdlxvulkan::Queue::vkPresentKHR(VkPresentInfoKHR const* pPresentInfo) const
+VkResult sdlxvulkan::Queue_OLD::vkPresentKHR(VkPresentInfoKHR const* pPresentInfo) const
 {
   return std::get_deleter<Queue_Destroyer>(m_data)->m_device.vk_functions().vkQueuePresentKHR(get(), pPresentInfo);
 }

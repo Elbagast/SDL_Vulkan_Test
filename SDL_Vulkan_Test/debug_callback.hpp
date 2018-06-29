@@ -10,7 +10,7 @@
 
 namespace sdlxvulkan
 {
-  class Instance;
+  class Instance_OLD;
   
   //---------------------------------------------------------------------------
   // Abstract_Debug_Callback
@@ -32,7 +32,7 @@ namespace sdlxvulkan
     //============================================================
     Abstract_Debug_Callback
     (
-      Instance const& a_instance,
+      Instance_OLD const& a_instance,
       VkDebugReportFlagsEXT a_flags,
       VkAllocationCallbacks const* a_allocation_callbacks = nullptr
     );
@@ -43,7 +43,7 @@ namespace sdlxvulkan
     VkDebugReportCallbackEXT get() const noexcept       { return m_data.get(); }
     operator VkDebugReportCallbackEXT() const noexcept  { return m_data.get(); }
 
-    Instance const& get_instance() const noexcept;
+    Instance_OLD const& get_instance() const noexcept;
 
     // Implement this to use the data and do whatever.
     virtual void do_callback(VkDebugReportFlagsEXT a_flags, VkDebugReportObjectTypeEXT a_obj_type, uint64_t a_obj, size_t a_location, int32_t a_code, const char* a_layer_prefix, const char* a_msg ) = 0;
@@ -65,7 +65,7 @@ namespace sdlxvulkan
     //============================================================
     Debug_Callback_Message_Cerr
     (
-      Instance const& a_instance,
+      Instance_OLD const& a_instance,
       VkAllocationCallbacks const* a_allocation_callbacks = nullptr
     );
     ~Debug_Callback_Message_Cerr() override final;

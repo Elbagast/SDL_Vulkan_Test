@@ -10,14 +10,14 @@
 
 namespace sdlxvulkan
 {
-  class Device;
+  class Device_OLD;
 
   //---------------------------------------------------------------------------
   // Queue
   //---------------------------------------------------------------------------
   // Holds all of the information relating to a Vulkan Queue.
 
-  class Queue
+  class Queue_OLD
   {
   private:
     // Member Data
@@ -28,26 +28,26 @@ namespace sdlxvulkan
   public:
     // Special 6
     //============================================================
-    Queue
+    Queue_OLD
     (
-      Device const& a_device,
+      Device_OLD const& a_device,
       uint32_t a_queue_family_index,
       uint32_t a_queue_index
     );
-    ~Queue();
+    ~Queue_OLD();
 
-    Queue(Queue const& a_other);
-    Queue& operator=(Queue const& a_other);
+    Queue_OLD(Queue_OLD const& a_other);
+    Queue_OLD& operator=(Queue_OLD const& a_other);
 
-    Queue(Queue && a_other);
-    Queue& operator=(Queue && a_other);
+    Queue_OLD(Queue_OLD && a_other);
+    Queue_OLD& operator=(Queue_OLD && a_other);
 
     // Interface
     //============================================================
     VkQueue get() const noexcept       { return m_data.get(); }
     operator VkQueue() const noexcept  { return m_data.get(); }
     
-    Device const& get_device() const noexcept;
+    Device_OLD const& get_device() const noexcept;
     uint32_t get_queue_family_index() const noexcept;
     uint32_t get_queue_index() const noexcept;
 
@@ -70,11 +70,11 @@ namespace sdlxvulkan
 
 // Special 6
 //============================================================
-inline sdlxvulkan::Queue::Queue(Queue const& a_other) = default;
-inline sdlxvulkan::Queue& sdlxvulkan::Queue::operator=(Queue const& a_other) = default;
+inline sdlxvulkan::Queue_OLD::Queue_OLD(Queue_OLD const& a_other) = default;
+inline sdlxvulkan::Queue_OLD& sdlxvulkan::Queue_OLD::operator=(Queue_OLD const& a_other) = default;
 
-inline sdlxvulkan::Queue::Queue(Queue && a_other) = default;
-inline sdlxvulkan::Queue& sdlxvulkan::Queue::operator=(Queue && a_other) = default;
+inline sdlxvulkan::Queue_OLD::Queue_OLD(Queue_OLD && a_other) = default;
+inline sdlxvulkan::Queue_OLD& sdlxvulkan::Queue_OLD::operator=(Queue_OLD && a_other) = default;
 
 // Interface
 //============================================================

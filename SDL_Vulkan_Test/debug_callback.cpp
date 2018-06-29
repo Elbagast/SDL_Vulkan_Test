@@ -19,12 +19,12 @@ namespace sdlxvulkan
     public:
       // Member Data
       //============================================================
-      Instance m_instance;
+      Instance_OLD m_instance;
       VkAllocationCallbacks const* m_allocation_callbacks;
 
       // Special 6
       //============================================================
-      Debug_Callback_Destroyer(Instance const& a_instance, VkAllocationCallbacks const* a_allocation_callbacks) noexcept :
+      Debug_Callback_Destroyer(Instance_OLD const& a_instance, VkAllocationCallbacks const* a_allocation_callbacks) noexcept :
         m_instance{ a_instance },
         m_allocation_callbacks{ a_allocation_callbacks }
       {
@@ -55,7 +55,7 @@ namespace sdlxvulkan
     
     decltype(auto) make_except_debug_callback
     (
-      Instance const& a_instance,
+      Instance_OLD const& a_instance,
       PFN_vkDebugReportCallbackEXT a_callback,
       VkDebugReportFlagsEXT a_flags,
       void* a_user_data,
@@ -97,7 +97,7 @@ namespace sdlxvulkan
 
 sdlxvulkan::Abstract_Debug_Callback::Abstract_Debug_Callback
 (
-  Instance const& a_instance,
+  Instance_OLD const& a_instance,
   VkDebugReportFlagsEXT a_flags,
   VkAllocationCallbacks const* a_allocation_callbacks
 ) :
@@ -111,7 +111,7 @@ sdlxvulkan::Abstract_Debug_Callback::~Abstract_Debug_Callback()
   //std::cout << "sdlxvulkan::Debug_Callback::~Debug_Callback()" << std::endl;
 }
 
-sdlxvulkan::Instance const& sdlxvulkan::Abstract_Debug_Callback::get_instance() const noexcept
+sdlxvulkan::Instance_OLD const& sdlxvulkan::Abstract_Debug_Callback::get_instance() const noexcept
 {
   return std::get_deleter<Debug_Callback_Destroyer>(m_data)->m_instance;
 }
@@ -127,7 +127,7 @@ sdlxvulkan::Instance const& sdlxvulkan::Abstract_Debug_Callback::get_instance() 
 //============================================================
 sdlxvulkan::Debug_Callback_Message_Cerr::Debug_Callback_Message_Cerr
 (
-  Instance const& a_instance,
+  Instance_OLD const& a_instance,
   VkAllocationCallbacks const* a_allocation_callbacks
 ) :
   Abstract_Debug_Callback{ a_instance, VK_DEBUG_REPORT_ERROR_BIT_EXT | VK_DEBUG_REPORT_WARNING_BIT_EXT, a_allocation_callbacks }

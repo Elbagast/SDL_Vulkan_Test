@@ -16,8 +16,8 @@
 
 namespace sdlxvulkan
 {
-  class Instance;
-  class Physical_Device;
+  class Instance_OLD;
+  class Physical_Device_OLD;
   class Device_Functions;
 
   //---------------------------------------------------------------------------
@@ -25,7 +25,7 @@ namespace sdlxvulkan
   //---------------------------------------------------------------------------
   // Holds all of the information relating to a Vulkan Logical Device.
 
-  class Device
+  class Device_OLD
   {
   private:
     // Member Data
@@ -36,21 +36,21 @@ namespace sdlxvulkan
   public:
     // Special 6
     //============================================================
-    explicit Device
+    explicit Device_OLD
     (
-      Physical_Device const& a_physical_device, 
+      Physical_Device_OLD const& a_physical_device, 
       uint32_t a_graphics_qfi, 
       uint32_t a_present_qfi, 
       std::vector<std::string> const& a_extensions,
       VkAllocationCallbacks const* a_allocation_callbacks = nullptr
     );
-    ~Device();
+    ~Device_OLD();
 
-    Device(Device const& a_other);
-    Device& operator=(Device const& a_other);
+    Device_OLD(Device_OLD const& a_other);
+    Device_OLD& operator=(Device_OLD const& a_other);
 
-    Device(Device && a_other);
-    Device& operator=(Device && a_other);
+    Device_OLD(Device_OLD && a_other);
+    Device_OLD& operator=(Device_OLD && a_other);
 
     // Interface
     //============================================================
@@ -59,7 +59,7 @@ namespace sdlxvulkan
 
     Device_Functions const& vk_functions() const noexcept;
 
-    Physical_Device const& get_physical_device() const noexcept;
+    Physical_Device_OLD const& get_physical_device() const noexcept;
     uint32_t get_graphics_qfi() const noexcept;
     uint32_t get_present_qfi() const noexcept;
     std::vector<std::string> const& get_extensions() const noexcept;
@@ -74,11 +74,11 @@ namespace sdlxvulkan
 
 // Special 6
 //============================================================
-inline sdlxvulkan::Device::Device(Device const& a_other) = default;
-inline sdlxvulkan::Device& sdlxvulkan::Device::operator=(Device const& a_other) = default;
+inline sdlxvulkan::Device_OLD::Device_OLD(Device_OLD const& a_other) = default;
+inline sdlxvulkan::Device_OLD& sdlxvulkan::Device_OLD::operator=(Device_OLD const& a_other) = default;
 
-inline sdlxvulkan::Device::Device(Device && a_other) = default;
-inline sdlxvulkan::Device& sdlxvulkan::Device::operator=(Device && a_other) = default;
+inline sdlxvulkan::Device_OLD::Device_OLD(Device_OLD && a_other) = default;
+inline sdlxvulkan::Device_OLD& sdlxvulkan::Device_OLD::operator=(Device_OLD && a_other) = default;
 
 // Interface
 //============================================================

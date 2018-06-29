@@ -16,14 +16,14 @@ namespace sdlxvulkan
   class Window;
 
   class Instance_Functions;
-  class Physical_Device;
+  class Physical_Device_OLD;
 
   //---------------------------------------------------------------------------
   // Instance
   //---------------------------------------------------------------------------
   // Holds a VkInstance with reference counting and cleans up properly. 
 
-  class Instance
+  class Instance_OLD
   {
   private:
     // Member Data
@@ -35,7 +35,7 @@ namespace sdlxvulkan
     // Special 6
     //============================================================
     // Create using the supplied data.
-    Instance
+    Instance_OLD
     (
       System const& a_system,
       Window const& a_window, 
@@ -49,13 +49,13 @@ namespace sdlxvulkan
       VkAllocationCallbacks const* a_allocation_callbacks = nullptr
     );
 
-    ~Instance();
+    ~Instance_OLD();
 
-    Instance(Instance const& a_other);
-    Instance& operator=(Instance const& a_other);
+    Instance_OLD(Instance_OLD const& a_other);
+    Instance_OLD& operator=(Instance_OLD const& a_other);
 
-    Instance(Instance && a_other);
-    Instance& operator=(Instance && a_other);
+    Instance_OLD(Instance_OLD && a_other);
+    Instance_OLD& operator=(Instance_OLD && a_other);
 
     // Interface
     //============================================================
@@ -69,7 +69,7 @@ namespace sdlxvulkan
     VkAllocationCallbacks const* get_allocation_callbacks() const noexcept;
 
     uint32_t get_physical_device_count() const noexcept;
-    std::vector<Physical_Device> get_physical_devices() const;
+    std::vector<Physical_Device_OLD> get_physical_devices() const;
   };
   
   
@@ -82,10 +82,10 @@ namespace sdlxvulkan
     class Instance_Child_Destroyer
   {
   private:
-    Instance m_instance;
+    Instance_OLD m_instance;
     VkAllocationCallbacks const* m_allocation_callbacks;
   public:
-    Instance_Child_Destroyer(Instance const& a_instance, VkAllocationCallbacks const* a_allocation_callbacks) :
+    Instance_Child_Destroyer(Instance_OLD const& a_instance, VkAllocationCallbacks const* a_allocation_callbacks) :
       m_instance{ a_instance },
       m_allocation_callbacks{ a_allocation_callbacks }
     {}
@@ -97,7 +97,7 @@ namespace sdlxvulkan
       T_Post_Function();
     }
 
-    Instance const& get_instance() const noexcept
+    Instance_OLD const& get_instance() const noexcept
     {
       return m_parent;
     }
@@ -113,10 +113,10 @@ namespace sdlxvulkan
 
 // Special 6
 //============================================================
-inline sdlxvulkan::Instance::Instance(Instance const& a_other) = default;
-inline sdlxvulkan::Instance& sdlxvulkan::Instance::operator=(Instance const& a_other) = default;
+inline sdlxvulkan::Instance_OLD::Instance_OLD(Instance_OLD const& a_other) = default;
+inline sdlxvulkan::Instance_OLD& sdlxvulkan::Instance_OLD::operator=(Instance_OLD const& a_other) = default;
 
-inline sdlxvulkan::Instance::Instance(Instance && a_other) = default;
-inline sdlxvulkan::Instance& sdlxvulkan::Instance::operator=(Instance && a_other) = default;
+inline sdlxvulkan::Instance_OLD::Instance_OLD(Instance_OLD && a_other) = default;
+inline sdlxvulkan::Instance_OLD& sdlxvulkan::Instance_OLD::operator=(Instance_OLD && a_other) = default;
 
 #endif // SDLXVULKAN_INSTANCE_HPP

@@ -24,16 +24,14 @@ PFN_vkEnumerateInstanceVersion m_vkEnumerateInstanceVersion;
 // Special 6
 //============================================================
 
-#define INIT_GLOBAL_FUNC1(a_name) m_##a_name { nullptr }
-
 // Construct with all the stored function pointers as nullptr. All calls
 // will fail in this state.
 sdlxvulkan::Global_Functions::Global_Functions() noexcept :
-  INIT_GLOBAL_FUNC1(vkGetInstanceProcAddr),
-  INIT_GLOBAL_FUNC1(vkCreateInstance),
-  INIT_GLOBAL_FUNC1(vkEnumerateInstanceExtensionProperties),
-  INIT_GLOBAL_FUNC1(vkEnumerateInstanceLayerProperties),
-  INIT_GLOBAL_FUNC1(vkEnumerateInstanceVersion)
+  vkGetInstanceProcAddr{ nullptr },
+  vkCreateInstance{ nullptr },
+  vkEnumerateInstanceExtensionProperties{ nullptr },
+  vkEnumerateInstanceLayerProperties{ nullptr },
+  vkEnumerateInstanceVersion{ nullptr }
 {
   std::cout << "sdlxvulkan::Global_Functions::Global_Functions()" << std::endl;
 }
@@ -47,17 +45,16 @@ namespace
   }
 }
 
-#define INIT_GLOBAL_FUNC2(a_name) m_##a_name { reinterpret_cast<PFN_##a_name>(m_vkGetInstanceProcAddr(VK_NULL_HANDLE, #a_name)) }
 
 // Construct using the supplied vkGetInstanceProcAddr function pointer, 
 // storing it and using it to get the other function pointers. All calls
 // *should* succeed in this state.
 sdlxvulkan::Global_Functions::Global_Functions(PFN_vkGetInstanceProcAddr a_vkGetInstanceProcAddr) noexcept :
-  m_vkGetInstanceProcAddr{ verify_input(a_vkGetInstanceProcAddr) },
-  INIT_GLOBAL_FUNC2(vkCreateInstance),
-  INIT_GLOBAL_FUNC2(vkEnumerateInstanceExtensionProperties),
-  INIT_GLOBAL_FUNC2(vkEnumerateInstanceLayerProperties),
-  INIT_GLOBAL_FUNC2(vkEnumerateInstanceVersion)
+  vkGetInstanceProcAddr{ verify_input(a_vkGetInstanceProcAddr) },
+  vkCreateInstance{ reinterpret_cast<PFN_vkCreateInstance>(vkGetInstanceProcAddr(VK_NULL_HANDLE, "vkCreateInstance")) },
+  vkEnumerateInstanceExtensionProperties{ reinterpret_cast<PFN_vkEnumerateInstanceExtensionProperties>(vkGetInstanceProcAddr(VK_NULL_HANDLE, "vkEnumerateInstanceExtensionProperties")) },
+  vkEnumerateInstanceLayerProperties{ reinterpret_cast<PFN_vkEnumerateInstanceLayerProperties>(vkGetInstanceProcAddr(VK_NULL_HANDLE, "vkEnumerateInstanceLayerProperties")) },
+  vkEnumerateInstanceVersion{ reinterpret_cast<PFN_vkEnumerateInstanceVersion>(vkGetInstanceProcAddr(VK_NULL_HANDLE, "vkEnumerateInstanceVersion")) }
 {
   std::cout << "sdlxvulkan::Global_Functions::Global_Functions( data )" << std::endl;
 }

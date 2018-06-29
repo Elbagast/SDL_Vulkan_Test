@@ -16,16 +16,16 @@ namespace sdlxvulkan
     //---------------------------------------------------------------------------
     // Does the actual work.
 
-    class Command_Buffer_Destroyer
+    class Command_Buffer_Destroyer2
     {
     public:
       // Member Data
       //============================================================
-      Command_Pool m_command_pool;
+      Command_Pool_OLD m_command_pool;
 
       // Special 6
       //============================================================
-      explicit Command_Buffer_Destroyer(Command_Pool const& a_command_pool) :
+      explicit Command_Buffer_Destroyer2(Command_Pool_OLD const& a_command_pool) :
         m_command_pool{ a_command_pool }
       {
         std::cout << "sdlxvulkan::Command_Buffer_Destroyer::Command_Buffer_Destroyer()" << std::endl;
@@ -46,7 +46,7 @@ namespace sdlxvulkan
     std::vector<VkCommandBuffer> make_except_command_buffers
     (
       uint32_t a_count, 
-      Command_Pool const& a_command_pool, 
+      Command_Pool_OLD const& a_command_pool, 
       VkCommandBufferLevel a_level
     )
     {
@@ -72,7 +72,7 @@ namespace sdlxvulkan
 
     VkCommandBuffer make_except_command_buffer
     (
-      Command_Pool const& a_command_pool,
+      Command_Pool_OLD const& a_command_pool,
       VkCommandBufferLevel a_level
     )
     {
@@ -98,12 +98,12 @@ namespace sdlxvulkan
 //============================================================
 // Make using an externally made VkCommandBuffer. This MUST have
 // been created using the supplied Command_Pool.
-sdlxvulkan::Command_Buffer::Command_Buffer
+sdlxvulkan::Command_Buffer_OLD::Command_Buffer_OLD
 (
   VkCommandBuffer a_command_buffer,
-  Command_Pool const& a_command_pool
+  Command_Pool_OLD const& a_command_pool
 ) :
-  m_data{ a_command_buffer, Command_Buffer_Destroyer{ a_command_pool } }
+  m_data{ a_command_buffer, Command_Buffer_Destroyer2{ a_command_pool } }
 {
   //std::cout << "sdlxvulkan::Command_Buffer::Command_Buffer( raw )" << std::endl;
 }
@@ -111,17 +111,17 @@ sdlxvulkan::Command_Buffer::Command_Buffer
 
 // Allocate a single command buffer for this command pool, with the
 // supplied level.
-sdlxvulkan::Command_Buffer::Command_Buffer
+sdlxvulkan::Command_Buffer_OLD::Command_Buffer_OLD
 (
-  Command_Pool const& a_command_pool,
+  Command_Pool_OLD const& a_command_pool,
   VkCommandBufferLevel a_level
 ) :
-  m_data{ make_except_command_buffer(a_command_pool, a_level), Command_Buffer_Destroyer{ a_command_pool } }
+  m_data{ make_except_command_buffer(a_command_pool, a_level), Command_Buffer_Destroyer2{ a_command_pool } }
 {
   //std::cout << "sdlxvulkan::Command_Buffer::Command_Buffer()" << std::endl;
 }
 
-sdlxvulkan::Command_Buffer::~Command_Buffer()
+sdlxvulkan::Command_Buffer_OLD::~Command_Buffer_OLD()
 {
   //std::cout << "sdlxvulkan::Command_Buffer::~Command_Buffer()" << std::endl;
 }
@@ -129,9 +129,9 @@ sdlxvulkan::Command_Buffer::~Command_Buffer()
 
 // Interface
 //============================================================
-sdlxvulkan::Command_Pool const& sdlxvulkan::Command_Buffer::get_pool() const noexcept
+sdlxvulkan::Command_Pool_OLD const& sdlxvulkan::Command_Buffer_OLD::get_pool() const noexcept
 {
-  return std::get_deleter<Command_Buffer_Destroyer>(m_data)->m_command_pool;
+  return std::get_deleter<Command_Buffer_Destroyer2>(m_data)->m_command_pool;
 }
 
 
@@ -140,11 +140,11 @@ sdlxvulkan::Command_Pool const& sdlxvulkan::Command_Buffer::get_pool() const noe
 //============================================================
 
 // Create a batch of Command_Buffer in one go.
-std::vector<sdlxvulkan::Command_Buffer> sdlxvulkan::make_command_buffer_vector(uint32_t a_count, Command_Pool const& a_command_pool, VkCommandBufferLevel a_level)
+std::vector<sdlxvulkan::Command_Buffer_OLD> sdlxvulkan::make_command_buffer_vector(uint32_t a_count, Command_Pool_OLD const& a_command_pool, VkCommandBufferLevel a_level)
 {
   assert(a_count != 0);
   auto l_raw_command_buffers = make_except_command_buffers(a_count, a_command_pool, a_level); // if this breaks no resources leak
-  std::vector<Command_Buffer> l_result{};
+  std::vector<Command_Buffer_OLD> l_result{};
 
   try
   {
@@ -153,7 +153,7 @@ std::vector<sdlxvulkan::Command_Buffer> sdlxvulkan::make_command_buffer_vector(u
     for (auto l_raw_command_buffer : l_raw_command_buffers)
     {
       assert(l_raw_command_buffer != VK_NULL_HANDLE);
-      Command_Buffer l_buffer{ l_raw_command_buffer, a_command_pool };
+      Command_Buffer_OLD l_buffer{ l_raw_command_buffer, a_command_pool };
       l_result.push_back(std::move(l_buffer));
     }
   }

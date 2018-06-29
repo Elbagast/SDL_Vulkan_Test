@@ -9,14 +9,14 @@
 namespace sdlxvulkan
 {
   class Window;
-  class Instance;
+  class Instance_OLD;
   
   //---------------------------------------------------------------------------
   // Surface
   //---------------------------------------------------------------------------
   // Manages the Vulkan surface with reference counting.
 
-  class Surface
+  class Surface_OLD
   {
   private:
     // Member Data
@@ -28,22 +28,22 @@ namespace sdlxvulkan
     // Special 6
     //============================================================
     // SDL supplies no means to use an allocator for the Vulkan surface.
-    Surface(Window const& a_window, Instance const& a_instance);
+    Surface_OLD(Window const& a_window, Instance_OLD const& a_instance);
     //Surface(Window const& a_window, Instance const& a_instance, VkAllocationCallbacks const* a_allocation_callbacks = nullptr);
-    ~Surface();
+    ~Surface_OLD();
 
-    Surface(Surface const& a_other);
-    Surface& operator=(Surface const& a_other);
+    Surface_OLD(Surface_OLD const& a_other);
+    Surface_OLD& operator=(Surface_OLD const& a_other);
 
-    Surface(Surface && a_other);
-    Surface& operator=(Surface && a_other);
+    Surface_OLD(Surface_OLD && a_other);
+    Surface_OLD& operator=(Surface_OLD && a_other);
 
     // Interface
     //============================================================
     VkSurfaceKHR get() const noexcept       { return m_data.get(); }
     operator VkSurfaceKHR() const noexcept  { return m_data.get(); }
 
-    Instance const& get_instance() const noexcept;
+    Instance_OLD const& get_instance() const noexcept;
   };
 }
 
@@ -56,11 +56,11 @@ namespace sdlxvulkan
 // Special 6
 //============================================================
 
-inline sdlxvulkan::Surface::Surface(Surface const& a_other) = default;
-inline sdlxvulkan::Surface& sdlxvulkan::Surface::operator=(Surface const& a_other) = default;
+inline sdlxvulkan::Surface_OLD::Surface_OLD(Surface_OLD const& a_other) = default;
+inline sdlxvulkan::Surface_OLD& sdlxvulkan::Surface_OLD::operator=(Surface_OLD const& a_other) = default;
 
-inline sdlxvulkan::Surface::Surface(Surface && a_other) = default;
-inline sdlxvulkan::Surface& sdlxvulkan::Surface::operator=(Surface && a_other) = default;
+inline sdlxvulkan::Surface_OLD::Surface_OLD(Surface_OLD && a_other) = default;
+inline sdlxvulkan::Surface_OLD& sdlxvulkan::Surface_OLD::operator=(Surface_OLD && a_other) = default;
 
 
 #endif // SDLXVULKAN_SURFACE_HPP
