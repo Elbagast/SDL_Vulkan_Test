@@ -248,7 +248,7 @@ namespace sdlxvulkan
 
 
     // Simplify creation of VkInstance children.
-    template <typename T_Vk_Handle, typename T_Vk_Create_Info>
+    template <typename T_Vk_Handle, typename T_Vk_Create_Info, typename...Args>
     Handle<T_Vk_Handle> make_instance_child
     (
       Instance const& a_instance,
@@ -257,15 +257,16 @@ namespace sdlxvulkan
       //Vulkan_Creator_PFN<T_Vk_Handle, T_Vk_Create_Info, VkInstance> a_creator,
       //Vulkan_Destroyer_PFN<T_Vk_Handle, VkInstance> a_destroyer
       VKAPI_ATTR VkResult(VKAPI_CALL *a_creator)(VkInstance, T_Vk_Create_Info const*, VkAllocationCallbacks const*, T_Vk_Handle*),
-      VKAPI_ATTR void(VKAPI_CALL *a_destroyer)(VkInstance, T_Vk_Handle, VkAllocationCallbacks const*)
+      VKAPI_ATTR void(VKAPI_CALL *a_destroyer)(VkInstance, T_Vk_Handle, VkAllocationCallbacks const*),
+      Args&&...a_args
     )
     {
-      return make_handle_vk<T_Vk_Handle, T_Vk_Create_Info, VkInstance>(a_instance, a_create_info, a_allocation_callbacks, a_creator, a_destroyer);
+      return make_handle_vk<T_Vk_Handle, T_Vk_Create_Info, VkInstance>(a_instance, a_create_info, a_allocation_callbacks, a_creator, a_destroyer, std::forward<Args>(a_args)...);
     }
 
 
     // Simplify creation of VkDevice children.
-    template <typename T_Vk_Handle, typename T_Vk_Create_Info>
+    template <typename T_Vk_Handle, typename T_Vk_Create_Info, typename...Args>
     Handle<T_Vk_Handle> make_device_child
     (
       Device const& a_device,
@@ -274,10 +275,11 @@ namespace sdlxvulkan
       //Vulkan_Creator_PFN<T_Vk_Handle, T_Vk_Create_Info, VkDevice> a_creator,
       //Vulkan_Destroyer_PFN<T_Vk_Handle, VkDevice> a_destroyer
       VKAPI_ATTR VkResult(VKAPI_CALL *a_creator)(VkDevice, T_Vk_Create_Info const*, VkAllocationCallbacks const*, T_Vk_Handle*),
-      VKAPI_ATTR void(VKAPI_CALL *a_destroyer)(VkDevice, T_Vk_Handle, VkAllocationCallbacks const*)
+      VKAPI_ATTR void(VKAPI_CALL *a_destroyer)(VkDevice, T_Vk_Handle, VkAllocationCallbacks const*),
+      Args&&...a_args
     )
     {
-      return make_handle_vk<T_Vk_Handle, T_Vk_Create_Info, VkDevice>(a_device, a_create_info, a_allocation_callbacks, a_creator, a_destroyer);
+      return make_handle_vk<T_Vk_Handle, T_Vk_Create_Info, VkDevice>(a_device, a_create_info, a_allocation_callbacks, a_creator, a_destroyer, std::forward<Args>(a_args)...);
     }
 
     //------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -570,6 +572,66 @@ sdlxvulkan::Instance_Functions const* sdlxvulkan::get_instance_functions(Instanc
   }
 }
 
+//------------------------------------------------------------------------------------------------------------------------------------------------------
+// VkDebugReportCallbackEXT
+
+//---------------------------------------------------------------------------
+// Debug_Report_Callback_Ext
+//---------------------------------------------------------------------------
+
+sdlxvulkan::Debug_Report_Callback_EXT sdlxvulkan::make_debug_report_callback_ext
+(
+  Instance const& a_instance,
+  VkDebugReportCallbackCreateInfoEXT const& a_create_info,
+  VkAllocationCallbacks const* a_allocation_callbacks
+)
+{
+  assert(a_instance != nullptr);
+  auto l_functions = get_instance_functions(a_instance);
+  assert(l_functions != nullptr);
+  return make_instance_child(a_instance, a_create_info, a_allocation_callbacks, l_functions->vkCreateDebugReportCallbackEXT, l_functions->vkDestroyDebugReportCallbackEXT);
+}
+
+sdlxvulkan::Debug_Report_Callback_EXT sdlxvulkan::make_debug_report_callback_ext_limited
+(
+  Instance const& a_instance,
+  VkDebugReportFlagsEXT a_flags,
+  PFN_vkDebugReportCallbackEXT a_callback,
+  VkAllocationCallbacks const* a_allocation_callbacks
+)
+{
+  VkDebugReportCallbackCreateInfoEXT l_callback_info{};
+  l_callback_info.sType = VK_STRUCTURE_TYPE_DEBUG_REPORT_CALLBACK_CREATE_INFO_EXT;
+  l_callback_info.pNext = nullptr;
+  l_callback_info.flags = a_flags;
+  l_callback_info.pfnCallback = a_callback;
+  l_callback_info.pUserData = nullptr;
+
+  return make_debug_report_callback_ext(a_instance, l_callback_info, a_allocation_callbacks);
+}
+
+//------------------------------------------------------------------------------------------------------------------------------------------------------
+// VkDebugUtilsMessengerEXT
+
+//---------------------------------------------------------------------------
+// Debug_Utils_Messenger_EXT
+//---------------------------------------------------------------------------
+
+// Make a self-destroying VkDebugUtilsMessengerEXT.
+// Throws std::runtime error if the Vulkan create function fails. 
+// Throws std::bad_alloc if the Handle std::shared_ptr fails to be allocated.
+sdlxvulkan::Debug_Utils_Messenger_EXT sdlxvulkan::make_debug_utils_messenger_ext
+(
+  Instance const& a_instance,
+  VkDebugUtilsMessengerCreateInfoEXT const& a_create_info,
+  VkAllocationCallbacks const* a_allocation_callbacks
+)
+{
+  assert(a_instance != nullptr);
+  auto l_functions = get_instance_functions(a_instance);
+  assert(l_functions != nullptr);
+  return make_instance_child(a_instance, a_create_info, a_allocation_callbacks, l_functions->vkCreateDebugUtilsMessengerEXT, l_functions->vkDestroyDebugUtilsMessengerEXT);
+}
 
 //------------------------------------------------------------------------------------------------------------------------------------------------------
 // VkPhysicalDevice
@@ -811,7 +873,7 @@ uint32_t sdlxvulkan::get_memory_type_from_properties(VkPhysicalDeviceMemoryPrope
 
 // SDL surface is a child of instance and window, and we cannot supply 
 // allocation callbacks.
-sdlxvulkan::Surface sdlxvulkan::make_surface_khr
+sdlxvulkan::Surface_KHR sdlxvulkan::make_surface_khr
 (
   Instance const& a_instance,
   Window const& a_window
@@ -828,7 +890,7 @@ sdlxvulkan::Surface sdlxvulkan::make_surface_khr
     throw std::runtime_error("SDL: Failed to create a VkSurfaceKHR.");
   }
   auto l_caught = make_unique_vk( l_surface, a_instance, nullptr, l_functions->vkDestroySurfaceKHR, a_window );
-  return Surface{ Vulkan_Sptr<VkSurfaceKHR>{std::move(l_caught)} };
+  return Surface_KHR{ Vulkan_Sptr<VkSurfaceKHR>{std::move(l_caught)} };
 }
 
 // Surface imp helpers
@@ -836,7 +898,7 @@ namespace sdlxvulkan
 {
   namespace
   {
-    bool is_present_capable(Physical_Device const& a_physical_device, uint32_t a_qfi, Surface const& a_surface, Instance_Functions const* a_functions)
+    bool is_present_capable(Physical_Device const& a_physical_device, uint32_t a_qfi, Surface_KHR const& a_surface, Instance_Functions const* a_functions)
     {
       assert(a_physical_device != nullptr);
       assert(a_surface != nullptr);
@@ -855,7 +917,7 @@ namespace sdlxvulkan
 
 // Can this physical device present to this surface?
 // Returns false it either are null.
-bool sdlxvulkan::can_present(Physical_Device const& a_physical_device, Surface const& a_surface) noexcept
+bool sdlxvulkan::can_present(Physical_Device const& a_physical_device, Surface_KHR const& a_surface) noexcept
 {
   if (a_physical_device && a_surface)
   {
@@ -878,7 +940,7 @@ bool sdlxvulkan::can_present(Physical_Device const& a_physical_device, Surface c
 // Returns std::numeric_limits<uint32_t>::max() if either are null.
 // Returns std::numeric_limits<uint32_t>::max() if no present queue family is
 // found.
-uint32_t sdlxvulkan::first_present_qfi(Physical_Device const& a_physical_device, Surface const& a_surface)
+uint32_t sdlxvulkan::first_present_qfi(Physical_Device const& a_physical_device, Surface_KHR const& a_surface)
 {
   if (a_physical_device && a_surface)
   {
@@ -896,7 +958,7 @@ uint32_t sdlxvulkan::first_present_qfi(Physical_Device const& a_physical_device,
   return std::numeric_limits<uint32_t>::max();
 }
 
-VkSurfaceCapabilitiesKHR sdlxvulkan::get_surface_cababilites(Physical_Device const& a_physical_device, Surface const& a_surface)
+VkSurfaceCapabilitiesKHR sdlxvulkan::get_surface_cababilites(Physical_Device const& a_physical_device, Surface_KHR const& a_surface)
 {
   if (!a_physical_device || !a_surface)
   {
@@ -914,7 +976,7 @@ VkSurfaceCapabilitiesKHR sdlxvulkan::get_surface_cababilites(Physical_Device con
   return l_result;
 }
 
-std::vector<VkSurfaceFormatKHR> sdlxvulkan::get_surface_formats(Physical_Device const& a_physical_device, Surface const& a_surface)
+std::vector<VkSurfaceFormatKHR> sdlxvulkan::get_surface_formats(Physical_Device const& a_physical_device, Surface_KHR const& a_surface)
 {
   std::vector<VkSurfaceFormatKHR> l_result{};
   if (a_physical_device && a_surface)
@@ -937,7 +999,7 @@ std::vector<VkSurfaceFormatKHR> sdlxvulkan::get_surface_formats(Physical_Device 
   return l_result;
 }
 
-std::vector<VkPresentModeKHR> sdlxvulkan::get_present_modes(Physical_Device const& a_physical_device, Surface const& a_surface)
+std::vector<VkPresentModeKHR> sdlxvulkan::get_present_modes(Physical_Device const& a_physical_device, Surface_KHR const& a_surface)
 {
   std::vector<VkPresentModeKHR> l_result{};
   if (a_physical_device && a_surface)
@@ -960,40 +1022,6 @@ std::vector<VkPresentModeKHR> sdlxvulkan::get_present_modes(Physical_Device cons
   return l_result;
 }
 
-//---------------------------------------------------------------------------
-// Debug_Report_Callback_Ext
-//---------------------------------------------------------------------------
-
-sdlxvulkan::Debug_Report_Callback_Ext sdlxvulkan::make_debug_report_callback_ext
-(
-  Instance const& a_instance,
-  VkDebugReportCallbackCreateInfoEXT const& a_create_info,
-  VkAllocationCallbacks const* a_allocation_callbacks
-)
-{
-  assert(a_instance != nullptr);
-  auto l_functions = get_instance_functions(a_instance);
-  assert(l_functions != nullptr);
-  return make_instance_child(a_instance, a_create_info, a_allocation_callbacks, l_functions->vkCreateDebugReportCallbackEXT, l_functions->vkDestroyDebugReportCallbackEXT);
-}
-
-sdlxvulkan::Debug_Report_Callback_Ext sdlxvulkan::make_debug_report_callback_ext_limited
-(
-  Instance const& a_instance,
-  VkDebugReportFlagsEXT a_flags,
-  PFN_vkDebugReportCallbackEXT a_callback,
-  VkAllocationCallbacks const* a_allocation_callbacks
-)
-{
-  VkDebugReportCallbackCreateInfoEXT l_callback_info{};
-  l_callback_info.sType = VK_STRUCTURE_TYPE_DEBUG_REPORT_CALLBACK_CREATE_INFO_EXT;
-  l_callback_info.pNext = nullptr;
-  l_callback_info.flags = a_flags;
-  l_callback_info.pfnCallback = a_callback;
-  l_callback_info.pUserData = nullptr;
-
-  return make_debug_report_callback_ext(a_instance, l_callback_info, a_allocation_callbacks);
-}
 
 //------------------------------------------------------------------------------------------------------------------------------------------------------
 // VkDevice
@@ -1118,6 +1146,118 @@ sdlxvulkan::Device_Functions const* sdlxvulkan::get_device_functions(Device cons
   {
     return nullptr;
   }
+}
+
+//------------------------------------------------------------------------------------------------------------------------------------------------------
+// VkBuffer
+
+//---------------------------------------------------------------------------
+// Buffer
+//---------------------------------------------------------------------------
+
+namespace sdlxvulkan
+{
+  namespace
+  {
+    using Buffer_Deleter = Vulkan_Destroyer<VkBuffer, VkDevice>;
+
+    Device const& get_device(Buffer const& a_command_pool) noexcept
+    {
+      return std::get_deleter<Buffer_Deleter>(a_command_pool.get_data())->parent();
+    }
+  }
+}
+
+
+// Make a self-destroying VkBuffer.
+sdlxvulkan::Buffer sdlxvulkan::make_buffer
+(
+  Device const& a_device,
+  VkBufferCreateInfo const& a_create_info,
+  VkAllocationCallbacks const* a_allocation_callbacks
+)
+{
+  assert(a_device != nullptr);
+  auto l_functions = get_device_functions(a_device);
+  assert(l_functions != nullptr);
+  return make_device_child(a_device, a_create_info, a_allocation_callbacks, l_functions->vkCreateBuffer, l_functions->vkDestroyBuffer);
+}
+
+// Initialise with a VkSharingMode value of VK_SHARING_MODE_EXCLUSIVE.
+sdlxvulkan::Buffer sdlxvulkan::make_buffer_exclusive_limited
+(
+  Device const& a_device,
+  VkDeviceSize a_size,
+  VkBufferUsageFlags a_usage,
+  VkAllocationCallbacks const* a_allocation_callbacks
+)
+{
+  VkBufferCreateInfo l_buffer_info{};
+  l_buffer_info.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+  l_buffer_info.pNext = nullptr;
+  l_buffer_info.flags = 0;
+  l_buffer_info.size = a_size;
+  l_buffer_info.usage = a_usage;
+  l_buffer_info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+  l_buffer_info.queueFamilyIndexCount = 0;
+  l_buffer_info.pQueueFamilyIndices = nullptr;
+
+  return make_buffer(a_device, l_buffer_info, a_allocation_callbacks);
+}
+
+// Initialise with a VkSharingMode value of VK_SHARING_MODE_CONCURRENT. 
+// a_queue_family_indicies must have at least 2 unique values, which are
+// each less than the queue family property count of the physical device
+// this is used with.
+sdlxvulkan::Buffer sdlxvulkan::make_buffer_concurrent_limited
+(
+  Device const& a_device,
+  VkDeviceSize a_size,
+  VkBufferUsageFlags a_usage,
+  std::vector<uint32_t> a_queue_family_indicies,
+  VkAllocationCallbacks const* a_allocation_callbacks
+)
+{
+  assert(a_queue_family_indicies.size() > 1);
+
+  VkBufferCreateInfo l_buffer_info{};
+  l_buffer_info.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+  l_buffer_info.pNext = nullptr;
+  l_buffer_info.flags = 0;
+  l_buffer_info.size = a_size;
+  l_buffer_info.usage = a_usage;
+  l_buffer_info.sharingMode = VK_SHARING_MODE_CONCURRENT;
+  l_buffer_info.queueFamilyIndexCount = static_cast<uint32_t>(a_queue_family_indicies.size());
+  l_buffer_info.pQueueFamilyIndices = a_queue_family_indicies.data();
+
+  return make_buffer(a_device, l_buffer_info, a_allocation_callbacks);
+}
+
+//------------------------------------------------------------------------------------------------------------------------------------------------------
+// VkBufferView
+
+//---------------------------------------------------------------------------
+// Buffer_View
+//---------------------------------------------------------------------------
+
+
+// Make a self-destroying VkBuffer.
+sdlxvulkan::Buffer_View sdlxvulkan::make_buffer_view
+(
+  Buffer const& a_buffer,
+  VkBufferViewCreateInfo const& a_create_info,
+  VkAllocationCallbacks const* a_allocation_callbacks
+)
+{
+  assert(a_buffer != nullptr);
+  auto const& l_device = get_device(a_buffer);
+  assert(l_device != nullptr);
+  auto l_functions = get_device_functions(l_device);
+  assert(l_functions != nullptr);
+
+  // How are we going to convert from buffer to device...
+  return make_device_child(l_device, a_create_info, a_allocation_callbacks, l_functions->vkCreateBufferView, l_functions->vkDestroyBufferView, a_buffer); 
+  // for now just stuff buffer in here for now
 }
 
 //------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -1377,7 +1517,7 @@ std::vector<sdlxvulkan::Command_Buffer> sdlxvulkan::make_command_buffers
 
 // Make a batch of self-destroying VkCommandBuffer.
 // Destruction is of the entire array.
-sdlxvulkan::Command_Buffer_Array sdlxvulkan::make_command_buffers_array
+sdlxvulkan::Command_Buffer_Array sdlxvulkan::make_command_buffer_array
 (
   Command_Pool const& a_command_pool,
   VkCommandBufferAllocateInfo const& a_allocate_info
@@ -1427,7 +1567,7 @@ sdlxvulkan::Command_Buffer_Array sdlxvulkan::make_command_buffers_array
 
 // Make a batch of self-destroying VkCommandBuffer.
 // Destruction is of the entire array.
-sdlxvulkan::Command_Buffer_Array sdlxvulkan::make_command_buffers_array_limited
+sdlxvulkan::Command_Buffer_Array sdlxvulkan::make_command_buffer_array_limited
 (
   Command_Pool const& a_command_pool,
   VkCommandBufferLevel a_level,
@@ -1441,8 +1581,60 @@ sdlxvulkan::Command_Buffer_Array sdlxvulkan::make_command_buffers_array_limited
   l_alloc_info.level = a_level;
   l_alloc_info.commandBufferCount = a_count;
 
-  return make_command_buffers_array(a_command_pool, l_alloc_info);
+  return make_command_buffer_array(a_command_pool, l_alloc_info);
 }
+
+//------------------------------------------------------------------------------------------------------------------------------------------------------
+// VkDeviceMemory
+
+//---------------------------------------------------------------------------
+// Device_Memory
+//---------------------------------------------------------------------------
+
+namespace sdlxvulkan
+{
+  namespace
+  {
+    using Device_Memory_Deleter = Vulkan_Destroyer<VkDeviceMemory, VkDevice>;
+
+    Device const& get_device(Device_Memory const& a_handle) noexcept
+    {
+      return std::get_deleter<Device_Memory_Deleter>(a_handle.get_data())->parent();
+    }
+  }
+}
+
+// Make a self-destroying VkDeviceMemory.
+sdlxvulkan::Device_Memory sdlxvulkan::make_device_memory
+(
+  Device const& a_device,
+  VkMemoryAllocateInfo const& a_allocate_info,
+  VkAllocationCallbacks const* a_allocation_callbacks
+)
+{
+  assert(a_device != nullptr);
+  auto l_functions = get_device_functions(a_device);
+  assert(l_functions != nullptr);
+  return make_device_child(a_device, a_allocate_info, a_allocation_callbacks, l_functions->vkAllocateMemory, l_functions->vkFreeMemory);
+}
+
+sdlxvulkan::Device_Memory sdlxvulkan::make_device_memory_limited
+(
+  Device const& a_device,
+  VkDeviceSize  a_size,
+  uint32_t a_memory_type_index,
+  VkAllocationCallbacks const* a_allocation_callbacks
+)
+{
+  VkMemoryAllocateInfo l_alloc_info{};
+  l_alloc_info.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+  l_alloc_info.pNext = nullptr;
+  l_alloc_info.allocationSize = a_size;
+  l_alloc_info.memoryTypeIndex = a_memory_type_index;
+
+  return make_device_memory(a_device, l_alloc_info, a_allocation_callbacks);
+}
+
 //------------------------------------------------------------------------------------------------------------------------------------------------------
 // VkQueue
 
