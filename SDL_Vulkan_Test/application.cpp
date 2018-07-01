@@ -301,8 +301,8 @@ namespace sdlxvulkan
     std::vector<VkFramebuffer> m_swapchain_framebuffers;
     
     // Command Buffer(s)
-    Command_Buffer_Array m_command_buffers;
-    //std::vector<Command_Buffer> m_command_buffers;
+    //Command_Buffer_Array m_command_buffers;
+    std::vector<Command_Buffer> m_command_buffers;
 
     // Sync Objects
     std::vector<VkSemaphore> m_image_available_semaphores;
@@ -1695,7 +1695,8 @@ void sdlxvulkan::Application::Implementation::init_command_buffers()
   m_command_buffers = make_command_buffers_array(m_command_pool, l_alloc_info);
   */
   //std::cout << "making Command Buffers..." << std::endl;
-  m_command_buffers = make_command_buffer_array_limited(m_command_pool, VK_COMMAND_BUFFER_LEVEL_PRIMARY, static_cast<uint32_t>(m_swapchain_framebuffers.size()));
+  //m_command_buffers = make_command_buffer_array_limited(m_command_pool, VK_COMMAND_BUFFER_LEVEL_PRIMARY, static_cast<uint32_t>(m_swapchain_framebuffers.size()));
+  m_command_buffers = make_command_buffers_limited(m_command_pool, VK_COMMAND_BUFFER_LEVEL_PRIMARY, static_cast<uint32_t>(m_swapchain_framebuffers.size()));
   //std::cout << m_command_buffers.size() << std::endl;
   
   //m_command_buffers = make_command_buffer_vector(static_cast<uint32_t>(m_swapchain_framebuffers.size()), m_command_pool, VK_COMMAND_BUFFER_LEVEL_PRIMARY);

@@ -71,14 +71,17 @@ namespace sdlxvulkan
     {}
     Vulkan_Sptr<T> const& get_data()  const noexcept
     {
+      assert(m_data);
       return m_data;
     }
     T get() const noexcept
     {
+      assert(m_data);
       return m_data.get();
     }
     operator T() const noexcept
     {
+      assert(m_data);
       return m_data.get();
     }
     explicit operator bool()  const noexcept
@@ -161,48 +164,50 @@ namespace sdlxvulkan
   //------------------------------------------------------------------------------------------------------------------------------------------------------
   // Handle Typedefs
 
-  //    Name                              Handle Type   Vulkan Type                   Parent(s)
-  using Instance =                        Handle<       VkInstance>;                  // System, Window
+  // For the sake of sanity, most handles will only hold that which is required for destruction.
+  
 
-  using Debug_Report_Callback_EXT =       Handle<       VkDebugReportCallbackEXT>;    // Instance
-  using Debug_Utils_Messenger_EXT =       Handle<       VkDebugUtilsMessengerEXT>;    // Instance
-  using Physical_Device =                 Handle<       VkPhysicalDevice>;            // Instance
-  using Surface_KHR =                     Handle<       VkSurfaceKHR>;                // Instance, Window
 
-  using Device =                          Handle<       VkDevice>;                    // (Instance), Physical_Device
+  // Name of handle class                 Vulkan type stored                  Handle Parent           Lifetime Required           Construction Reliance
+  using Instance =                        Handle<VkInstance>;                  // System, Window 
+  
+  using Debug_Report_Callback_EXT =       Handle<VkDebugReportCallbackEXT>;    // Instance            Instance
+  using Debug_Utils_Messenger_EXT =       Handle<VkDebugUtilsMessengerEXT>;    // Instance            Instance
+  using Physical_Device =                 Handle<VkPhysicalDevice>;            // Instance            Instance
+  using Surface_KHR =                     Handle<VkSurfaceKHR>;                // Instance, Window    Instance
 
-  using Buffer =                          Handle<       VkBuffer>;                    // Device
-  using Buffer_View =                     Handle<       VkBufferView>;                // (Device), Buffer
-  using Command_Pool =                    Handle<       VkCommandPool>;               // Device
-  using Command_Buffer =                  Handle<       VkCommandBuffer>;             // (Device), Command_Pool
-  using Command_Buffer_Array =            Handle_Array< VkCommandBuffer>;             // (Device), Command_Pool
-  using Descriptor_Pool =                 Handle<       VkDescriptorPool>;            // Device
-  using Descriptor_Set =                  Handle<       VkDescriptorSet>;             // (Device), Descriptor_Pool, Descriptor_Set_Layout
-  using Descriptor_Set_Array =            Handle_Array< VkDescriptorSet>;             // (Device), Descriptor_Pool, Descriptor_Set_Layout
-  using Descriptor_Set_Layout =           Handle<       VkDescriptorSetLayout>;       // Device
-  using Descriptor_Update_Template =      Handle<       VkDescriptorUpdateTemplate>;  // Device
-  using Device_Memory =                   Handle<       VkDeviceMemory>;              // Device
-  //using Display_KHR =                     Handle<       VkDisplayKHR>;                // Physical_Device
-  //using Display_Mode_KHR =                Handle<       VkDisplayModeKHR>;            // Display_KHR
-  using Event =                           Handle<       VkEvent>;                     // Device
-  using Fence =                           Handle<       VkFence>;                     // Device
-  using Framebuffer =                     Handle<       VkFramebuffer>;               // (Device), Render_Pass, Image_View(s)
-  using Image =                           Handle<       VkImage>;                     // Device
-  using Image_View =                      Handle<       VkImageView>;                 // (Device), Image
-  //using Indirect_Commands_Layout_NVX =    Handle<       VkIndirectCommandsLayoutNVX>; //  
-  //using Object_Table_NVX =                Handle<       VkObjectTableNVX>;            //  
-  using Pipeline =                        Handle<       VkPipeline>;                  // (Device), Pipeline_Cache(Opt), Pipeline_Layout, Render_Pass
-  using Pipeline_Cache =                  Handle<       VkPipelineCache>;             // Device
-  using Pipeline_Layout =                 Handle<       VkPipelineLayout>;            // Device
-  using Query_Pool =                      Handle<       VkQueryPool>;                 // Device
-  using Render_Pass =                     Handle<       VkRenderPass>;                // Device
-  using Sampler =                         Handle<       VkSampler>;                   // Device
-  using Sampler_Ycbcr_Conversion =        Handle<       VkSamplerYcbcrConversion>;    // Device
-  using Semaphore =                       Handle<       VkSemaphore>;                 // Device
-  using Shader_Module =                   Handle<       VkShaderModule>;              // Device
-  using Swapchain_KHR =                   Handle<       VkSwapchainKHR>;              // Device
-  using Queue =                           Handle<       VkQueue>;                     // Device
-  using Validation_Cache_EXT =            Handle<       VkValidationCacheEXT>;        // Device
+  using Device =                          Handle<VkDevice>;                    // Physical_Device     Instance
+
+  using Buffer =                          Handle<VkBuffer>;                    // Device              Device
+  using Buffer_View =                     Handle<VkBufferView>;                // Buffer              Device
+  using Command_Pool =                    Handle<VkCommandPool>;               // Device              Device
+  using Command_Buffer =                  Handle<VkCommandBuffer>;             // Command_Pool        Device, Command_Pool
+  using Descriptor_Pool =                 Handle<VkDescriptorPool>;            // Device              Device
+  using Descriptor_Set =                  Handle<VkDescriptorSet>;             // Descriptor_Pool                                 Descriptor_Layout
+  using Descriptor_Set_Layout =           Handle<VkDescriptorSetLayout>;       // Device              Device
+  using Descriptor_Update_Template =      Handle<VkDescriptorUpdateTemplate>;  // Device              Device
+  using Device_Memory =                   Handle<VkDeviceMemory>;              // Device              Device
+  //using Display_KHR =                     Handle<VkDisplayKHR>;                // Physical_Device
+  //using Display_Mode_KHR =                Handle<VkDisplayModeKHR>;            // Display_KHR
+  using Event =                           Handle<VkEvent>;                     // Device              Device
+  using Fence =                           Handle<VkFence>;                     // Device              Device
+  using Framebuffer =                     Handle<VkFramebuffer>;               // Device              Device
+  using Image =                           Handle<VkImage>;                     // Device              Device
+  using Image_View =                      Handle<VkImageView>;                 // Image               Device
+  //using Indirect_Commands_Layout_NVX =    Handle<VkIndirectCommandsLayoutNVX>; //  
+  //using Object_Table_NVX =                Handle<VkObjectTableNVX>;            //  
+  using Pipeline =                        Handle<VkPipeline>;                  // Device              Device                      Pipeline_Cache(Opt), Pipeline_Layout, Render_Pass
+  using Pipeline_Cache =                  Handle<VkPipelineCache>;             // Device              Device
+  using Pipeline_Layout =                 Handle<VkPipelineLayout>;            // Device              Device
+  using Query_Pool =                      Handle<VkQueryPool>;                 // Device              Device
+  using Render_Pass =                     Handle<VkRenderPass>;                // Device              Device
+  using Sampler =                         Handle<VkSampler>;                   // Device              Device
+  using Sampler_Ycbcr_Conversion =        Handle<VkSamplerYcbcrConversion>;    // Device              Device
+  using Semaphore =                       Handle<VkSemaphore>;                 // Device              Device
+  using Shader_Module =                   Handle<VkShaderModule>;              // Device              Device
+  using Swapchain_KHR =                   Handle<VkSwapchainKHR>;              // Device              Device
+  using Queue =                           Handle<VkQueue>;                     // Device              Device
+  using Validation_Cache_EXT =            Handle<VkValidationCacheEXT>;        // Device              Device
   
 
   //------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -500,6 +505,15 @@ namespace sdlxvulkan
   );
 
   // Make a batch of self-destroying VkCommandBuffer.
+  // Destruction is independent for each so there's no batch freeing.
+  std::vector<Command_Buffer> make_command_buffers_limited
+  (
+    Command_Pool const& a_command_pool,
+    VkCommandBufferLevel a_level,
+    uint32_t a_count
+  );
+  /*
+  // Make a batch of self-destroying VkCommandBuffer.
   // Destruction is of the entire array.
   Command_Buffer_Array make_command_buffer_array
   (
@@ -515,7 +529,7 @@ namespace sdlxvulkan
     VkCommandBufferLevel a_level,
     uint32_t a_count
   );
-
+  */
   //------------------------------------------------------------------------------------------------------------------------------------------------------
   // VkDescriptorPool
 
@@ -537,13 +551,13 @@ namespace sdlxvulkan
   //---------------------------------------------------------------------------
   // Descriptor_Set
   //---------------------------------------------------------------------------
-
+  // It seems handles won't really work with these without type-guards on the 
+  // Descriptor_Pool
 
   // Make a self-destroying VkDescriptorSet.
   Descriptor_Set make_descriptor_set
   (
     Descriptor_Pool const& a_descriptor_pool,
-    Descriptor_Set_Layout const& a_descriptor_set_layout,
     VkDescriptorSetAllocateInfo const& a_allocate_info
   );
 
@@ -552,10 +566,9 @@ namespace sdlxvulkan
   std::vector<Descriptor_Set> make_descriptor_sets
   (
     Descriptor_Pool const& a_descriptor_pool,
-    Descriptor_Set_Layout const& a_descriptor_set_layout,
     VkDescriptorSetAllocateInfo const& a_allocate_info
   );
-
+  /*
   // Make a batch of self-destroying VkDescriptorSet.
   // Destruction is of the entire array.
   Descriptor_Set_Array make_descriptor_set_array
@@ -564,7 +577,7 @@ namespace sdlxvulkan
     Descriptor_Set_Layout const& a_descriptor_set_layout,
     VkDescriptorSetAllocateInfo const& a_allocate_info
   );
-
+  */
   //------------------------------------------------------------------------------------------------------------------------------------------------------
   // VkDescriptorSetLayout
 
@@ -659,8 +672,7 @@ namespace sdlxvulkan
   // Make a self-destroying VkImage.
   Framebuffer make_framebuffer
   (
-    Render_Pass const& a_render_pass,
-    std::vector<Image_View> const& a_image_views,
+    Device const& a_device,
     VkFramebufferCreateInfo const& a_create_info,
     VkAllocationCallbacks const* a_allocation_callbacks = nullptr
   );
@@ -705,19 +717,15 @@ namespace sdlxvulkan
   // Make a self-destroying VkPipelineCache.
   Pipeline make_graphics_pipeline
   (
-    Pipeline_Cache const* a_cache,    // optional
-    Pipeline_Layout const& a_layout,  // must match a_create_info.layout
-    Render_Pass const& a_render_pass, // must match a_create_info.renderPass
+    Device const& a_device,
     VkGraphicsPipelineCreateInfo const& a_create_info,
     VkAllocationCallbacks const* a_allocation_callbacks = nullptr
   );
 
   // Make a batch of self-destroying VkPipelineCache.
-  std::vector<Pipeline> make_graphics_pipelines
+  std::vector<Pipeline> make_graphics_pipeline_vector
   (
-    Pipeline_Cache const* a_cache,
-    Pipeline_Layout const& a_layout,
-    Render_Pass const& a_render_pass,
+    Device const& a_device,
     std::vector<VkGraphicsPipelineCreateInfo> const& a_create_infos,
     VkAllocationCallbacks const* a_allocation_callbacks = nullptr
   );
