@@ -1,7 +1,6 @@
 #ifndef SDLXVULKAN_HANDLES_HPP
 #define SDLXVULKAN_HANDLES_HPP
 
-//#include <stdexcept>
 #include <type_traits>
 #include <memory>
 #include <vector>
@@ -63,6 +62,7 @@ namespace sdlxvulkan
     Handle() noexcept :
       m_data{}
     {}
+
     explicit Handle(Vulkan_Sptr<T> const& a_data) noexcept :
       m_data{ a_data }
     {}
@@ -79,9 +79,13 @@ namespace sdlxvulkan
       assert(m_data);
       return m_data.get();
     }
+    void reset() noexcept
+    {
+      m_data = Vulkan_Sptr<T>{};
+    }
     operator T() const noexcept
     {
-      assert(m_data);
+      //assert(m_data);
       return m_data.get();
     }
     explicit operator bool()  const noexcept
@@ -100,127 +104,65 @@ namespace sdlxvulkan
     a_lhs.swap(a_rhs);
   }
   
-  //---------------------------------------------------------------------------
-  // Handle_Array<T>
-  //---------------------------------------------------------------------------
-  // Holds a std::shared_ptr<T[]> and supplies access to the Vulkan type values.
-  // Size is fixed on construction.
-
-  template <typename T>
-  class Handle_Array
-  {
-  private:
-    uint32_t m_size;
-    std::shared_ptr<T[]> m_data;
-  public:
-    Handle_Array() noexcept :
-      m_size{0},
-      m_data{}
-    {}
-    Handle_Array(uint32_t a_size, std::shared_ptr<T[]> const& a_data) noexcept :
-      m_size{ a_size },
-      m_data{ a_data }
-    {}
-    Handle_Array(uint32_t a_size, std::shared_ptr<T[]> && a_data) noexcept :
-      m_size{ a_size },
-      m_data{ std::move(a_data) }
-    {}
-    std::shared_ptr<T[]> const& get_data()  const noexcept
-    {
-      return m_data;
-    }
-    T* get() const noexcept
-    {
-      return m_data.get();
-    }
-    operator T*() const noexcept
-    {
-      return m_data.get();
-    }
-    T operator[](std::ptrdiff_t a_index)
-    {
-      return m_data[a_index];
-    }
-    explicit operator bool() const noexcept
-    {
-      return static_cast<bool>(m_data);
-    }
-    uint32_t size() const noexcept
-    {
-      return m_data ? m_size : 0;
-    }
-    void swap(Handle_Array<T>& a_other) noexcept
-    {
-      std::swap(this->m_data, a_other.m_data);
-    }
-  };
-
-  template <typename T>
-  void swap(Handle_Array<T>& a_lhs, Handle_Array<T>& a_rhs) noexcept
-  {
-    a_lhs.swap(a_rhs);
-  }
-
   //------------------------------------------------------------------------------------------------------------------------------------------------------
   // Handle Typedefs
 
   // For the sake of sanity, most handles will only hold that which is required for destruction.
   
-
-
-  // Name of handle class                 Vulkan type stored                  Handle Parent           Lifetime Required           Construction Reliance
-  using Instance =                        Handle<VkInstance>;                  // System, Window 
   
-  using Debug_Report_Callback_EXT =       Handle<VkDebugReportCallbackEXT>;    // Instance            Instance
-  using Debug_Utils_Messenger_EXT =       Handle<VkDebugUtilsMessengerEXT>;    // Instance            Instance
-  using Physical_Device =                 Handle<VkPhysicalDevice>;            // Instance            Instance
-  using Surface_KHR =                     Handle<VkSurfaceKHR>;                // Instance, Window    Instance
+  //  Vulkan type stored                  Handle Parent               Lifetime Required           Construction Reliance
 
-  using Device =                          Handle<VkDevice>;                    // Physical_Device     Instance
-
-  using Buffer =                          Handle<VkBuffer>;                    // Device              Device
-  using Buffer_View =                     Handle<VkBufferView>;                // Buffer              Device
-  using Command_Pool =                    Handle<VkCommandPool>;               // Device              Device
-  using Command_Buffer =                  Handle<VkCommandBuffer>;             // Command_Pool        Device, Command_Pool
-  using Descriptor_Pool =                 Handle<VkDescriptorPool>;            // Device              Device
-  using Descriptor_Set =                  Handle<VkDescriptorSet>;             // Descriptor_Pool                                 Descriptor_Layout
-  using Descriptor_Set_Layout =           Handle<VkDescriptorSetLayout>;       // Device              Device
-  using Descriptor_Update_Template =      Handle<VkDescriptorUpdateTemplate>;  // Device              Device
-  using Device_Memory =                   Handle<VkDeviceMemory>;              // Device              Device
-  //using Display_KHR =                     Handle<VkDisplayKHR>;                // Physical_Device
-  //using Display_Mode_KHR =                Handle<VkDisplayModeKHR>;            // Display_KHR
-  using Event =                           Handle<VkEvent>;                     // Device              Device
-  using Fence =                           Handle<VkFence>;                     // Device              Device
-  using Framebuffer =                     Handle<VkFramebuffer>;               // Device              Device
-  using Image =                           Handle<VkImage>;                     // Device              Device
-  using Image_View =                      Handle<VkImageView>;                 // Image               Device
-  //using Indirect_Commands_Layout_NVX =    Handle<VkIndirectCommandsLayoutNVX>; //  
-  //using Object_Table_NVX =                Handle<VkObjectTableNVX>;            //  
-  using Pipeline =                        Handle<VkPipeline>;                  // Device              Device                      Pipeline_Cache(Opt), Pipeline_Layout, Render_Pass
-  using Pipeline_Cache =                  Handle<VkPipelineCache>;             // Device              Device
-  using Pipeline_Layout =                 Handle<VkPipelineLayout>;            // Device              Device
-  using Query_Pool =                      Handle<VkQueryPool>;                 // Device              Device
-  using Render_Pass =                     Handle<VkRenderPass>;                // Device              Device
-  using Sampler =                         Handle<VkSampler>;                   // Device              Device
-  using Sampler_Ycbcr_Conversion =        Handle<VkSamplerYcbcrConversion>;    // Device              Device
-  using Semaphore =                       Handle<VkSemaphore>;                 // Device              Device
-  using Shader_Module =                   Handle<VkShaderModule>;              // Device              Device
-  using Swapchain_KHR =                   Handle<VkSwapchainKHR>;              // Device              Device
-  using Queue =                           Handle<VkQueue>;                     // Device              Device
-  using Validation_Cache_EXT =            Handle<VkValidationCacheEXT>;        // Device              Device
+  //Handle<VkInstance>;                   System, Window 
   
+  //Handle<VkDebugReportCallbackEXT>;     VkInstance                  VkInstance
+  //Handle<VkDebugUtilsMessengerEXT>;     VkInstance                  VkInstance
+  //Handle<VkPhysicalDevice>;             VkInstance                  VkInstance
+  //Handle<VkSurfaceKHR>;                 VkInstance, Window          VkInstance
 
+  //Handle<VkDevice>;                     VkPhysicalDevice            VkInstance
+
+  //Handle<VkBuffer>;                     VkDevice                    VkDevice
+  //Handle<VkBufferView>;                 VkBuffer                    VkDevice
+  //Handle<VkCommandPool>;                VkDevice                    VkDevice
+  //Handle<VkCommandBuffer>;              VkCommandPool               VkDevice, VkCommandPool
+  //Handle<VkDescriptorPool>;             VkDevice                    VkDevice
+  //Handle<VkDescriptorSet>;              VkDescriptorPool                                 VkDescriptorSetLayout
+  //Handle<VkDescriptorSetLayout>;        VkDevice                    VkDevice
+  //Handle<VkDescriptorUpdateTemplate>;   VkDevice                    VkDevice
+  //Handle<VkDeviceMemory>;               VkDevice                    VkDevice
+  //Handle<VkDisplayKHR>;                 VkPhysicalDevice
+  //Handle<VkDisplayModeKHR>;             VkDisplayKHR
+  //Handle<VkEvent>;                      VkDevice                    VkDevice
+  //Handle<VkFence>;                      VkDevice                    VkDevice
+  //Handle<VkFramebuffer>;                VkDevice                    VkDevice
+  //Handle<VkImage>;                      VkDevice or VkSwapchainKHR  VkDevice or nothing
+  //Handle<VkImageView>;                  VkImage                     VkDevice
+  //Handle<VkIndirectCommandsLayoutNVX>;   
+  //Handle<VkObjectTableNVX>;              
+  //Handle<VkPipeline>;                   VkDevice                    VkDevice                   VkPipelineCache(Opt), VkPipelineLayout, VkRenderPass
+  //Handle<VkPipelineCache>;              VkDevice                    VkDevice
+  //Handle<VkPipelineLayout>;             VkDevice                    VkDevice
+  //Handle<VkQueryPool>;                  VkDevice                    VkDevice
+  //Handle<VkRenderPass>;                 VkDevice                    VkDevice
+  //Handle<VkSampler>;                    VkDevice                    VkDevice
+  //Handle<VkSamplerYcbcrConversion>;     VkDevice                    VkDevice
+  //Handle<VkSemaphore>;                  VkDevice                    VkDevice
+  //Handle<VkShaderModule>;               VkDevice                    VkDevice
+  //Handle<VkSwapchainKHR>;               VkDevice                    VkDevice
+  //Handle<VkQueue>;                      VkDevice                    VkDevice
+  //Handle<VkValidationCacheEXT>;         VkDevice                    VkDevice
+  
   //------------------------------------------------------------------------------------------------------------------------------------------------------
   // VkInstance
 
   //---------------------------------------------------------------------------
-  // Instance
+  // Handle<VkInstance>
   //---------------------------------------------------------------------------
 
   // Make a self-destroying VkInstance. 
   // Throws std::runtime error if the Vulkan create function fails. 
   // Throws std::bad_alloc if the Handle std::shared_ptr fails to be allocated.
-  Instance make_instance
+  Handle<VkInstance> make_instance
   (
     System const& a_system,
     Window const& a_window,
@@ -228,62 +170,42 @@ namespace sdlxvulkan
     VkAllocationCallbacks const* a_allocation_callbacks = nullptr
   );
 
-  Instance make_instance_limited
-  (
-    System const& a_system,
-    Window const& a_window,
-    std::vector<std::string> const& a_extension_names,
-    std::vector<std::string> const& a_layer_names,
-    std::string const& a_application_name,
-    uint32_t a_application_version,
-    std::string const& a_engine_name,
-    uint32_t a_engine_version,
-    uint32_t a_vulkan_version,
-    VkAllocationCallbacks const* a_allocation_callbacks = nullptr
-  );
 
   // Get the functions for a VkInstance. If the shared_ptr is nullptr this 
   // returns nullptr, otherwise it returns the corresponding functions.
-  Instance_Functions const* get_instance_functions(Instance const& a_instance) noexcept;
+  Instance_Functions const* get_instance_functions(Handle<VkInstance> const& a_instance) noexcept;
 
   //------------------------------------------------------------------------------------------------------------------------------------------------------
   // VkDebugReportCallbackEXT
 
   //---------------------------------------------------------------------------
-  // Debug_Report_Callback_Ext
+  // Handle<VkDebugReportCallbackEXT>
   //---------------------------------------------------------------------------
 
   // Make a self-destroying VkDebugReportCallbackEXT.
   // Throws std::runtime error if the Vulkan create function fails. 
   // Throws std::bad_alloc if the Handle std::shared_ptr fails to be allocated.
-  Debug_Report_Callback_EXT make_debug_report_callback_ext
+  Handle<VkDebugReportCallbackEXT> make_debug_report_callback_ext
   (
-    Instance const& a_instance,
+    Handle<VkInstance> const& a_instance,
     VkDebugReportCallbackCreateInfoEXT const& a_create_info,
     VkAllocationCallbacks const* a_allocation_callbacks = nullptr
   );
 
-  Debug_Report_Callback_EXT make_debug_report_callback_ext_limited
-  (
-    Instance const& a_instance,
-    VkDebugReportFlagsEXT a_flags,
-    PFN_vkDebugReportCallbackEXT a_callback,
-    VkAllocationCallbacks const* a_allocation_callbacks = nullptr
-  );
 
   //------------------------------------------------------------------------------------------------------------------------------------------------------
   // VkDebugUtilsMessengerEXT
 
   //---------------------------------------------------------------------------
-  // Debug_Utils_Messenger_EXT
+  //  Handle<VkDebugUtilsMessengerEXT>
   //---------------------------------------------------------------------------
 
   // Make a self-destroying VkDebugUtilsMessengerEXT.
   // Throws std::runtime error if the Vulkan create function fails. 
   // Throws std::bad_alloc if the Handle std::shared_ptr fails to be allocated.
-  Debug_Utils_Messenger_EXT make_debug_utils_messenger_ext
+  Handle<VkDebugUtilsMessengerEXT> make_debug_utils_messenger_ext
   (
-    Instance const& a_instance,
+    Handle<VkInstance> const& a_instance,
     VkDebugUtilsMessengerCreateInfoEXT const& a_create_info,
     VkAllocationCallbacks const* a_allocation_callbacks = nullptr
   );
@@ -299,38 +221,38 @@ namespace sdlxvulkan
 
   // How many physcial devices does Instance have? 
   // Returns zero if Instance is null.
-  uint32_t get_physical_device_count(Instance const& a_instance) noexcept;
+  uint32_t get_physical_device_count(Handle<VkInstance> const& a_instance) noexcept;
 
   // Get all the physcial devices that Instance has. 
   // Returns an empty vector if Instance is null. 
   // Throws std::bad_alloc if the vector fails to be allocated.
   // Throws std::bad_alloc if any Handle std::shared_ptr fails to be allocated.
-  std::vector<Physical_Device> get_physical_devices(Instance const& a_instance);
+  std::vector<Handle<VkPhysicalDevice>> get_physical_devices(Handle<VkInstance> const& a_instance);
   
   // Throws std::runtime_error if physical device is null.
-  VkPhysicalDeviceProperties get_physical_device_properties(Physical_Device const& a_physical_device);
+  VkPhysicalDeviceProperties get_physical_device_properties(Handle<VkPhysicalDevice> const& a_physical_device);
 
   // Throws std::runtime_error if physical device is null.
-  VkPhysicalDeviceMemoryProperties get_physical_device_memory_properties(Physical_Device const& a_physical_device);
+  VkPhysicalDeviceMemoryProperties get_physical_device_memory_properties(Handle<VkPhysicalDevice> const& a_physical_device);
 
 
   //uint32_t get_physical_device_queue_familiy_properties_count(Physical_Device const& a_physcial_device) noexcept;
 
   // Throws std::runtime_error if physical device is null.
   // Throws std::bad_alloc if the vector fails to be allocated.
-  std::vector<VkQueueFamilyProperties> get_physical_device_queue_familiy_properties(Physical_Device const& a_physical_device);
+  std::vector<VkQueueFamilyProperties> get_physical_device_queue_familiy_properties(Handle<VkPhysicalDevice> const& a_physical_device);
 
   // Throws std::runtime_error if physical device is null.
   // Throws std::bad_alloc if the vector fails to be allocated.
-  std::vector<VkExtensionProperties> get_physical_device_extension_properties(Physical_Device const& a_physical_device);
+  std::vector<VkExtensionProperties> get_physical_device_extension_properties(Handle<VkPhysicalDevice> const& a_physical_device);
 
   // Can this physical device do graphics?
   // Returns false if physical device is null.
-  bool can_graphics(Physical_Device const& a_physical_device) noexcept;
+  bool can_graphics(Handle<VkPhysicalDevice> const& a_physical_device) noexcept;
 
   // Simple search for a queue family that can do graphics in this physical device.
   // Returns std::numeric_limits<uint32_t>::max() if physical device is null.
-  uint32_t first_graphics_qfi(Physical_Device const& a_physical_device) noexcept;
+  uint32_t first_graphics_qfi(Handle<VkPhysicalDevice> const& a_physical_device) noexcept;
   
   // Using the supplied properties, determine the right kind of memory to allocate.
   // Success returns the index to the value required to allocate the right type of memory. 
@@ -341,7 +263,7 @@ namespace sdlxvulkan
   // VkSurfaceKHR
   
   //---------------------------------------------------------------------------
-  // Surface_KHR
+  // Handle<VkSurfaceKHR>
   //---------------------------------------------------------------------------
   // Reference counting VkSurfaceKHR.
 
@@ -350,26 +272,26 @@ namespace sdlxvulkan
   // allocation callbacks.
   // Throws std::runtime error if the Vulkan create function fails. 
   // Throws std::bad_alloc if the Handle std::shared_ptr fails to be allocated.
-  Surface_KHR make_surface_khr
+  Handle<VkSurfaceKHR> make_surface_khr
   (
-    Instance const& a_instance,
+    Handle<VkInstance> const& a_instance,
     Window const& a_window
   );
 
   // Can this physical device present to this surface?
   // Returns false it either are null.
-  bool can_present(Physical_Device const& a_physical_device, Surface_KHR const& a_surface) noexcept;
+  bool can_present(Handle<VkPhysicalDevice> const& a_physical_device, Handle<VkSurfaceKHR> const& a_surface) noexcept;
 
   // Get the index of the first queue family that can present to this surface.
   // Returns std::numeric_limits<uint32_t>::max() if either are null.
   // Returns std::numeric_limits<uint32_t>::max() if no present queue family is
   // found.
-  uint32_t first_present_qfi(Physical_Device const& a_physical_device, Surface_KHR const& a_surface);
+  uint32_t first_present_qfi(Handle<VkPhysicalDevice> const& a_physical_device, Handle<VkSurfaceKHR> const& a_surface);
 
 
-  VkSurfaceCapabilitiesKHR get_surface_cababilites(Physical_Device const& a_physical_device, Surface_KHR const& a_surface);
-  std::vector<VkSurfaceFormatKHR> get_surface_formats(Physical_Device const& a_physical_device, Surface_KHR const& a_surface);
-  std::vector<VkPresentModeKHR> get_present_modes(Physical_Device const& a_physical_device, Surface_KHR const& a_surface);
+  VkSurfaceCapabilitiesKHR get_surface_cababilites(Handle<VkPhysicalDevice> const& a_physical_device, Handle<VkSurfaceKHR> const& a_surface);
+  std::vector<VkSurfaceFormatKHR> get_surface_formats(Handle<VkPhysicalDevice> const& a_physical_device, Handle<VkSurfaceKHR> const& a_surface);
+  std::vector<VkPresentModeKHR> get_present_modes(Handle<VkPhysicalDevice> const& a_physical_device, Handle<VkSurfaceKHR> const& a_surface);
 
 
 
@@ -378,81 +300,50 @@ namespace sdlxvulkan
   // VkDevice
   
   //---------------------------------------------------------------------------
-  // Device
+  // Handle<VkDevice>
   //---------------------------------------------------------------------------
   // Reference counting VkDevice.
 
   // Make a self-destroying VkDevice.
   // Throws std::runtime error if the Vulkan create function fails. 
   // Throws std::bad_alloc if the Handle std::shared_ptr fails to be allocated.
-  Device make_device
+  Handle<VkDevice> make_device
   (
-    Physical_Device const& a_physical_device, 
+    Handle<VkPhysicalDevice> const& a_physical_device,
     VkDeviceCreateInfo const& a_create_info,
-    VkAllocationCallbacks const* a_allocation_callbacks = nullptr
-  );
-
-  Device make_device_limited
-  (
-    Physical_Device const& a_physical_device,
-    uint32_t a_graphics_qfi,
-    uint32_t a_present_qfi,
-    std::vector<std::string> const& a_extensions,
     VkAllocationCallbacks const* a_allocation_callbacks = nullptr
   );
 
   // Get the functions for a VkDevice. If the shared_ptr is nullptr this 
   // returns nullptr, otherwise it returns the corresponding functions.
-  Device_Functions const* get_device_functions(Device const& a_device) noexcept;
+  Device_Functions const* get_device_functions(Handle<VkDevice> const& a_device) noexcept;
 
   //------------------------------------------------------------------------------------------------------------------------------------------------------
   // VkBuffer
 
   //---------------------------------------------------------------------------
-  // Buffer
+  // Handle<VkBuffer>
   //---------------------------------------------------------------------------
 
   // Make a self-destroying VkBuffer.
-  Buffer make_buffer
+  Handle<VkBuffer> make_buffer
   (
-    Device const& a_device,
+    Handle<VkDevice> const& a_device,
     VkBufferCreateInfo const& a_create_info,
     VkAllocationCallbacks const* a_allocation_callbacks = nullptr
   );
-
-  // Initialise with a VkSharingMode value of VK_SHARING_MODE_EXCLUSIVE.
-  Buffer make_buffer_exclusive_limited
-  (
-    Device const& a_device, 
-    VkDeviceSize a_size, 
-    VkBufferUsageFlags a_usage,
-    VkAllocationCallbacks const* a_allocation_callbacks = nullptr
-  );
-
-  // Initialise with a VkSharingMode value of VK_SHARING_MODE_CONCURRENT. 
-  // a_queue_family_indicies must have at least 2 unique values, which are
-  // each less than the queue family property count of the physical device
-  // this is used with.
-  Buffer make_buffer_concurrent_limited
-  (
-    Device const& a_device,
-    VkDeviceSize a_size,
-    VkBufferUsageFlags a_usage,
-    std::vector<uint32_t> a_queue_family_indicies,
-    VkAllocationCallbacks const* a_allocation_callbacks = nullptr
-  );
-
+  
   //------------------------------------------------------------------------------------------------------------------------------------------------------
   // VkBufferView
 
   //---------------------------------------------------------------------------
-  // Buffer_View
+  // Handle<VkBufferView>
   //---------------------------------------------------------------------------
 
   // Make a self-destroying VkBuffer.
-  Buffer_View make_buffer_view
+  Handle<VkBufferView> make_buffer_view
   (
-    Buffer const& a_buffer,
+    Handle<VkBuffer> const& a_buffer,
     VkBufferViewCreateInfo const& a_create_info,
     VkAllocationCallbacks const* a_allocation_callbacks = nullptr
   );
@@ -461,86 +352,53 @@ namespace sdlxvulkan
   // VkCommandPool
   
   //---------------------------------------------------------------------------
-  // Command_Pool
+  // Handle<VkCommandPool>
   //---------------------------------------------------------------------------
 
   // Make a self-destroying VkCommandPool.
-  Command_Pool make_command_pool
+  Handle<VkCommandPool> make_command_pool
   (
-    Device const& a_device,
+    Handle<VkDevice> const& a_device,
     VkCommandPoolCreateInfo const& a_create_info,
     VkAllocationCallbacks const* a_allocation_callbacks = nullptr
   ); 
   
-  Command_Pool make_command_pool_limited
-  (
-    Device const& a_device,
-    uint32_t a_queue_family_index,
-    VkCommandPoolCreateFlags a_flags = 0,
-    VkAllocationCallbacks const* a_allocation_callbacks = nullptr
-  );
 
   //------------------------------------------------------------------------------------------------------------------------------------------------------
   // VkCommandBuffer
 
   //---------------------------------------------------------------------------
-  // Command_Buffer
+  // Handle<VkCommandBuffer>
   //---------------------------------------------------------------------------
 
   // Make a single self-destroying VkCommandBuffer.
   // Take note that one buffer is created regardless of 'commandBufferCount'
   // in the given allocate info.
-  Command_Buffer make_command_buffer
+  Handle<VkCommandBuffer> make_command_buffer
   (
-    Command_Pool const& a_command_pool,
+    Handle<VkCommandPool> const& a_command_pool,
     VkCommandBufferAllocateInfo const& a_allocate_info
   );
 
   // Make a batch of self-destroying VkCommandBuffer.
   // Destruction is independent for each so there's no batch freeing.
-  std::vector<Command_Buffer> make_command_buffers
+  std::vector<Handle<VkCommandBuffer>> make_command_buffers
   (
-    Command_Pool const& a_command_pool,
+    Handle<VkCommandPool> const& a_command_pool,
     VkCommandBufferAllocateInfo const& a_allocate_info
   );
 
-  // Make a batch of self-destroying VkCommandBuffer.
-  // Destruction is independent for each so there's no batch freeing.
-  std::vector<Command_Buffer> make_command_buffers_limited
-  (
-    Command_Pool const& a_command_pool,
-    VkCommandBufferLevel a_level,
-    uint32_t a_count
-  );
-  /*
-  // Make a batch of self-destroying VkCommandBuffer.
-  // Destruction is of the entire array.
-  Command_Buffer_Array make_command_buffer_array
-  (
-    Command_Pool const& a_command_pool,
-    VkCommandBufferAllocateInfo const& a_allocate_info
-  );
-
-  // Make a batch of self-destroying VkCommandBuffer.
-  // Destruction is of the entire array.
-  Command_Buffer_Array make_command_buffer_array_limited
-  (
-    Command_Pool const& a_command_pool,
-    VkCommandBufferLevel a_level,
-    uint32_t a_count
-  );
-  */
   //------------------------------------------------------------------------------------------------------------------------------------------------------
   // VkDescriptorPool
 
   //---------------------------------------------------------------------------
-  // Descriptor_Pool
+  // Handle<VkDescriptorPool>
   //---------------------------------------------------------------------------
 
   // Make a self-destroying VkDescriptorPool.
-  Descriptor_Pool make_descriptor_pool
+  Handle<VkDescriptorPool> make_descriptor_pool
   (
-    Device const& a_device,
+    Handle<VkDevice> const& a_device,
     VkDescriptorPoolCreateInfo const& a_create_info,
     VkAllocationCallbacks const* a_allocation_callbacks = nullptr
   );
@@ -549,46 +407,37 @@ namespace sdlxvulkan
   // VkDescriptorSet
 
   //---------------------------------------------------------------------------
-  // Descriptor_Set
+  // Handle<VkDescriptorSet>
   //---------------------------------------------------------------------------
   // It seems handles won't really work with these without type-guards on the 
   // Descriptor_Pool
 
   // Make a self-destroying VkDescriptorSet.
-  Descriptor_Set make_descriptor_set
+  Handle<VkDescriptorSet> make_descriptor_set
   (
-    Descriptor_Pool const& a_descriptor_pool,
+    Handle<VkDescriptorPool> const& a_descriptor_pool,
     VkDescriptorSetAllocateInfo const& a_allocate_info
   );
 
   // Make a batch of self-destroying VkDescriptorSet.
   // Destruction is independent for each so there's no batch freeing.
-  std::vector<Descriptor_Set> make_descriptor_sets
+  std::vector<Handle<VkDescriptorSet>> make_descriptor_sets
   (
-    Descriptor_Pool const& a_descriptor_pool,
+    Handle<VkDescriptorPool> const& a_descriptor_pool,
     VkDescriptorSetAllocateInfo const& a_allocate_info
   );
-  /*
-  // Make a batch of self-destroying VkDescriptorSet.
-  // Destruction is of the entire array.
-  Descriptor_Set_Array make_descriptor_set_array
-  (
-    Descriptor_Pool const& a_descriptor_pool,
-    Descriptor_Set_Layout const& a_descriptor_set_layout,
-    VkDescriptorSetAllocateInfo const& a_allocate_info
-  );
-  */
+
   //------------------------------------------------------------------------------------------------------------------------------------------------------
   // VkDescriptorSetLayout
 
   //---------------------------------------------------------------------------
-  // Descriptor_Set_Layout
+  // Handle<VkDescriptorSetLayout>
   //---------------------------------------------------------------------------
 
   // Make a self-destroying VkDescriptorSetLayout.
-  Descriptor_Set_Layout make_descriptor_set_layout
+  Handle<VkDescriptorSetLayout> make_descriptor_set_layout
   (
-    Device const& a_device,
+    Handle<VkDevice> const& a_device,
     VkDescriptorSetLayoutCreateInfo const& a_create_info,
     VkAllocationCallbacks const* a_allocation_callbacks = nullptr
   );
@@ -597,13 +446,13 @@ namespace sdlxvulkan
   // VkDescriptorUpdateTemplate
 
   //---------------------------------------------------------------------------
-  // Descriptor_Update_Template
+  // Handle<VkDescriptorUpdateTemplate>
   //---------------------------------------------------------------------------
 
   // Make a self-destroying VkDescriptorSetLayout.
-  Descriptor_Update_Template make_descriptor_update_template
+  Handle<VkDescriptorUpdateTemplate> make_descriptor_update_template
   (
-    Device const& a_device,
+    Handle<VkDevice> const& a_device,
     VkDescriptorUpdateTemplateCreateInfo const& a_create_info,
     VkAllocationCallbacks const* a_allocation_callbacks = nullptr
   );
@@ -612,52 +461,44 @@ namespace sdlxvulkan
   // VkDeviceMemory
 
   //---------------------------------------------------------------------------
-  // Device_Memory
+  // Handle<VkDeviceMemory>
   //---------------------------------------------------------------------------
 
   // Make a self-destroying VkDeviceMemory.
-  Device_Memory make_device_memory
+  Handle<VkDeviceMemory> make_device_memory
   (
-    Device const& a_device,
+    Handle<VkDevice> const& a_device,
     VkMemoryAllocateInfo const& a_allocate_info,
     VkAllocationCallbacks const* a_allocation_callbacks = nullptr
   ); 
   
-  Device_Memory make_device_memory_limited
-  (
-    Device const& a_device,
-    VkDeviceSize  a_size,
-    uint32_t a_memory_type_index,
-    VkAllocationCallbacks const* a_allocation_callbacks = nullptr
-  );
 
   //------------------------------------------------------------------------------------------------------------------------------------------------------
   // VkEvent
 
   //---------------------------------------------------------------------------
-  // Event
+  // Handle<VkEvent>
   //---------------------------------------------------------------------------
 
   // Make a self-destroying VkEvent.
-  Event make_event
+  Handle<VkEvent> make_event
   (
-    Device const& a_device,
+    Handle<VkDevice> const& a_device,
     VkEventCreateInfo const& a_create_info,
     VkAllocationCallbacks const* a_allocation_callbacks = nullptr
   );
 
-  //
   //------------------------------------------------------------------------------------------------------------------------------------------------------
   // VkFence
 
   //---------------------------------------------------------------------------
-  // Fence
+  // Handle<VkFence>
   //---------------------------------------------------------------------------
 
-  // Make a self-destroying VkImage.
-  Fence make_fence
+  // Make a self-destroying VkFence.
+  Handle<VkFence> make_fence
   (
-    Device const& a_device,
+    Handle<VkDevice> const& a_device,
     VkFenceCreateInfo const& a_create_info,
     VkAllocationCallbacks const* a_allocation_callbacks = nullptr
   );
@@ -666,13 +507,13 @@ namespace sdlxvulkan
   // VkFramebuffer
 
   //---------------------------------------------------------------------------
-  // Framebuffer
+  // Handle<VkFramebuffer>
   //---------------------------------------------------------------------------
   
-  // Make a self-destroying VkImage.
-  Framebuffer make_framebuffer
+  // Make a self-destroying VkFramebuffer.
+  Handle<VkFramebuffer> make_framebuffer
   (
-    Device const& a_device,
+    Handle<VkDevice> const& a_device,
     VkFramebufferCreateInfo const& a_create_info,
     VkAllocationCallbacks const* a_allocation_callbacks = nullptr
   );
@@ -681,13 +522,24 @@ namespace sdlxvulkan
   // VkImage
 
   //---------------------------------------------------------------------------
-  // Image
+  // Handle<VkImage>
   //---------------------------------------------------------------------------
 
+  // An image may be parented by either a device or a swapchain. Use these to 
+  // determine which if not known beforehand.
+  bool is_image_device(Handle<VkImage> const& a_image) noexcept;
+  bool is_image_swapchain_khr(Handle<VkImage> const& a_image) noexcept;
+
+  // Get the parent handle. 
+  // Returns a null handle if the supplied handle is null, or is the wrong
+  // kind of image.
+  Handle<VkDevice> get_image_device(Handle<VkImage> const& a_image) noexcept;
+  Handle<VkSwapchainKHR> get_image_swapchain_khr(Handle<VkImage> const& a_image) noexcept;
+
   // Make a self-destroying VkImage.
-  Image_View make_image
+  Handle<VkImage> make_image
   (
-    Device const& a_device,
+    Handle<VkDevice> const& a_device,
     VkImageCreateInfo const& a_create_info,
     VkAllocationCallbacks const* a_allocation_callbacks = nullptr
   );
@@ -696,13 +548,13 @@ namespace sdlxvulkan
   // VkImageView
 
   //---------------------------------------------------------------------------
-  // Image_View
+  // Handle<VkImageView>
   //---------------------------------------------------------------------------
 
   // Make a self-destroying VkImageView.
-  Image_View make_image_view
+  Handle<VkImageView> make_image_view
   (
-    Image const& a_image,
+    Handle<VkImage> const& a_image,
     VkImageViewCreateInfo const& a_create_info,
     VkAllocationCallbacks const* a_allocation_callbacks = nullptr
   );
@@ -711,22 +563,42 @@ namespace sdlxvulkan
   // VkPipeline
 
   //---------------------------------------------------------------------------
-  // Pipeline
+  // Handle<VkPipeline>
   //---------------------------------------------------------------------------
 
-  // Make a self-destroying VkPipelineCache.
-  Pipeline make_graphics_pipeline
+  // Make a self-destroying VkPipeline.
+  Handle<VkPipeline> make_graphics_pipeline
   (
-    Device const& a_device,
+    Handle<VkDevice> const& a_device,
+    Handle<VkPipelineCache> const& a_pipeline_cache,
     VkGraphicsPipelineCreateInfo const& a_create_info,
     VkAllocationCallbacks const* a_allocation_callbacks = nullptr
   );
 
-  // Make a batch of self-destroying VkPipelineCache.
-  std::vector<Pipeline> make_graphics_pipeline_vector
+  // Make a batch of self-destroying VkPipeline.
+  std::vector<Handle<VkPipeline>> make_graphics_pipelines
   (
-    Device const& a_device,
+    Handle<VkDevice> const& a_device,
+    Handle<VkPipelineCache> const& a_pipeline_cache,
     std::vector<VkGraphicsPipelineCreateInfo> const& a_create_infos,
+    VkAllocationCallbacks const* a_allocation_callbacks = nullptr
+  );
+
+  // Make a self-destroying VkPipeline.
+  Handle<VkPipeline> make_compute_pipeline
+  (
+    Handle<VkDevice> const& a_device,
+    Handle<VkPipelineCache> const& a_pipeline_cache,
+    VkComputePipelineCreateInfo const& a_create_info,
+    VkAllocationCallbacks const* a_allocation_callbacks = nullptr
+  );
+
+  // Make a batch of self-destroying VkPipeline.
+  std::vector<Handle<VkPipeline>> make_compute_pipelines
+  (
+    Handle<VkDevice> const& a_device,
+    Handle<VkPipelineCache> const& a_pipeline_cache,
+    std::vector<VkComputePipelineCreateInfo> const& a_create_infos,
     VkAllocationCallbacks const* a_allocation_callbacks = nullptr
   );
 
@@ -734,14 +606,14 @@ namespace sdlxvulkan
   // VkPipelineCache
 
   //---------------------------------------------------------------------------
-  // Pipeline_Cache
+  // Handle<VkPipelineCache>
   //---------------------------------------------------------------------------
 
   // Make a self-destroying VkPipelineCache.
-  Pipeline_Cache make_pipeline_cache
+  Handle<VkPipelineCache> make_pipeline_cache
   (
-    Device const& a_device,
-    VkPipelineLayoutCreateInfo const& a_create_info,
+    Handle<VkDevice> const& a_device,
+    VkPipelineCacheCreateInfo const& a_create_info,
     VkAllocationCallbacks const* a_allocation_callbacks = nullptr
   );
 
@@ -749,14 +621,14 @@ namespace sdlxvulkan
   // VkPipelineLayout
 
   //---------------------------------------------------------------------------
-  // Pipeline_Layout
+  // Handle<VkPipelineLayout>
   //---------------------------------------------------------------------------
   // Actually relies on N Descriptor_Set_Layouts...
 
   // Make a self-destroying VkPipelineLayout.
-  Pipeline_Layout make_pipeline_layout
+  Handle<VkPipelineLayout> make_pipeline_layout
   (
-    Device const& a_device,
+    Handle<VkDevice> const& a_device,
     VkPipelineLayoutCreateInfo const& a_create_info,
     VkAllocationCallbacks const* a_allocation_callbacks = nullptr
   );
@@ -765,28 +637,43 @@ namespace sdlxvulkan
   // VkQueryPool
 
   //---------------------------------------------------------------------------
-  // Query_Pool
+  // Handle<VkQueryPool>
   //---------------------------------------------------------------------------
 
   // Make a self-destroying VkRenderPass.
-  Query_Pool make_query_pool
+  Handle<VkQueryPool> make_query_pool
   (
-    Device const& a_device,
+    Handle<VkDevice> const& a_device,
     VkQueryPoolCreateInfo const& a_create_info,
     VkAllocationCallbacks const* a_allocation_callbacks = nullptr
   );
-  
+
+  //------------------------------------------------------------------------------------------------------------------------------------------------------
+  // VkQueue
+
+  //---------------------------------------------------------------------------
+  // Handle<VkQueue>
+  //---------------------------------------------------------------------------
+
+  // Make a self-destroying VkQueue.
+  Handle<VkQueue> make_queue
+  (
+    Handle<VkDevice> const& a_device,
+    uint32_t a_queue_family_index,
+    uint32_t a_queue_index
+  );
+
   //------------------------------------------------------------------------------------------------------------------------------------------------------
   // VkRenderPass
 
   //---------------------------------------------------------------------------
-  // Render_Pass
+  // Handle<VkRenderPass>
   //---------------------------------------------------------------------------
 
   // Make a self-destroying VkRenderPass.
-  Render_Pass make_render_pass
+  Handle<VkRenderPass> make_render_pass
   (
-    Device const& a_device,
+    Handle<VkDevice> const& a_device,
     VkRenderPassCreateInfo const& a_create_info,
     VkAllocationCallbacks const* a_allocation_callbacks = nullptr
   );
@@ -795,13 +682,13 @@ namespace sdlxvulkan
   // VkSampler
 
   //---------------------------------------------------------------------------
-  // Sampler
+  // Handle<VkSampler>
   //---------------------------------------------------------------------------
 
   // Make a self-destroying VkSampler.
-  Sampler make_sampler
+  Handle<VkSampler> make_sampler
   (
-    Device const& a_device,
+    Handle<VkDevice> const& a_device,
     VkSamplerCreateInfo const& a_create_info,
     VkAllocationCallbacks const* a_allocation_callbacks = nullptr
   );
@@ -810,13 +697,13 @@ namespace sdlxvulkan
   // VkSamplerYcbcrConversion
 
   //---------------------------------------------------------------------------
-  // Sampler_Ycbcr_Conversion
+  // Handle<VkSamplerYcbcrConversion>
   //---------------------------------------------------------------------------
 
   // Make a self-destroying VkSamplerYcbcrConversion.
-  Sampler_Ycbcr_Conversion make_sampler_ycbcr_conversion
+  Handle<VkSamplerYcbcrConversion> make_sampler_ycbcr_conversion
   (
-    Device const& a_device,
+    Handle<VkDevice> const& a_device,
     VkSamplerYcbcrConversionCreateInfo const& a_create_info,
     VkAllocationCallbacks const* a_allocation_callbacks = nullptr
   );
@@ -825,13 +712,13 @@ namespace sdlxvulkan
   // VkSemaphore
 
   //---------------------------------------------------------------------------
-  // Semaphore
+  // Handle<VkSemaphore>
   //---------------------------------------------------------------------------
 
   // Make a self-destroying VkSemaphore.
-  Semaphore make_semaphore
+  Handle<VkSemaphore> make_semaphore
   (
-    Device const& a_device,
+    Handle<VkDevice> const& a_device,
     VkSemaphoreCreateInfo const& a_create_info,
     VkAllocationCallbacks const* a_allocation_callbacks = nullptr
   );
@@ -840,13 +727,13 @@ namespace sdlxvulkan
   // VkShaderModule
 
   //---------------------------------------------------------------------------
-  // Shader_Module
+  // Handle<VkShaderModule>
   //---------------------------------------------------------------------------
 
   // Make a self-destroying VkShaderModule.
-  Shader_Module make_shader_module
+  Handle<VkShaderModule> make_shader_module
   (
-    Device const& a_device,
+    Handle<VkDevice> const& a_device,
     VkShaderModuleCreateInfo const& a_create_info,
     VkAllocationCallbacks const* a_allocation_callbacks = nullptr
   );
@@ -855,45 +742,42 @@ namespace sdlxvulkan
   // VkSwapchainKHR
 
   //---------------------------------------------------------------------------
-  // Swapchain_KHR
+  // Handle<VkSwapchainKHR>
   //---------------------------------------------------------------------------
 
+  Handle<VkDevice> get_swapchain_device_khr(Handle<VkSwapchainKHR> const& a_swapchain) noexcept;
+
   // Make a self-destroying VkSwapchainKHR.
-  Swapchain_KHR make_swapchain_khr
+  Handle<VkSwapchainKHR> make_swapchain_khr
   (
-    Device const& a_device,
+    Handle<VkDevice> const& a_device,
     VkSwapchainCreateInfoKHR const& a_create_info,
     VkAllocationCallbacks const* a_allocation_callbacks = nullptr
   );
 
-  // Shared Swapchains???????
-
-  //------------------------------------------------------------------------------------------------------------------------------------------------------
-  // VkQueue
-
-  //---------------------------------------------------------------------------
-  // Queue
-  //---------------------------------------------------------------------------
-
-  // Make a self-destroying VkQueue.
-  Queue make_queue
+  uint32_t get_swapchain_image_count_khr
   (
-    Device const& a_device,
-    uint32_t a_queue_family_index,
-    uint32_t a_queue_index
+    Handle<VkSwapchainKHR> const& a_swapchain
   );
+
+  std::vector<Handle<VkImage>> get_swapchain_images_khr
+  (
+    Handle<VkSwapchainKHR> const& a_swapchain
+  );
+    
+  // Shared Swapchains???????
 
   //------------------------------------------------------------------------------------------------------------------------------------------------------
   // VkValidationCacheEXT
 
   //---------------------------------------------------------------------------
-  // Validation_Cache_EXT
+  // Handle<VkValidationCacheEXT>
   //---------------------------------------------------------------------------
 
   // Make a self-destroying VkValidationCacheEXT.
-  Validation_Cache_EXT make_validation_cache_ext
+  Handle<VkValidationCacheEXT> make_validation_cache_ext
   (
-    Device const& a_device,
+    Handle<VkDevice> const& a_device,
     VkValidationCacheCreateInfoEXT const& a_create_info,
     VkAllocationCallbacks const* a_allocation_callbacks = nullptr
   );

@@ -22,10 +22,12 @@
     <ClCompile Include="application.cpp" />
     <ClCompile Include="device_functions.cpp" />
     <ClCompile Include="global_functions.cpp" />
+    <ClCompile Include="app_make.cpp" />
     <ClCompile Include="instance_functions.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="system.cpp" />
     <ClCompile Include="handles.cpp" />
+    <ClCompile Include="vulkan_io.cpp" />
     <ClCompile Include="window.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -33,10 +35,12 @@
     <ClInclude Include="device_functions.hpp" />
     <ClInclude Include="event_string.hpp" />
     <ClInclude Include="global_functions.hpp" />
+    <ClInclude Include="app_make.hpp" />
     <ClInclude Include="instance_functions.hpp" />
     <ClInclude Include="result.hpp" />
     <ClInclude Include="system.hpp" />
     <ClInclude Include="handles.hpp" />
+    <ClInclude Include="vulkan_io.hpp" />
     <ClInclude Include="window.hpp" />
   </ItemGroup>
   <ItemGroup>
