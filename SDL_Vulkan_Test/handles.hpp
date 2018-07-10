@@ -235,6 +235,9 @@ namespace sdlxvulkan
   // Throws std::runtime_error if physical device is null.
   VkPhysicalDeviceMemoryProperties get_physical_device_memory_properties(Handle<VkPhysicalDevice> const& a_physical_device);
 
+  // Throws std::runtime_error if physical device is null.
+  VkPhysicalDeviceFeatures get_physical_device_features(Handle<VkPhysicalDevice> const& a_physical_device);
+
 
   //uint32_t get_physical_device_queue_familiy_properties_count(Physical_Device const& a_physcial_device) noexcept;
 

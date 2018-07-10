@@ -15,6 +15,7 @@
 #include "window.hpp"
 
 #include "app_make.hpp"
+#include "app_files.hpp"
 #include "event_string.hpp"
 #include "global_functions.hpp"
 #include "instance_functions.hpp"
@@ -35,6 +36,7 @@ namespace
   {
     glm::vec2 pos;
     glm::vec3 color;
+    glm::vec2 texCoord;
 
     static auto get_binding_description()
     {
@@ -48,7 +50,8 @@ namespace
 
     static auto get_attribute_descriptions() 
     {
-      std::array<VkVertexInputAttributeDescription, 2> l_attribute_descriptions = {};
+      std::array<VkVertexInputAttributeDescription, 3> l_attribute_descriptions {};
+
       l_attribute_descriptions[0].binding = 0;
       l_attribute_descriptions[0].location = 0;
       l_attribute_descriptions[0].format = VK_FORMAT_R32G32_SFLOAT;
@@ -59,16 +62,21 @@ namespace
       l_attribute_descriptions[1].format = VK_FORMAT_R32G32B32_SFLOAT;
       l_attribute_descriptions[1].offset = offsetof(Vertex, color);
 
+      l_attribute_descriptions[2].binding = 0;
+      l_attribute_descriptions[2].location = 2;
+      l_attribute_descriptions[2].format = VK_FORMAT_R32G32_SFLOAT;
+      l_attribute_descriptions[2].offset = offsetof(Vertex, texCoord);
+
       return l_attribute_descriptions;
     }
   };
 
   static std::vector<Vertex> const c_vertices = 
   {
-    { { -0.5f, -0.5f },{ 1.0f, 0.0f, 0.0f } },
-    { { 0.5f, -0.5f },{ 0.0f, 1.0f, 0.0f } },
-    { { 0.5f, 0.5f },{ 0.0f, 0.0f, 1.0f } },
-    { { -0.5f, 0.5f },{ 1.0f, 1.0f, 1.0f } }
+    { { -0.5f, -0.5f },{ 1.0f, 0.0f, 0.0f },{ 1.0f, 0.0f } },
+    { { 0.5f, -0.5f },{ 0.0f, 1.0f, 0.0f },{ 0.0f, 0.0f } },
+    { { 0.5f, 0.5f },{ 0.0f, 0.0f, 1.0f },{ 0.0f, 1.0f } },
+    { { -0.5f, 0.5f },{ 1.0f, 1.0f, 1.0f },{ 1.0f, 1.0f } }
   };
   static std::vector<uint16_t> const c_indices = 
   {
@@ -112,7 +120,7 @@ namespace
   
 
   std::vector<std::string> const c_device_extension_names{ VK_KHR_SWAPCHAIN_EXTENSION_NAME };
-
+  
   // Callback function that is given to Vulkan. It will interpret
   // the user data void* as an Abstract_Debug_Callback* and call
   // Abstract_Debug_Callback::do_callback on it with the arguments.
@@ -145,6 +153,8 @@ namespace sdlxvulkan
     Handle<VkDebugReportCallbackEXT> m_debug_callback;
     Handle<VkSurfaceKHR> m_surface;
     Handle<VkPhysicalDevice> m_physical_device;
+    VkPhysicalDeviceFeatures m_supported_features;
+    VkPhysicalDeviceFeatures m_required_features;
 
     uint32_t m_graphics_qfi;
     uint32_t m_present_qfi;
@@ -158,26 +168,11 @@ namespace sdlxvulkan
     // Command Pool
     Handle<VkCommandPool> m_command_pool;
 
-    // Vertex Buffer
-    Handle<VkBuffer> m_vertex_buffer;
-    Handle<VkDeviceMemory> m_vertex_buffer_memory;
-
-    // Index Buffer
-    Handle<VkBuffer> m_index_buffer;
-    Handle<VkDeviceMemory> m_index_buffer_memory;
-
-    // Uniform Buffer
-    Handle<VkBuffer> m_uniform_buffer;
-    Handle<VkDeviceMemory> m_uniform_buffer_memory;
+    //std::vector<Handle<VkBuffer>> m_uniform_buffers;
+    //std::vector<Handle<VkDeviceMemory>> m_uniform_buffer_memorys;
 
     // Descriptor Set Layout
     Handle<VkDescriptorSetLayout> m_descriptor_set_layout;
-
-    // Descriptor Pool
-    Handle<VkDescriptorPool> m_descriptor_pool;
-
-    // Descriptor Set
-    Handle<VkDescriptorSet> m_descriptor_set;
 
     // Shaders
     Handle<VkShaderModule> m_fragment_shader_module;
@@ -186,6 +181,11 @@ namespace sdlxvulkan
     VkPipelineShaderStageCreateInfo m_vertex_shader_stage_info;
     std::array<VkPipelineShaderStageCreateInfo, 2> m_shader_stage_infos;
     
+    // Textures
+    //STB_Image m_texture_data;
+    Image_Pair m_texture;
+    Handle<VkImageView> m_texture_view;
+    Handle<VkSampler> m_sampler;
     
     // Swapchain
     VkSurfaceCapabilitiesKHR m_swapchain_surface_cababilites;
@@ -200,15 +200,38 @@ namespace sdlxvulkan
     // Swapchain Images
     std::vector<Handle<VkImage>> m_swapchain_images;
     std::vector<Handle<VkImageView>> m_swapchain_image_views;
-    
+
+    // Vertex Buffer
+    Handle<VkBuffer> m_vertex_buffer;
+    Handle<VkDeviceMemory> m_vertex_buffer_memory;
+
+    // Index Buffer
+    Handle<VkBuffer> m_index_buffer;
+    Handle<VkDeviceMemory> m_index_buffer_memory;
+
+    // Uniform Buffer
+    std::vector<Buffer_Pair> m_uniforms;
+
+
+
+
+
+
+
+    // Descriptor Pool
+    Handle<VkDescriptorPool> m_descriptor_pool;
+
+    // Descriptor Sets
+    std::vector<Handle<VkDescriptorSet>> m_descriptor_sets;
+
     // Render Pass
     Handle<VkRenderPass> m_render_pass;
-
-
+    
     // Pipeline
     VkViewport m_viewport;
     VkRect2D m_scissor;
     Handle<VkPipelineLayout> m_pipeline_layout;
+    Handle<VkPipelineCache> m_pipeline_cache;
     Handle<VkPipeline> m_pipeline;
 
     // Framebuffers
@@ -326,11 +349,13 @@ sdlxvulkan::Application::Implementation::Implementation(int argc, char** argv) :
   m_debug_callback{ app_make_debug_report_callback_ext(m_instance, VK_DEBUG_REPORT_ERROR_BIT_EXT | VK_DEBUG_REPORT_WARNING_BIT_EXT, debug_callback) },
   m_surface{ make_surface_khr(m_instance, m_window) },
   m_physical_device{ get_physical_devices(m_instance).front() },
+  m_supported_features{ get_physical_device_features(m_physical_device)},
+  m_required_features{ app_make_required_device_features(m_supported_features)},
 
   // If we wanted to manage queue families in more detail then stuff goes here.
   m_graphics_qfi{ first_graphics_qfi(m_physical_device) },
   m_present_qfi{ first_present_qfi(m_physical_device, m_surface) },
-  m_device{ app_make_device(m_physical_device, m_graphics_qfi, m_present_qfi, c_device_extension_names ) },
+  m_device{ app_make_device(m_physical_device, m_graphics_qfi, m_present_qfi, m_required_features, c_device_extension_names ) },
   m_device_functions{ get_device_functions(m_device) },
 
   m_graphics_queue{ make_queue(m_device, m_graphics_qfi, 0) },
@@ -338,20 +363,11 @@ sdlxvulkan::Application::Implementation::Implementation(int argc, char** argv) :
 
   m_command_pool{ app_make_command_pool(m_device, m_graphics_qfi, 0) },
 
-  m_vertex_buffer{},
-  m_vertex_buffer_memory{},
-
-  m_index_buffer{},
-  m_index_buffer_memory{},
-
-  m_uniform_buffer{},
-  m_uniform_buffer_memory{},
+  //m_uniform_buffers{},
+  //m_uniform_buffer_memorys{},
 
   m_descriptor_set_layout{},
 
-  m_descriptor_pool{},
-
-  m_descriptor_set{},
 
   m_fragment_shader_module{},
   m_vertex_shader_module{},
@@ -359,7 +375,11 @@ sdlxvulkan::Application::Implementation::Implementation(int argc, char** argv) :
   m_vertex_shader_stage_info{},
   m_shader_stage_infos{},
 
-  
+  //m_texture_data{ get_filepath(m_args[0], u8"texture.jpg") },
+  m_texture{ app_make_texture_image(m_physical_device, m_device, m_command_pool, m_graphics_queue, get_filepath(m_args[0], u8"texture.jpg")) },
+  m_texture_view{ app_make_image_view(m_texture.image, VK_FORMAT_R8G8B8A8_UNORM) },
+  m_sampler{ app_make_sampler(m_device, m_required_features) },
+
   m_swapchain_surface_cababilites{},
   m_swapchain_surface_formats{},
   m_swapchain_present_modes{},
@@ -372,14 +392,25 @@ sdlxvulkan::Application::Implementation::Implementation(int argc, char** argv) :
   m_swapchain_images{},
   m_swapchain_image_views{},
 
+  m_vertex_buffer{},
+  m_vertex_buffer_memory{},
+
+  m_index_buffer{},
+  m_index_buffer_memory{},
+
+  m_uniforms{},
+
+  m_descriptor_pool{},
+
+  m_descriptor_sets{},
 
   // Render Pass
   m_render_pass{},
 
-
   // Pipeline
   m_viewport{},
   m_scissor{},
+  m_pipeline_cache{ app_make_pipeline_cache(m_device) },
   m_pipeline_layout{},
   m_pipeline{},
 
@@ -392,7 +423,7 @@ sdlxvulkan::Application::Implementation::Implementation(int argc, char** argv) :
   m_image_available_semaphores{},
   m_render_finished_semaphores{},
   m_fences{},
-  m_current_frame{}
+  m_current_frame{0}
 {
   std::cout << "Application::Implementation::Implementation(argc, * argv)" << std::endl;
   // Output the captured args to the console.
@@ -436,12 +467,12 @@ void sdlxvulkan::Application::Implementation::init()
   std::cout << "Application::Implementation::init()" << std::endl;
 
   //init_command_pool();
-  init_vertex_buffer();
-  init_index_buffer();
-  init_uniform_buffer();
   init_shader_modules();
   init_swapchain();
   init_swapchain_image_views();
+  init_vertex_buffer();
+  init_index_buffer();
+  init_uniform_buffer();
   init_render_pass();
   init_descriptor_set_layout();
   init_descriptor_pool();
@@ -640,25 +671,43 @@ void sdlxvulkan::Application::Implementation::init_index_buffer()
 
 void sdlxvulkan::Application::Implementation::init_uniform_buffer()
 {
+  // cannot build until after the swapchain...
+
+  std::vector<Buffer_Pair> l_uniforms{};
+  l_uniforms.reserve(m_swapchain_image_count);
+
   VkDeviceSize l_buffer_size = sizeof(Uniform_Buffer_Object);
   VkBufferUsageFlags l_uniform_usage_flags = VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
   VkMemoryPropertyFlags l_uniform_property_flags = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
-  create_buffer(l_buffer_size, l_uniform_usage_flags, l_uniform_property_flags, m_uniform_buffer, m_uniform_buffer_memory);
+
+  for (std::size_t l_index = 0; l_index != m_swapchain_image_count; ++l_index)
+  {
+    l_uniforms.push_back(app_make_buffer_memory_exclusive_pair(m_physical_device, m_device, l_buffer_size, l_uniform_usage_flags, l_uniform_property_flags));
+  }
+  //create_buffer(l_buffer_size, l_uniform_usage_flags, l_uniform_property_flags, m_uniform_buffer, m_uniform_buffer_memory);
+  std::swap(l_uniforms, m_uniforms);
+  assert(!m_uniforms.empty());
 }
 
 void sdlxvulkan::Application::Implementation::init_descriptor_pool()
 {
-  VkDescriptorPoolSize l_pool_size{};
-  l_pool_size.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-  l_pool_size.descriptorCount = 1;
+  std::array<VkDescriptorPoolSize, 2> l_pool_sizes{};
+
+  // ubo
+  l_pool_sizes[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+  l_pool_sizes[0].descriptorCount = m_swapchain_image_count;
+
+  // sampler
+  l_pool_sizes[1].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+  l_pool_sizes[1].descriptorCount = m_swapchain_image_count;
 
   VkDescriptorPoolCreateInfo l_pool_info{};
   l_pool_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
   l_pool_info.pNext = nullptr;
-  l_pool_info.maxSets = 1;
   l_pool_info.flags = 0;
-  l_pool_info.poolSizeCount = 1;
-  l_pool_info.pPoolSizes = &l_pool_size;
+  l_pool_info.maxSets = c_frames_in_flight;
+  l_pool_info.poolSizeCount = static_cast<uint32_t>(l_pool_sizes.size());
+  l_pool_info.pPoolSizes = l_pool_sizes.data();
 
   m_descriptor_pool = make_descriptor_pool(m_device, l_pool_info);
 }
@@ -670,34 +719,60 @@ void sdlxvulkan::Application::Implementation::init_descriptor_set()
   // m_descriptor_pool
   // m_descriptor_set_layout
 
-  VkDescriptorSetLayout l_layouts[]{ m_descriptor_set_layout };
+  // for use in alloc, same layout for each
+  std::vector<VkDescriptorSetLayout> l_layouts{ m_swapchain_image_count, m_descriptor_set_layout };
   VkDescriptorSetAllocateInfo l_alloc_info = {};
   l_alloc_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
   l_alloc_info.pNext = nullptr;
   l_alloc_info.descriptorPool = m_descriptor_pool;
-  l_alloc_info.descriptorSetCount = 1;
-  l_alloc_info.pSetLayouts = l_layouts;
+  l_alloc_info.descriptorSetCount = m_swapchain_image_count;
+  l_alloc_info.pSetLayouts = l_layouts.data();
 
-  m_descriptor_set = make_descriptor_set(m_descriptor_pool, l_alloc_info);
+  auto l_descriptor_sets = make_descriptor_sets(m_descriptor_pool, l_alloc_info);
 
-  VkDescriptorBufferInfo l_buffer_info{};
-  l_buffer_info.buffer = m_uniform_buffer;
-  l_buffer_info.offset = 0;
-  l_buffer_info.range = sizeof(Uniform_Buffer_Object);
+  assert(!m_uniforms.empty());
 
-  VkWriteDescriptorSet l_descriptor_write {};
-  l_descriptor_write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-  l_descriptor_write.pNext = nullptr;
-  l_descriptor_write.dstSet = m_descriptor_set;
-  l_descriptor_write.dstBinding = 0;
-  l_descriptor_write.dstArrayElement = 0;
-  l_descriptor_write.descriptorCount = 1;
-  l_descriptor_write.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-  l_descriptor_write.pImageInfo = nullptr; // optional
-  l_descriptor_write.pBufferInfo = &l_buffer_info;
-  l_descriptor_write.pTexelBufferView = nullptr; // optional
+  for (uint32_t l_index = 0; l_index != m_swapchain_image_count; ++l_index)
+  {
+    VkDescriptorBufferInfo l_buffer_info{};
+    l_buffer_info.buffer = m_uniforms[l_index].buffer;
+    l_buffer_info.offset = 0;
+    l_buffer_info.range = sizeof(Uniform_Buffer_Object);
+    
+    VkDescriptorImageInfo l_image_info = {};
+    l_image_info.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+    l_image_info.imageView = m_texture_view;
+    l_image_info.sampler = m_sampler;
 
-  m_device_functions->vkUpdateDescriptorSets(m_device, 1, &l_descriptor_write, 0, nullptr);
+    std::array<VkWriteDescriptorSet, 2> l_descriptor_writes{};
+    
+    // for the ubo
+    l_descriptor_writes[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+    l_descriptor_writes[0].pNext = nullptr;
+    l_descriptor_writes[0].dstSet = l_descriptor_sets[l_index];
+    l_descriptor_writes[0].dstBinding = 0;
+    l_descriptor_writes[0].dstArrayElement = 0;
+    l_descriptor_writes[0].descriptorCount = 1;
+    l_descriptor_writes[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+    l_descriptor_writes[0].pImageInfo = nullptr; // optional
+    l_descriptor_writes[0].pBufferInfo = &l_buffer_info;
+    l_descriptor_writes[0].pTexelBufferView = nullptr; // optional
+
+    // for the sampler
+    l_descriptor_writes[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+    l_descriptor_writes[1].pNext = nullptr;
+    l_descriptor_writes[1].dstSet = l_descriptor_sets[l_index];
+    l_descriptor_writes[1].dstBinding = 1;
+    l_descriptor_writes[1].dstArrayElement = 0;
+    l_descriptor_writes[1].descriptorCount = 1;
+    l_descriptor_writes[1].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+    l_descriptor_writes[1].pImageInfo = &l_image_info; // optional
+    l_descriptor_writes[1].pBufferInfo = nullptr;
+    l_descriptor_writes[1].pTexelBufferView = nullptr; // optional
+
+    m_device_functions->vkUpdateDescriptorSets(m_device, static_cast<uint32_t>(l_descriptor_writes.size()), l_descriptor_writes.data(), 0, nullptr);
+  } 
+  std::swap(l_descriptor_sets, m_descriptor_sets);
 }
 
 void sdlxvulkan::Application::Implementation::init_shader_modules()
@@ -1012,24 +1087,27 @@ void sdlxvulkan::Application::Implementation::init_swapchain_image_views()
   //for (std::size_t l_index = 0; l_index != m_swapchain_images.size(); l_index++)
   for (auto const& l_image : m_swapchain_images)
   {
-    VkImageViewCreateInfo l_color_image_view = {};
-    l_color_image_view.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-    l_color_image_view.pNext = nullptr;
-    l_color_image_view.flags = 0;
-    l_color_image_view.image = l_image;
-    l_color_image_view.viewType = VK_IMAGE_VIEW_TYPE_2D;
-    l_color_image_view.format = m_swapchain_format;
-    l_color_image_view.components.r = VK_COMPONENT_SWIZZLE_R;
-    l_color_image_view.components.g = VK_COMPONENT_SWIZZLE_G;
-    l_color_image_view.components.b = VK_COMPONENT_SWIZZLE_B;
-    l_color_image_view.components.a = VK_COMPONENT_SWIZZLE_A;
-    l_color_image_view.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-    l_color_image_view.subresourceRange.baseMipLevel = 0;
-    l_color_image_view.subresourceRange.levelCount = 1;
-    l_color_image_view.subresourceRange.baseArrayLayer = 0;
-    l_color_image_view.subresourceRange.layerCount = 1;
+    /*
+    VkImageViewCreateInfo l_image_view_info {};
+    l_image_view_info.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+    l_image_view_info.pNext = nullptr;
+    l_image_view_info.flags = 0;
+    l_image_view_info.image = l_image;
+    l_image_view_info.viewType = VK_IMAGE_VIEW_TYPE_2D;
+    l_image_view_info.format = m_swapchain_format;
+    l_image_view_info.components.r = VK_COMPONENT_SWIZZLE_R;
+    l_image_view_info.components.g = VK_COMPONENT_SWIZZLE_G;
+    l_image_view_info.components.b = VK_COMPONENT_SWIZZLE_B;
+    l_image_view_info.components.a = VK_COMPONENT_SWIZZLE_A;
+    l_image_view_info.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+    l_image_view_info.subresourceRange.baseMipLevel = 0;
+    l_image_view_info.subresourceRange.levelCount = 1;
+    l_image_view_info.subresourceRange.baseArrayLayer = 0;
+    l_image_view_info.subresourceRange.layerCount = 1;
 
-    auto l_image_view = make_image_view(l_image, l_color_image_view);
+    auto l_image_view = make_image_view(l_image, l_image_view_info);
+    */
+    auto l_image_view = app_make_image_view(l_image, m_swapchain_format);
 
     m_swapchain_image_views.push_back(std::move(l_image_view));
   }
@@ -1104,15 +1182,23 @@ void sdlxvulkan::Application::Implementation::init_descriptor_set_layout()
   l_ubo_layout_binding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
   l_ubo_layout_binding.pImmutableSamplers = nullptr; // not relevent here
   
+  VkDescriptorSetLayoutBinding l_sampler_layout_binding{};
+  l_sampler_layout_binding.binding = 1;
+  l_sampler_layout_binding.descriptorCount = 1;
+  l_sampler_layout_binding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+  l_sampler_layout_binding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+  l_sampler_layout_binding.pImmutableSamplers = nullptr; // not relevent here
+
+  std::array<VkDescriptorSetLayoutBinding, 2> l_bindings { l_ubo_layout_binding, l_sampler_layout_binding };
+
   VkDescriptorSetLayoutCreateInfo l_layout_info{};
   l_layout_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
   l_layout_info.pNext = nullptr;
   l_layout_info.flags = 0;
-  l_layout_info.bindingCount = 1;
-  l_layout_info.pBindings = &l_ubo_layout_binding;
+  l_layout_info.bindingCount = static_cast<uint32_t>(l_bindings.size());
+  l_layout_info.pBindings = l_bindings.data();
 
-  m_descriptor_set_layout = make_descriptor_set_layout(m_device, l_layout_info);
-  
+  m_descriptor_set_layout = make_descriptor_set_layout(m_device, l_layout_info);  
 }
 
 
@@ -1135,7 +1221,7 @@ void sdlxvulkan::Application::Implementation::init_pipeline()
   //l_vertex_input_state.pVertexAttributeDescriptions = nullptr;
   l_vertex_input_state.vertexBindingDescriptionCount = 1;
   l_vertex_input_state.pVertexBindingDescriptions = &l_binding_description; // optional
-  l_vertex_input_state.vertexAttributeDescriptionCount = 2;
+  l_vertex_input_state.vertexAttributeDescriptionCount = static_cast<uint32_t>(l_attribute_descriptions.size());
   l_vertex_input_state.pVertexAttributeDescriptions = l_attribute_descriptions.data(); // optional
 
 
@@ -1316,7 +1402,7 @@ void sdlxvulkan::Application::Implementation::init_pipeline()
   l_pipeline_info.basePipelineHandle = VK_NULL_HANDLE; // optional
   l_pipeline_info.basePipelineIndex = -1; // optional
   
-  m_pipeline = make_graphics_pipeline(m_device, Handle<VkPipelineCache>{}, l_pipeline_info);
+  m_pipeline = make_graphics_pipeline(m_device, m_pipeline_cache, l_pipeline_info);
 
   std::cout << "Pipeline initialised." << std::endl;
 }
@@ -1370,7 +1456,8 @@ void sdlxvulkan::Application::Implementation::do_commands()
       throw std::runtime_error("Vulkan: Failed to begin recording command buffer.");
     }
 
-    VkClearValue l_clear_colour = { 0.0f, 0.0f, 0.0f, 1.0f };
+    //VkClearValue l_clear_colour = { 0.0f, 0.0f, 0.0f, 1.0f };
+    VkClearValue l_clear_colour = { 0.5f, 0.5f, 0.5f, 1.0f };
 
     VkRenderPassBeginInfo l_render_pass_info = {};
     l_render_pass_info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
@@ -1394,7 +1481,7 @@ void sdlxvulkan::Application::Implementation::do_commands()
     // Bind the index buffer - there can be only one
     m_device_functions->vkCmdBindIndexBuffer(m_command_buffers[l_index], m_index_buffer, 0, VK_INDEX_TYPE_UINT16);
 
-    std::array<VkDescriptorSet, 1> l_descriptor_set{ m_descriptor_set };
+    std::array<VkDescriptorSet, 1> l_descriptor_set{ m_descriptor_sets[l_index] };
 
     m_device_functions->vkCmdBindDescriptorSets(m_command_buffers[l_index], VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipeline_layout, 0, 1, l_descriptor_set.data(), 0, nullptr);
 
@@ -1512,13 +1599,13 @@ void sdlxvulkan::Application::Implementation::draw_frame()
   l_present_info.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
   l_present_info.pNext = nullptr;
   l_present_info.waitSemaphoreCount = 1;
-  l_present_info.pWaitSemaphores = l_signal_semaphores.data();
+  l_present_info.pWaitSemaphores = l_signal_semaphores.data(); // This is the part that means we wait til render is done
   l_present_info.swapchainCount = 1;
   l_present_info.pSwapchains = l_swap_chains.data();
   l_present_info.pImageIndices = &l_image_index;
   l_present_info.pResults = nullptr; // optional
 
-  if (vkQueuePresentKHR(m_present_queue, &l_present_info) != VK_SUCCESS)
+  if (m_device_functions->vkQueuePresentKHR(m_present_queue, &l_present_info) != VK_SUCCESS)
   {
     throw std::runtime_error{ "Vulkan: Failed to present image." };
   }
@@ -1539,16 +1626,16 @@ void sdlxvulkan::Application::Implementation::update_uniform_buffer()
   Uniform_Buffer_Object l_ubo{};
   l_ubo.model = glm::rotate(glm::mat4(1.0f), l_time * glm::radians(10.0f), glm::vec3(0.0f, 0.0f, 1.0f));
 
-  l_ubo.view = glm::lookAt(glm::vec3(2.0f, 2.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+  l_ubo.view = glm::lookAt(glm::vec3(1.0f, 1.0f, 1.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
 
   l_ubo.proj = glm::perspective(glm::radians(45.0f), m_swapchain_extent.width / static_cast<float>(m_swapchain_extent.height), 0.1f, 10.0f);
 
   l_ubo.proj[1][1] *= -1;
   
   void* l_data{};
-  m_device_functions->vkMapMemory(m_device, m_uniform_buffer_memory, 0, sizeof(l_ubo), 0, &l_data);
+  m_device_functions->vkMapMemory(m_device, m_uniforms[m_current_frame].memory, 0, sizeof(l_ubo), 0, &l_data);
   memcpy(l_data, &l_ubo, sizeof(l_ubo));
-  m_device_functions->vkUnmapMemory(m_device, m_uniform_buffer_memory);
+  m_device_functions->vkUnmapMemory(m_device, m_uniforms[m_current_frame].memory);
 }
 
 void sdlxvulkan::Application::Implementation::create_buffer(VkDeviceSize a_size, VkBufferUsageFlags a_usage, VkMemoryPropertyFlags a_properties, VkBuffer& a_buffer, VkDeviceMemory& a_buffer_memory)
@@ -1563,7 +1650,7 @@ void sdlxvulkan::Application::Implementation::create_buffer(VkDeviceSize a_size,
   l_buffer_info.queueFamilyIndexCount = 0;
   l_buffer_info.pQueueFamilyIndices = nullptr;
 
-  if (vkCreateBuffer(m_device, &l_buffer_info, nullptr, &a_buffer) != VK_SUCCESS)
+  if (m_device_functions->vkCreateBuffer(m_device, &l_buffer_info, nullptr, &a_buffer) != VK_SUCCESS)
   {
     throw std::runtime_error("Vulkan: failed to create a buffer.");
   }

@@ -51,7 +51,7 @@ namespace sdlxvulkan
       }
       Instance_Functions const* functions() const noexcept
       {
-        return std::addressof(m_functions);
+        return &m_functions;
       }
     };
 
@@ -92,7 +92,7 @@ namespace sdlxvulkan
       }
       Device_Functions const* functions() const noexcept
       {
-        return std::addressof(m_functions);
+        return &m_functions;
       }
     };
 
@@ -226,7 +226,7 @@ namespace sdlxvulkan
       assert(a_creator != nullptr);
       assert(a_destroyer != nullptr);
       T_Vk_Handle l_handle{ VK_NULL_HANDLE };
-      if (a_creator(a_parent, std::addressof(a_create_info), a_allocation_callbacks, std::addressof(l_handle)) != VK_SUCCESS)
+      if (a_creator(a_parent, &a_create_info, a_allocation_callbacks, &l_handle) != VK_SUCCESS)
       {
         throw std::runtime_error{ "Bad creation of a Vulkan handle for Vulkan_Sptr" };
       }
@@ -412,7 +412,7 @@ sdlxvulkan::Handle<VkInstance> sdlxvulkan::make_instance
   assert(l_global_functions.vkGetInstanceProcAddr != nullptr);
   assert(l_global_functions.vkCreateInstance != nullptr);
   VkInstance l_instance{ VK_NULL_HANDLE };
-  if (l_global_functions.vkCreateInstance(std::addressof(a_create_info), a_allocation_callbacks, std::addressof(l_instance)) != VK_SUCCESS)
+  if (l_global_functions.vkCreateInstance(&a_create_info, a_allocation_callbacks, &l_instance) != VK_SUCCESS)
   {
     throw std::runtime_error{ "Bad creation of a VkInstance." };
   }
@@ -605,7 +605,7 @@ VkPhysicalDeviceMemoryProperties sdlxvulkan::get_physical_device_memory_properti
 {
   if (!a_physical_device)
   {
-    std::runtime_error{ "Null Physical_Device" };
+    std::runtime_error{ "Null VkPhysicalDevice" };
   }
   assert(a_physical_device);
   auto const& l_instance = get_instance(a_physical_device);
@@ -619,6 +619,24 @@ VkPhysicalDeviceMemoryProperties sdlxvulkan::get_physical_device_memory_properti
   return l_result;
 }
 
+// Throws std::runtime_error if physical device is null.
+VkPhysicalDeviceFeatures sdlxvulkan::get_physical_device_features(Handle<VkPhysicalDevice> const& a_physical_device)
+{
+  if (!a_physical_device)
+  {
+    std::runtime_error{ "Null VkPhysicalDevice" };
+  }
+  assert(a_physical_device);
+  auto const& l_instance = get_instance(a_physical_device);
+  assert(l_instance);
+  auto l_functions = get_instance_functions(l_instance);
+  assert(l_functions != nullptr);
+  assert(l_functions->vkGetPhysicalDeviceFeatures != nullptr);
+
+  VkPhysicalDeviceFeatures l_result{};
+  l_functions->vkGetPhysicalDeviceFeatures(a_physical_device, &l_result);
+  return l_result;
+}
 
 //uint32_t get_physical_device_queue_familiy_properties_count(Physical_Device const& a_physcial_device) noexcept;
 
@@ -959,7 +977,7 @@ sdlxvulkan::Handle<VkDevice> sdlxvulkan::make_device
   assert(l_instance_funcs->vkCreateDevice != nullptr);
   assert(l_instance_funcs->vkGetDeviceProcAddr != nullptr);
   VkDevice l_device{ VK_NULL_HANDLE };
-  if (l_instance_funcs->vkCreateDevice(a_physical_device, std::addressof(a_create_info), a_allocation_callbacks, std::addressof(l_device)) != VK_SUCCESS)
+  if (l_instance_funcs->vkCreateDevice(a_physical_device, &a_create_info, a_allocation_callbacks, &l_device) != VK_SUCCESS)
   {
     throw std::runtime_error{ "Bad creation of VkDevice." };
   }
@@ -1133,7 +1151,7 @@ namespace sdlxvulkan
         auto l_functions = get_device_functions(l_device);
         assert(l_functions);
         assert(l_functions->vkFreeCommandBuffers != nullptr);
-        l_functions->vkFreeCommandBuffers(l_device, m_command_pool, 1, std::addressof(a_command_buffer));
+        l_functions->vkFreeCommandBuffers(l_device, m_command_pool, 1, &a_command_buffer);
       }
     };
 
@@ -1174,7 +1192,7 @@ namespace sdlxvulkan
       }
       void operator()(T_Vk_Handle a_vk_handles) const noexcept
       {
-        m_destroyer(m_parent_1, m_parent_2, 1, std::addressof(a_vk_handles));
+        m_destroyer(m_parent_1, m_parent_2, 1, &a_vk_handles);
         //delete[] a_vk_handles;
       }
       T_Vk_Parent_1 parent_1() const noexcept
@@ -1216,7 +1234,7 @@ namespace sdlxvulkan
       // Construct with size and all null handle
       std::vector<VkCommandBuffer> l_result{ a_allocate_info.commandBufferCount, VK_NULL_HANDLE };
 
-      if (l_functions->vkAllocateCommandBuffers(l_device, std::addressof(a_allocate_info), l_result.data()) != VK_SUCCESS)
+      if (l_functions->vkAllocateCommandBuffers(l_device, &a_allocate_info, l_result.data()) != VK_SUCCESS)
       {
         throw std::runtime_error{ "Vulkan: Failed to create command buffers." };
       }
@@ -1394,7 +1412,7 @@ namespace sdlxvulkan
       // Construct with size and all null handle
       std::vector<VkDescriptorSet> l_result{ a_allocate_info.descriptorSetCount, VK_NULL_HANDLE };
 
-      if (l_functions->vkAllocateDescriptorSets(l_device, std::addressof(a_allocate_info), l_result.data()) != VK_SUCCESS)
+      if (l_functions->vkAllocateDescriptorSets(l_device, &a_allocate_info, l_result.data()) != VK_SUCCESS)
       {
         throw std::runtime_error{ "Vulkan: Failed to create descriptor sets." };
       }
@@ -1865,7 +1883,7 @@ sdlxvulkan::Handle<VkPipeline> sdlxvulkan::make_graphics_pipeline
   assert(l_functions->vkDestroyPipeline != nullptr);
 
   std::array<VkPipeline,1> l_pipeline{VK_NULL_HANDLE};
-  if (vkCreateGraphicsPipelines(a_device, a_pipeline_cache, 1, std::addressof(a_create_info), a_allocation_callbacks, l_pipeline.data()) != VK_SUCCESS)
+  if (vkCreateGraphicsPipelines(a_device, a_pipeline_cache, 1, &a_create_info, a_allocation_callbacks, l_pipeline.data()) != VK_SUCCESS)
   {
     throw std::runtime_error{"Vulkan: Failed to create a graphics VkPipeline."};
   }
@@ -1931,7 +1949,7 @@ sdlxvulkan::Handle<VkPipeline> sdlxvulkan::make_compute_pipeline
   assert(l_functions->vkDestroyPipeline != nullptr);
 
   std::array<VkPipeline, 1> l_pipeline{ VK_NULL_HANDLE };
-  if (vkCreateComputePipelines(a_device, a_pipeline_cache, 1, std::addressof(a_create_info), a_allocation_callbacks, l_pipeline.data()) != VK_SUCCESS)
+  if (vkCreateComputePipelines(a_device, a_pipeline_cache, 1, &a_create_info, a_allocation_callbacks, l_pipeline.data()) != VK_SUCCESS)
   {
     throw std::runtime_error{ "Vulkan: Failed to create a graphics VkPipeline." };
   }

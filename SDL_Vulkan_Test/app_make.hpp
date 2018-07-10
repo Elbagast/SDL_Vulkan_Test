@@ -27,11 +27,14 @@ namespace sdlxvulkan
     VkAllocationCallbacks const* a_allocation_callbacks = nullptr
   );
 
+  VkPhysicalDeviceFeatures app_make_required_device_features(VkPhysicalDeviceFeatures const& a_supported_features);
+  
   Handle<VkDevice> app_make_device
   (
     Handle<VkPhysicalDevice> const& a_physical_device,
     uint32_t a_graphics_qfi,
     uint32_t a_present_qfi,
+    VkPhysicalDeviceFeatures const& a_features,
     std::vector<std::string> const& a_extensions,
     VkAllocationCallbacks const* a_allocation_callbacks = nullptr
   );
@@ -54,7 +57,7 @@ namespace sdlxvulkan
     Handle<VkDevice> const& a_device,
     VkDeviceSize a_size,
     VkBufferUsageFlags a_usage,
-    std::vector<uint32_t> a_queue_family_indicies,
+    std::vector<uint32_t> const& a_queue_family_indicies,
     VkAllocationCallbacks const* a_allocation_callbacks = nullptr
   );
 
@@ -100,6 +103,25 @@ namespace sdlxvulkan
     uint32_t a_count
   );
 
+  Handle<VkCommandBuffer> app_make_begin_one_time_command_buffer
+  (
+    Handle<VkDevice> const& a_device,
+    Handle<VkCommandPool> const& a_command_pool
+  );
+  /*
+  void app_begin_one_time_command_buffer
+  (
+    Handle<VkDevice> const& a_device,
+    Handle<VkCommandBuffer> const& a_command_buffer
+  );
+  */
+  void app_end_submit_one_time_command_buffer
+  (
+    Handle<VkDevice> const& a_device,
+    Handle<VkCommandBuffer> const& a_command_buffer,
+    Handle<VkQueue> const& a_queue
+  );
+
   Handle<VkDeviceMemory> app_make_device_memory
   (
     Handle<VkDevice> const& a_device,
@@ -114,6 +136,74 @@ namespace sdlxvulkan
     std::string const& a_exepath,
     std::string const& a_filepath
   );
+
+  Handle<VkPipelineCache> app_make_pipeline_cache
+  (
+    Handle<VkDevice> const& a_device
+  );
+
+  struct Image_Pair
+  {
+    Handle<VkImage> image;
+    Handle<VkDeviceMemory> memory;
+  };
+
+  Image_Pair app_make_image
+  (
+    Handle<VkPhysicalDevice> const& a_physical_device,
+    Handle<VkDevice> const& a_device,
+    uint32_t a_width,
+    uint32_t a_height,
+    VkFormat a_format,
+    VkImageTiling a_tiling,
+    VkImageUsageFlags a_usage,
+    VkMemoryPropertyFlags a_properties
+  );
+
+  Handle<VkImageView> app_make_image_view
+  (
+    Handle<VkImage> const& a_image,
+    VkFormat a_format
+  );
+
+  Image_Pair app_make_texture_image
+  (
+    Handle<VkPhysicalDevice> const& a_physical_device,
+    Handle<VkDevice> const& a_device,
+    Handle<VkCommandPool> const& a_command_pool,
+    Handle<VkQueue> const& a_queue,
+    std::string const& a_filepath
+  );
+
+  void app_transition_image_layout
+  (    
+    Handle<VkDevice> const& a_device,
+    Handle<VkCommandPool> const& a_command_pool,
+    Handle<VkQueue> const& a_queue,
+    Handle<VkImage> const& a_image,
+    VkFormat a_format, 
+    VkImageLayout a_old_layout, 
+    VkImageLayout a_new_layout
+  );
+
+  void app_copy_buffer_to_image
+  (
+    Handle<VkDevice> const& a_device,
+    Handle<VkCommandPool> const& a_command_pool,
+    Handle<VkQueue> const& a_queue,
+    Handle<VkBuffer> const& a_buffer,
+    Handle<VkImage> const& a_image,
+    uint32_t a_width,
+    uint32_t a_height
+  );
+
+  // might want this to just use VkPhysicalDeviceFeatures since they
+  // can be cached.
+  Handle<VkSampler> app_make_sampler
+  (
+    Handle<VkDevice> const& a_device,
+    VkPhysicalDeviceFeatures const& a_features
+  );
 } //namespace sdlxvulkan
 
-#endif SDLXVULKAN_APP_MAKE_HPP
+#endif // SDLXVULKAN_APP_MAKE_HPP
