@@ -1368,28 +1368,7 @@ sdlxvulkan::Swapchain sdlxvulkan::app_make_swapchain
     l_result.image_views.push_back(std::move(l_image_view));
   }
   assert(l_result.image_views.size() == l_actual_image_count);
-
-  /*
-  l_result.framebuffers.reserve(l_actual_image_count);
-  for (auto const& l_swapchain_image_view : l_result.image_views)
-  {
-    std::array<VkImageView, 1> l_attachments{ l_swapchain_image_view };
-
-    VkFramebufferCreateInfo l_framebuffer_info{};
-    l_framebuffer_info.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
-    l_framebuffer_info.renderPass = m_render_pass;
-    l_framebuffer_info.attachmentCount = 1;
-    l_framebuffer_info.pAttachments = l_attachments.data();
-    l_framebuffer_info.width = m_swapchain_extent.width;
-    l_framebuffer_info.height = m_swapchain_extent.height;
-    l_framebuffer_info.layers = 1;
-
-    m_swapchain_framebuffers.push_back(make_framebuffer(m_device, l_framebuffer_info));
-  }
-
-  assert(l_result.framebuffers.size() == l_actual_image_count);
-  */
-
+  
   return l_result;
 }
 
@@ -1438,13 +1417,14 @@ VkRect2D sdlxvulkan::app_make_scissor
 sdlxvulkan::Handle<VkRenderPass> sdlxvulkan::app_make_render_pass
 (
   Handle<VkDevice> const& a_device,
-  VkFormat a_format
+  VkFormat a_format,
+  VkFormat a_depth_format
 )
 {
   VkAttachmentDescription l_colour_attachment{};
   l_colour_attachment.flags = 0;
   l_colour_attachment.format = a_format;
-  l_colour_attachment.samples = VK_SAMPLE_COUNT_1_BIT; // anisotropy?..
+  l_colour_attachment.samples = VK_SAMPLE_COUNT_1_BIT;
   l_colour_attachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
   l_colour_attachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
   l_colour_attachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
@@ -1456,6 +1436,23 @@ sdlxvulkan::Handle<VkRenderPass> sdlxvulkan::app_make_render_pass
   l_colour_attachment_ref.attachment = 0;
   l_colour_attachment_ref.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 
+
+  VkAttachmentDescription l_depth_attachment{};
+  l_depth_attachment.flags = 0;
+  l_depth_attachment.format = a_depth_format;
+  l_depth_attachment.samples = VK_SAMPLE_COUNT_1_BIT;
+  l_depth_attachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+  l_depth_attachment.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+  l_depth_attachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+  l_depth_attachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+  l_depth_attachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+  l_depth_attachment.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+
+  VkAttachmentReference l_depth_attachment_ref{};
+  l_depth_attachment_ref.attachment = 1;
+  l_depth_attachment_ref.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+
+
   VkSubpassDescription  l_subpass_desc{};
   l_subpass_desc.flags = 0;
   l_subpass_desc.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
@@ -1464,7 +1461,7 @@ sdlxvulkan::Handle<VkRenderPass> sdlxvulkan::app_make_render_pass
   l_subpass_desc.colorAttachmentCount = 1;
   l_subpass_desc.pColorAttachments = &l_colour_attachment_ref;
   l_subpass_desc.pResolveAttachments = nullptr;
-  l_subpass_desc.pDepthStencilAttachment = nullptr;
+  l_subpass_desc.pDepthStencilAttachment = &l_depth_attachment_ref;
   l_subpass_desc.preserveAttachmentCount = 0;
   l_subpass_desc.pPreserveAttachments = nullptr;
 
@@ -1477,13 +1474,14 @@ sdlxvulkan::Handle<VkRenderPass> sdlxvulkan::app_make_render_pass
   l_dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
   l_dependency.dependencyFlags = 0;
 
+  std::array<VkAttachmentDescription, 2> l_attachments { l_colour_attachment, l_depth_attachment };
 
   VkRenderPassCreateInfo l_render_pass_info = {};
   l_render_pass_info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
   l_render_pass_info.pNext = nullptr;
   l_render_pass_info.flags = 0;
-  l_render_pass_info.attachmentCount = 1;
-  l_render_pass_info.pAttachments = &l_colour_attachment;
+  l_render_pass_info.attachmentCount = static_cast<uint32_t>(l_attachments.size());
+  l_render_pass_info.pAttachments = l_attachments.data();
   l_render_pass_info.subpassCount = 1;
   l_render_pass_info.pSubpasses = &l_subpass_desc;
   l_render_pass_info.dependencyCount = 1;
@@ -1726,29 +1724,28 @@ sdlxvulkan::Handle<VkPipeline> sdlxvulkan::app_make_dynamic_pipeline
   l_multisample_state.alphaToCoverageEnable = VK_FALSE; // optional
   l_multisample_state.alphaToOneEnable = VK_FALSE; // optional
 
-  // Depth and Stencil
-  /*
+  // Depth and Stencil  
   VkPipelineDepthStencilStateCreateInfo l_depth_stencil_state;
   l_depth_stencil_state.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
-  l_depth_stencil_state.pNext = NULL;
+  l_depth_stencil_state.pNext = nullptr;
   l_depth_stencil_state.flags = 0;
   l_depth_stencil_state.depthTestEnable = VK_TRUE;
   l_depth_stencil_state.depthWriteEnable = VK_TRUE;
-  l_depth_stencil_state.depthCompareOp = VK_COMPARE_OP_LESS_OR_EQUAL;
+  l_depth_stencil_state.depthCompareOp = VK_COMPARE_OP_LESS;
   l_depth_stencil_state.depthBoundsTestEnable = VK_FALSE;
-  l_depth_stencil_state.minDepthBounds = 0;
-  l_depth_stencil_state.maxDepthBounds = 0;
   l_depth_stencil_state.stencilTestEnable = VK_FALSE;
-  l_depth_stencil_state.back.failOp = VK_STENCIL_OP_KEEP;
-  l_depth_stencil_state.back.passOp = VK_STENCIL_OP_KEEP;
-  l_depth_stencil_state.back.compareOp = VK_COMPARE_OP_ALWAYS;
-  l_depth_stencil_state.back.compareMask = 0;
-  l_depth_stencil_state.back.reference = 0;
-  l_depth_stencil_state.back.depthFailOp = VK_STENCIL_OP_KEEP;
-  l_depth_stencil_state.back.writeMask = 0;
-  l_depth_stencil_state.front = l_depth_stencil_state.back;
-  */
-
+  l_depth_stencil_state.front = {};// l_depth_stencil_state.back;
+  l_depth_stencil_state.back = {};
+  //l_depth_stencil_state.back.failOp = VK_STENCIL_OP_KEEP;
+  //l_depth_stencil_state.back.passOp = VK_STENCIL_OP_KEEP;
+  //l_depth_stencil_state.back.compareOp = VK_COMPARE_OP_ALWAYS;
+  //l_depth_stencil_state.back.compareMask = 0;
+  //l_depth_stencil_state.back.reference = 0;
+  //l_depth_stencil_state.back.depthFailOp = VK_STENCIL_OP_KEEP;
+  //l_depth_stencil_state.back.writeMask = 0;
+  l_depth_stencil_state.minDepthBounds = 0.0f; // optional
+  l_depth_stencil_state.maxDepthBounds = 1.0f; // optional
+  
                                                    // Colour Blending
   VkPipelineColorBlendAttachmentState l_colour_blend_attachment_state{};
   l_colour_blend_attachment_state.blendEnable = VK_FALSE;
@@ -1806,7 +1803,7 @@ sdlxvulkan::Handle<VkPipeline> sdlxvulkan::app_make_dynamic_pipeline
   l_pipeline_info.pViewportState = &l_viewport_state;
   l_pipeline_info.pRasterizationState = &l_rasterization_state;
   l_pipeline_info.pMultisampleState = &l_multisample_state;
-  l_pipeline_info.pDepthStencilState = nullptr;//&l_depth_stencil_state;
+  l_pipeline_info.pDepthStencilState = &l_depth_stencil_state;
   l_pipeline_info.pColorBlendState = &l_colour_blend_state;
   l_pipeline_info.pDynamicState = &l_dynamic_state; // so we can change the viewport on the fly, but have to supply them...
   l_pipeline_info.layout = a_pipeline_layout;
@@ -1818,17 +1815,12 @@ sdlxvulkan::Handle<VkPipeline> sdlxvulkan::app_make_dynamic_pipeline
   return make_graphics_pipeline(a_device, a_pipeline_cache, l_pipeline_info);
 }
 
-
-
-
-
-
-
 std::vector<sdlxvulkan::Handle<VkFramebuffer>> sdlxvulkan::app_make_swapchain_framebuffers
 (
   Handle<VkDevice> const& a_device,
   Swapchain const& a_swapchain,
-  Handle<VkRenderPass> const& a_render_pass
+  Handle<VkRenderPass> const& a_render_pass,
+  Image_Trio const& a_depth_trio
 )
 {
   std::vector<Handle<VkFramebuffer>> l_result{};
@@ -1837,12 +1829,12 @@ std::vector<sdlxvulkan::Handle<VkFramebuffer>> sdlxvulkan::app_make_swapchain_fr
   for (auto const& l_swapchain_image_view : a_swapchain.image_views)
     //for (size_t i = 0; i != m_swapchain_image_views.size(); i++) 
   {
-    std::array<VkImageView, 1> l_attachments{ l_swapchain_image_view };
+    std::array<VkImageView, 2> l_attachments{ l_swapchain_image_view, a_depth_trio.view };
 
     VkFramebufferCreateInfo l_framebuffer_info{};
     l_framebuffer_info.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
     l_framebuffer_info.renderPass = a_render_pass;
-    l_framebuffer_info.attachmentCount = 1;
+    l_framebuffer_info.attachmentCount = static_cast<uint32_t>(l_attachments.size());
     l_framebuffer_info.pAttachments = l_attachments.data();
     l_framebuffer_info.width = a_swapchain.extent.width;
     l_framebuffer_info.height = a_swapchain.extent.height;
@@ -2020,5 +2012,100 @@ std::vector<sdlxvulkan::Handle<VkFence>> sdlxvulkan::app_make_fences
     l_fence = make_fence(a_device, l_fence_info);
   }
   return l_result;
+}
 
+
+
+sdlxvulkan::Buffer_Pair sdlxvulkan::app_make_load_staging_buffer_pair
+(
+  Handle<VkPhysicalDevice> const& a_physical_device,
+  Handle<VkDevice> const& a_device,
+  VkDeviceSize a_size,
+  void const* a_data
+)
+{
+  assert(a_physical_device);
+  assert(a_device);
+  auto l_functions = get_device_functions(a_device);
+  assert(l_functions);
+
+  VkBufferUsageFlags l_usage_flags = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
+  VkMemoryPropertyFlags l_property_flags = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
+
+  auto l_staging_pair = app_make_buffer_memory_exclusive_pair(a_physical_device, a_device, a_size, l_usage_flags, l_property_flags);
+
+  // Map data to it
+  void *l_staging_data{ nullptr };
+  if (l_functions->vkMapMemory(a_device, l_staging_pair.memory, 0, a_size, 0, &l_staging_data) != VK_SUCCESS)
+  {
+    throw std::runtime_error{ "Vulkan: Failed to map a staging buffer." };
+  }
+
+  // copy the data
+  memcpy(l_staging_data, a_data, static_cast<size_t>(a_size));
+
+  // unmap the memory after we have used it.
+  l_functions->vkUnmapMemory(a_device, l_staging_pair.memory);
+  
+  return l_staging_pair;
+}
+
+
+sdlxvulkan::Buffer_Pair sdlxvulkan::app_make_vertex_buffer_pair
+(
+  Handle<VkPhysicalDevice> const& a_physical_device,
+  Handle<VkDevice> const& a_device,
+  Handle<VkCommandPool> const& a_command_pool,
+  Handle<VkQueue> const& a_queue,
+  VkDeviceSize a_size,
+  void const* a_data
+)
+{
+  assert(a_physical_device);
+  assert(a_device);
+  assert(a_command_pool);
+  assert(a_queue);
+  auto l_functions = get_device_functions(a_device);
+  assert(l_functions);
+
+  auto l_staging_pair = app_make_load_staging_buffer_pair(a_physical_device, a_device, a_size, a_data);
+  
+  // Vertex buffer
+  VkBufferUsageFlags l_vertex_usage_flags = VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
+  VkMemoryPropertyFlags l_vertex_property_flags = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
+
+  auto l_vertex_pair = app_make_buffer_memory_exclusive_pair(a_physical_device, a_device, a_size, l_vertex_usage_flags, l_vertex_property_flags);
+
+  app_copy_buffer(a_device, a_command_pool, a_queue, l_staging_pair.buffer, l_vertex_pair.buffer, a_size);
+
+  return l_vertex_pair;
+}
+
+sdlxvulkan::Buffer_Pair sdlxvulkan::app_make_index_buffer_pair
+(
+  Handle<VkPhysicalDevice> const& a_physical_device,
+  Handle<VkDevice> const& a_device,
+  Handle<VkCommandPool> const& a_command_pool,
+  Handle<VkQueue> const& a_queue,
+  VkDeviceSize a_size,
+  void const* a_data
+)
+{
+  assert(a_physical_device);
+  assert(a_device);
+  assert(a_command_pool);
+  assert(a_queue);
+  auto l_functions = get_device_functions(a_device);
+  assert(l_functions);
+
+  auto l_staging_pair = app_make_load_staging_buffer_pair(a_physical_device, a_device, a_size, a_data);
+
+  VkBufferUsageFlags l_index_usage_flags = VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT;
+  VkMemoryPropertyFlags l_index_property_flags = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
+
+  auto l_index_pair = app_make_buffer_memory_exclusive_pair(a_physical_device, a_device, a_size, l_index_usage_flags, l_index_property_flags);
+  
+  app_copy_buffer(a_device, a_command_pool, a_queue, l_staging_pair.buffer, l_index_pair.buffer, a_size);
+
+  return l_index_pair;
 }

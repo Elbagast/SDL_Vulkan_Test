@@ -192,6 +192,7 @@ namespace sdlxvulkan
     // Caching...
     VkPhysicalDeviceFeatures m_supported_features;
     VkPhysicalDeviceFeatures m_required_features;
+    VkFormat m_depth_format;
 
     //--------------------
     // Logical device
@@ -205,16 +206,12 @@ namespace sdlxvulkan
     Handle<VkQueue> m_graphics_queue;
     Handle<VkQueue> m_present_queue;
 
-    // Command Pool
     Handle<VkCommandPool> m_command_pool;
 
     //--------------------
-    
-    // Descriptor Set Layout
+
     Handle<VkDescriptorSetLayout> m_descriptor_set_layout;
 
-    //--------------------
-    // Shaders
     Shader_Group m_shaders;
 
     //--------------------
@@ -227,32 +224,16 @@ namespace sdlxvulkan
     // Swapchain
     Swapchain m_swapchain;
 
-    //--------------------
-    // Vertex Buffer
-    Handle<VkBuffer> m_vertex_buffer;
-    Handle<VkDeviceMemory> m_vertex_buffer_memory;
+    Buffer_Pair m_vertex;
+    Buffer_Pair m_index;
 
-    //--------------------
-    // Index Buffer
-    Handle<VkBuffer> m_index_buffer;
-    Handle<VkDeviceMemory> m_index_buffer_memory;
-
-    //--------------------
-    // Uniform Buffer
     std::vector<Buffer_Pair> m_uniforms;
 
-    //--------------------
-    // Depth Buffer
     Image_Trio m_depth;
-
-
-    // Descriptor Pool
+    
     Handle<VkDescriptorPool> m_descriptor_pool;
-
-    // Descriptor Sets
     std::vector<Handle<VkDescriptorSet>> m_descriptor_sets;
 
-    // Render Pass
     Handle<VkRenderPass> m_render_pass;
     
     // Pipeline
@@ -292,28 +273,14 @@ namespace sdlxvulkan
     int execute();
 
     void main_loop();
-
-    void init();
-        
-    void init_vertex_buffer();
-
-    void init_index_buffer();
-            
+                
     void resize();
-    
-    void init_depth_buffer();
-        
+            
     void write_commands();
     
     void draw_frame();
 
     void update_uniform_buffer();
-
-    void create_buffer(VkDeviceSize a_size, VkBufferUsageFlags a_usage, VkMemoryPropertyFlags a_properties, VkBuffer& a_buffer, VkDeviceMemory& a_buffer_memory);
-    void create_buffer(VkDeviceSize a_size, VkBufferUsageFlags a_usage, VkMemoryPropertyFlags a_properties, Handle<VkBuffer>& a_buffer, Handle<VkDeviceMemory>& a_buffer_memory);
-    //void copy_buffer(VkBuffer a_source, VkDeviceSize a_source_offset, VkBuffer a_dest, VkDeviceSize a_dest_offset, VkDeviceSize a_size);
-    //void copy_buffer(VkBuffer a_source, VkBuffer a_dest, VkDeviceSize a_size);
-    //void copy_buffer(Handle<VkBuffer> const& a_source, Handle<VkBuffer> const& a_dest, VkDeviceSize a_size);
   };
 }
 
@@ -355,21 +322,21 @@ sdlxvulkan::Application::Implementation::Implementation(int argc, char** argv) :
   m_debug_callback{ app_make_debug_report_callback_ext(m_instance, VK_DEBUG_REPORT_ERROR_BIT_EXT | VK_DEBUG_REPORT_WARNING_BIT_EXT, debug_callback) },
   m_surface{ make_surface_khr(m_instance, m_window) },
   m_physical_device{ get_physical_devices(m_instance).front() },
-  m_supported_features{ get_physical_device_features(m_physical_device)},
-  m_required_features{ app_make_required_device_features(m_supported_features)},
+  m_supported_features{ get_physical_device_features(m_physical_device) },
+  m_required_features{ app_make_required_device_features(m_supported_features) },
+  m_depth_format{ find_depth_format(m_physical_device) },
 
   // If we wanted to manage queue families in more detail then stuff goes here.
   m_graphics_qfi{ first_graphics_qfi(m_physical_device) },
   m_present_qfi{ first_present_qfi(m_physical_device, m_surface) },
-  m_device{ app_make_device(m_physical_device, m_graphics_qfi, m_present_qfi, m_required_features, c_device_extension_names ) },
+  m_device{ app_make_device(m_physical_device, m_graphics_qfi, m_present_qfi, m_required_features, c_device_extension_names) },
   m_device_functions{ get_device_functions(m_device) },
 
   m_graphics_queue{ make_queue(m_device, m_graphics_qfi, 0) },
   m_present_queue{ make_queue(m_device, m_present_qfi, 0) },
 
   m_command_pool{ app_make_command_pool(m_device, m_graphics_qfi, 0) },
-
-
+  
   m_descriptor_set_layout{ app_make_descriptor_set_layout(m_device) },
 
   m_shaders{ app_make_shader_group(m_device, m_args[0]) },
@@ -380,22 +347,20 @@ sdlxvulkan::Application::Implementation::Implementation(int argc, char** argv) :
 
   m_swapchain{ app_make_swapchain(m_window, m_physical_device, m_device, m_surface, m_graphics_qfi, m_present_qfi) },
   
-  m_vertex_buffer{},
-  m_vertex_buffer_memory{},
-
-  m_index_buffer{},
-  m_index_buffer_memory{},
+  m_vertex{ app_make_vertex_buffer_pair(m_physical_device, m_device, m_command_pool, m_graphics_queue, sizeof(c_vertices[0]) * c_vertices.size(), c_vertices.data()) },
+  
+  m_index{ app_make_index_buffer_pair(m_physical_device, m_device, m_command_pool, m_graphics_queue, sizeof(c_indices[0]) * c_indices.size(), c_indices.data()) },
 
   m_uniforms{ app_make_uniforms(m_physical_device, m_device, m_swapchain.image_count, sizeof(Uniform_Buffer_Object)) },
 
-  m_depth{},
+  m_depth{ app_make_depth_image_trio(m_physical_device, m_device, m_command_pool, m_graphics_queue, m_swapchain.extent.width, m_swapchain.extent.height) },
 
   m_descriptor_pool{ app_make_descriptor_pool(m_device, m_swapchain.image_count) },
 
   m_descriptor_sets{ app_make_descriptor_sets(m_device, m_descriptor_set_layout, m_descriptor_pool, m_swapchain, m_texture, m_sampler, m_uniforms, sizeof(Uniform_Buffer_Object)) },
 
   // Render Pass
-  m_render_pass{ app_make_render_pass(m_device, m_swapchain.format) },
+  m_render_pass{ app_make_render_pass(m_device, m_swapchain.format, m_depth_format) },
 
   // Pipeline
   m_viewport{ app_make_viewport(m_swapchain) },
@@ -404,7 +369,7 @@ sdlxvulkan::Application::Implementation::Implementation(int argc, char** argv) :
   m_pipeline_layout{ app_make_pipeline_layout(m_device, m_descriptor_set_layout) },
   m_pipeline{ app_make_dynamic_pipeline(m_device, m_pipeline_cache, m_pipeline_layout, m_render_pass, m_shaders, {Vertex::get_binding_description()}, Vertex::get_attribute_descriptions_vector()) },//, { m_viewport }, { m_scissor }) },
 
-  m_swapchain_framebuffers{ app_make_swapchain_framebuffers(m_device, m_swapchain, m_render_pass) },
+  m_swapchain_framebuffers{ app_make_swapchain_framebuffers(m_device, m_swapchain, m_render_pass, m_depth) },
 
   m_command_buffers{ app_make_command_buffers(m_command_pool, VK_COMMAND_BUFFER_LEVEL_PRIMARY, m_swapchain.image_count) },
 
@@ -422,17 +387,10 @@ sdlxvulkan::Application::Implementation::Implementation(int argc, char** argv) :
     std::cout << i << std::endl;
   }
 
-
-  init_vertex_buffer();
-  init_index_buffer();
   write_commands();
 }
 
-sdlxvulkan::Application::Implementation::~Implementation()
-{
-  //std::cout << "Application::Implementation::~Implementation()" << std::endl;
-  //quit();
-}
+sdlxvulkan::Application::Implementation::~Implementation() = default;
 
 // Interface
 //============================================================
@@ -452,30 +410,6 @@ int sdlxvulkan::Application::Implementation::execute()
   return EXIT_SUCCESS;
 }
 
-
-void sdlxvulkan::Application::Implementation::init()
-{
-  std::cout << "Application::Implementation::init()" << std::endl;
-
-  //init_command_pool();
-  //init_shader_modules();
-  //init_swapchain();
-  //init_swapchain_image_views();
-  init_vertex_buffer();
-  init_index_buffer();
-  //init_uniform_buffer();
-  //init_render_pass();
-  //init_descriptor_set_layout();
-  //init_descriptor_pool();
-  //init_descriptor_set();
-  //init_pipeline();
-  //init_framebuffers();
-  //init_command_buffers();
-  //init_sync_objects();
-
-  //do_update_viewport();
-  write_commands();
-}
 
 void sdlxvulkan::Application::Implementation::main_loop()
 {
@@ -589,77 +523,6 @@ void sdlxvulkan::Application::Implementation::main_loop()
   vkDeviceWaitIdle(m_device);
 }
 
-
-
-void sdlxvulkan::Application::Implementation::init_vertex_buffer()
-{
-  VkDeviceSize l_buffer_size = sizeof(c_vertices[0]) * c_vertices.size();
-    
-  // Staging buffer - Temporary object
-  Handle<VkBuffer> l_staging_buffer{};
-  Handle<VkDeviceMemory> l_staging_buffer_memory{};
-  VkBufferUsageFlags l_staging_buffer_usage_flags = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
-  VkMemoryPropertyFlags l_staging_buffer_property_flags = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
-
-  create_buffer(l_buffer_size, l_staging_buffer_usage_flags, l_staging_buffer_property_flags, l_staging_buffer, l_staging_buffer_memory);
-  
-  // Map data to it
-  void *l_staging_data{ nullptr };
-  if (m_device_functions->vkMapMemory(m_device, l_staging_buffer_memory, 0, l_buffer_size, 0, &l_staging_data) != VK_SUCCESS)
-  {
-    throw std::runtime_error{ "Vulkan: Vertex Buffer: Failed to map the staging buffer." };
-  }
-
-  //memcpy(l_data, g_vertex_buffer_solid_face_colors_data, sizeof(g_vertex_buffer_solid_face_colors_data));
-  memcpy(l_staging_data, c_vertices.data(), static_cast<size_t>(l_buffer_size));
-
-  // unmap the memory after we have used it.
-  m_device_functions->vkUnmapMemory(m_device, l_staging_buffer_memory);
-  
-
-  // Vertex buffer
-  VkBufferUsageFlags l_vertex_usage_flags = VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
-  VkMemoryPropertyFlags l_vertex_property_flags = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
-
-  create_buffer(l_buffer_size, l_vertex_usage_flags, l_vertex_property_flags, m_vertex_buffer, m_vertex_buffer_memory);
-     
-  app_copy_buffer(m_device, m_command_pool, m_graphics_queue, l_staging_buffer, m_vertex_buffer, l_buffer_size);
-}
-
-void sdlxvulkan::Application::Implementation::init_index_buffer()
-{
-  // Like the vertex buffer but with the index data.
-  VkDeviceSize l_buffer_size = sizeof(c_indices[0]) * c_indices.size();
-
-  // Staging buffer - Temporary object
-  Handle<VkBuffer> l_staging_buffer{};
-  Handle<VkDeviceMemory> l_staging_buffer_memory{};
-  VkBufferUsageFlags l_staging_buffer_usage_flags = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
-  VkMemoryPropertyFlags l_staging_buffer_property_flags = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
-
-  create_buffer(l_buffer_size, l_staging_buffer_usage_flags, l_staging_buffer_property_flags, l_staging_buffer, l_staging_buffer_memory);
-
-  // Map data to it
-  void *l_staging_data{ nullptr };
-  if (m_device_functions->vkMapMemory(m_device, l_staging_buffer_memory, 0, l_buffer_size, 0, &l_staging_data) != VK_SUCCESS)
-  {
-    throw std::runtime_error{ "Vulkan: Index Buffer: Failed to map the staging buffer." };
-  }
-
-  //memcpy(l_data, g_vertex_buffer_solid_face_colors_data, sizeof(g_vertex_buffer_solid_face_colors_data));
-  memcpy(l_staging_data, c_indices.data(), static_cast<size_t>(l_buffer_size));
-
-  // unmap the memory after we have used it.
-  m_device_functions->vkUnmapMemory(m_device, l_staging_buffer_memory);
-  
-  // Index buffer
-  VkBufferUsageFlags l_index_usage_flags = VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT;
-  VkMemoryPropertyFlags l_index_property_flags = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
-
-  create_buffer(l_buffer_size, l_index_usage_flags, l_index_property_flags, m_index_buffer, m_index_buffer_memory);
-
-  app_copy_buffer(m_device, m_command_pool, m_graphics_queue, l_staging_buffer, m_index_buffer, l_buffer_size);
-}
 void sdlxvulkan::Application::Implementation::resize()
 {
   std::cout << "sdlxvulkan::Application::Implementation::do_resize()" << std::endl;
@@ -689,7 +552,7 @@ void sdlxvulkan::Application::Implementation::resize()
   if (l_new_swapchain.format != m_swapchain.format)
   {
     std::cout << "render pass changed" << std::endl;
-    l_new_render_pass = app_make_render_pass(m_device, l_new_swapchain.format);
+    l_new_render_pass = app_make_render_pass(m_device, l_new_swapchain.format, m_depth_format);
   }
   else
   {
@@ -713,11 +576,11 @@ void sdlxvulkan::Application::Implementation::resize()
     l_new_pipeline = m_pipeline;
   }
 
-  // uncomment to just replace everytime.
-  //l_new_pipeline = app_make_dynamic_pipeline(m_device, m_pipeline_cache, m_pipeline_layout, l_new_render_pass, m_shaders, { Vertex::get_binding_description() }, Vertex::get_attribute_descriptions_vector());
- 
+  // Make a new depth buffer because it must have the new size.
+  auto l_new_depth = app_make_depth_image_trio(m_physical_device, m_device, m_command_pool, m_graphics_queue, l_new_swapchain.extent.width, l_new_swapchain.extent.height);
+
   // Remake the framebuffers since they rely on the new swapchain
-  auto l_new_swapchain_framebuffers = app_make_swapchain_framebuffers(m_device, l_new_swapchain, l_new_render_pass);
+  auto l_new_swapchain_framebuffers = app_make_swapchain_framebuffers(m_device, l_new_swapchain, l_new_render_pass, l_new_depth);
 
   // swap in
   std::swap(l_new_swapchain, m_swapchain);
@@ -725,11 +588,11 @@ void sdlxvulkan::Application::Implementation::resize()
   std::swap(l_new_scissor, m_scissor);
   std::swap(l_new_render_pass, m_render_pass);
   std::swap(l_new_pipeline, m_pipeline);
+  std::swap(l_new_depth, m_depth);
   std::swap(l_new_swapchain_framebuffers, m_swapchain_framebuffers);
   
   // rebuild the commands since these don't change each frame right now.
   write_commands();
-
 }
 
 
@@ -752,8 +615,16 @@ void sdlxvulkan::Application::Implementation::write_commands()
     m_device_functions->vkCmdSetViewport(m_command_buffers[l_index], 0, 1, &m_viewport);
     m_device_functions->vkCmdSetScissor(m_command_buffers[l_index], 0, 1, &m_scissor);
 
-    //VkClearValue l_clear_colour = { 0.0f, 0.0f, 0.0f, 1.0f };
-    VkClearValue l_clear_colour = { 0.5f, 0.5f, 0.5f, 1.0f };
+    
+    std::array<VkClearValue, 2> l_clear_values = {};
+
+    // colour image
+    l_clear_values[0].color = { 0.0f, 0.0f, 0.0f, 1.0f };
+    l_clear_values[0].depthStencil = { 0.0f, 0 }; // ignored
+
+    // depth image
+    l_clear_values[0].color = { 0.0f, 0.0f, 0.0f, 0.0f }; // ignored
+    l_clear_values[1].depthStencil = { 1.0f, 0 };
 
     VkRenderPassBeginInfo l_render_pass_info = {};
     l_render_pass_info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
@@ -761,21 +632,19 @@ void sdlxvulkan::Application::Implementation::write_commands()
     l_render_pass_info.framebuffer = m_swapchain_framebuffers[l_index];
     l_render_pass_info.renderArea.offset = { 0, 0 };
     l_render_pass_info.renderArea.extent = m_swapchain.extent;
-    l_render_pass_info.clearValueCount = 1;
-    l_render_pass_info.pClearValues = &l_clear_colour;
+    l_render_pass_info.clearValueCount = static_cast<uint32_t>(l_clear_values.size());
+    l_render_pass_info.pClearValues = l_clear_values.data();
 
     m_device_functions->vkCmdBeginRenderPass(m_command_buffers[l_index], &l_render_pass_info, VK_SUBPASS_CONTENTS_INLINE);
 
     m_device_functions->vkCmdBindPipeline(m_command_buffers[l_index], VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipeline);
-
-    //vkCmdDraw(m_command_buffers[l_index], 3, 1, 0, 0);
-
-    VkBuffer l_vertex_buffers[] { m_vertex_buffer };
+    
+    VkBuffer l_vertex_buffers[] { m_vertex.buffer };
     VkDeviceSize l_offsets[] = { 0 };
     m_device_functions->vkCmdBindVertexBuffers(m_command_buffers[l_index], 0, 1, l_vertex_buffers, l_offsets);
 
     // Bind the index buffer - there can be only one
-    m_device_functions->vkCmdBindIndexBuffer(m_command_buffers[l_index], m_index_buffer, 0, VK_INDEX_TYPE_UINT16);
+    m_device_functions->vkCmdBindIndexBuffer(m_command_buffers[l_index], m_index.buffer, 0, VK_INDEX_TYPE_UINT16);
 
     std::array<VkDescriptorSet, 1> l_descriptor_set{ m_descriptor_sets[l_index] };
 
@@ -783,16 +652,7 @@ void sdlxvulkan::Application::Implementation::write_commands()
 
     // Now we draw using the indices
     m_device_functions->vkCmdDrawIndexed(m_command_buffers[l_index], static_cast<uint32_t>(c_indices.size()), 1, 0, 0, 0);
-
-
-
-    // Draw triangles using these verts.
-    //uint32_t const l_vertex_count = static_cast<uint32_t>(c_vertices.size());
-    //uint32_t const l_triangle_count = l_vertex_count / 3;
-    //std::cout << "Command to draw " << l_vertex_count << " verticies, " << l_triangle_count << " triangles" << std::endl;
-    //vkCmdDraw(m_command_buffers[l_index], l_vertex_count, 1, 0, 0);
-
-
+    
     m_device_functions->vkCmdEndRenderPass(m_command_buffers[l_index]);
 
     if (m_device_functions->vkEndCommandBuffer(m_command_buffers[l_index]) != VK_SUCCESS)
@@ -907,70 +767,6 @@ void sdlxvulkan::Application::Implementation::update_uniform_buffer()
   m_device_functions->vkMapMemory(m_device, m_uniforms[m_current_frame].memory, 0, sizeof(l_ubo), 0, &l_data);
   memcpy(l_data, &l_ubo, sizeof(l_ubo));
   m_device_functions->vkUnmapMemory(m_device, m_uniforms[m_current_frame].memory);
-}
-
-void sdlxvulkan::Application::Implementation::create_buffer(VkDeviceSize a_size, VkBufferUsageFlags a_usage, VkMemoryPropertyFlags a_properties, VkBuffer& a_buffer, VkDeviceMemory& a_buffer_memory)
-{
-  VkBufferCreateInfo l_buffer_info{};
-  l_buffer_info.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-  l_buffer_info.pNext = nullptr;
-  l_buffer_info.flags = 0;
-  l_buffer_info.size = a_size;
-  l_buffer_info.usage = a_usage;
-  l_buffer_info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-  l_buffer_info.queueFamilyIndexCount = 0;
-  l_buffer_info.pQueueFamilyIndices = nullptr;
-
-  if (m_device_functions->vkCreateBuffer(m_device, &l_buffer_info, nullptr, &a_buffer) != VK_SUCCESS)
-  {
-    throw std::runtime_error("Vulkan: failed to create a buffer.");
-  }
-
-  VkMemoryRequirements l_mem_reqs{};
-  m_device_functions->vkGetBufferMemoryRequirements(m_device, a_buffer, &l_mem_reqs);
-
-  VkMemoryAllocateInfo l_alloc_info{};
-  l_alloc_info.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
-  l_alloc_info.pNext = nullptr;
-  l_alloc_info.allocationSize = l_mem_reqs.size;
-  l_alloc_info.memoryTypeIndex = get_memory_type_from_properties(get_physical_device_memory_properties(m_physical_device), l_mem_reqs.memoryTypeBits, a_properties);
-
-  // Allocate the memory
-  if (m_device_functions->vkAllocateMemory(m_device, &l_alloc_info, NULL, &a_buffer_memory) != VK_SUCCESS)
-  {
-    throw std::runtime_error{ "Vulkan: Failed to allocate buffer memory." };
-  }
-  assert(a_buffer != VK_NULL_HANDLE);
-  assert(a_buffer_memory != VK_NULL_HANDLE);
-  // Bind it
-  if (m_device_functions->vkBindBufferMemory(m_device, a_buffer, a_buffer_memory, 0) != VK_SUCCESS)
-  {
-    throw std::runtime_error{ "Vulkan: Failed to bind a buffer." };
-  }
-}
-
-void sdlxvulkan::Application::Implementation::create_buffer(VkDeviceSize a_size, VkBufferUsageFlags a_usage, VkMemoryPropertyFlags a_properties, Handle<VkBuffer>& a_buffer, Handle<VkDeviceMemory>& a_buffer_memory)
-{
-  // Create the buffer
-  Handle<VkBuffer> l_buffer = app_make_buffer_exclusive(m_device, a_size, a_usage);
-  
-  // Get its memory requirements
-  VkMemoryRequirements l_mem_reqs{};
-  m_device_functions->vkGetBufferMemoryRequirements(m_device, l_buffer, &l_mem_reqs);
-  uint32_t l_mem_type = get_memory_type_from_properties(get_physical_device_memory_properties(m_physical_device), l_mem_reqs.memoryTypeBits, a_properties);
-  
-  // Make its memory
-  Handle<VkDeviceMemory> l_buffer_memory = app_make_device_memory(m_device, l_mem_reqs.size, l_mem_type);
-  
-  // Bind the buffer and memory
-  if (m_device_functions->vkBindBufferMemory(m_device, l_buffer, l_buffer_memory, 0) != VK_SUCCESS)
-  {
-    throw std::runtime_error{ "Vulkan: Failed to bind a buffer." };
-  }
-
-  // Swap this new buffer into the supplied
-  swap(a_buffer, l_buffer);
-  swap(a_buffer_memory, l_buffer_memory);
 }
 
 //------------------------------------------------------------------------------------------------------------------------------------------------------

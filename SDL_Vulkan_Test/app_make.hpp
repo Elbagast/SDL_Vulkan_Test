@@ -344,7 +344,8 @@ namespace sdlxvulkan
   Handle<VkRenderPass> app_make_render_pass
   (
     Handle<VkDevice> const& a_device,
-    VkFormat a_format
+    VkFormat a_colour_format,
+    VkFormat a_depth_format
   );
 
   Handle<VkPipelineLayout> app_make_pipeline_layout
@@ -382,7 +383,8 @@ namespace sdlxvulkan
   (
     Handle<VkDevice> const& a_device,
     Swapchain const& a_swapchain,
-    Handle<VkRenderPass> const& a_render_pass
+    Handle<VkRenderPass> const& a_render_pass,
+    Image_Trio const& a_depth_trio
   );
 
   std::vector<Buffer_Pair> app_make_uniforms
@@ -423,6 +425,36 @@ namespace sdlxvulkan
     Handle<VkDevice> const& a_device,
     uint32_t a_count,
     VkFenceCreateFlags a_flags
+  );
+
+
+  Buffer_Pair app_make_load_staging_buffer_pair
+  (
+    Handle<VkPhysicalDevice> const& a_physical_device,
+    Handle<VkDevice> const& a_device,
+    VkDeviceSize a_size,
+    void const* a_data
+  );
+
+
+  Buffer_Pair app_make_vertex_buffer_pair
+  (
+    Handle<VkPhysicalDevice> const& a_physical_device,
+    Handle<VkDevice> const& a_device,
+    Handle<VkCommandPool> const& a_command_pool,
+    Handle<VkQueue> const& a_queue,
+    VkDeviceSize a_size,
+    void const* a_data
+  );
+
+  Buffer_Pair app_make_index_buffer_pair
+  (
+    Handle<VkPhysicalDevice> const& a_physical_device,
+    Handle<VkDevice> const& a_device,
+    Handle<VkCommandPool> const& a_command_pool,
+    Handle<VkQueue> const& a_queue,
+    VkDeviceSize a_size,
+    void const* a_data
   );
 
 } //namespace sdlxvulkan
