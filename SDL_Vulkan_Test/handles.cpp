@@ -692,6 +692,49 @@ std::vector<VkExtensionProperties> sdlxvulkan::get_physical_device_extension_pro
   }
   return l_result;
 }
+// Throws std::runtime_error if physical device is null.
+VkFormatProperties sdlxvulkan::get_physical_device_format_properties(Handle<VkPhysicalDevice> const& a_physical_device, VkFormat a_format)
+{
+  if (!a_physical_device)
+  {
+    std::runtime_error{ "Null VkPhysicalDevice" };
+  }
+  assert(a_physical_device);
+  auto const& l_instance = get_instance(a_physical_device);
+  assert(l_instance);
+  auto l_functions = get_instance_functions(l_instance);
+  assert(l_functions != nullptr);
+  assert(l_functions->vkGetPhysicalDeviceFormatProperties != nullptr);
+
+  VkFormatProperties l_result{};
+  l_functions->vkGetPhysicalDeviceFormatProperties(a_physical_device, a_format, &l_result);
+  return l_result;
+}
+
+// Throws std::runtime_error if physical device is null.
+// Throws std::runtime_error if a supported format is not found.
+VkFormat sdlxvulkan::find_supported_format(Handle<VkPhysicalDevice> const& a_physical_device, std::vector<VkFormat> const& a_candidates, VkImageTiling a_tiling, VkFormatFeatureFlags a_features)
+{
+  if (!a_physical_device)
+  {
+    std::runtime_error{ "Null VkPhysicalDevice" };
+  }
+  assert(a_physical_device);
+  for (VkFormat l_format : a_candidates) 
+  {
+   auto l_properties = get_physical_device_format_properties(a_physical_device, l_format);
+
+   if (a_tiling == VK_IMAGE_TILING_LINEAR && (l_properties.linearTilingFeatures & a_features) == a_features)
+   {
+     return l_format;
+   }
+   else if (a_tiling == VK_IMAGE_TILING_OPTIMAL && (l_properties.optimalTilingFeatures & a_features) == a_features)
+   {
+     return l_format;
+   }
+  }
+  throw std::runtime_error{ "failed to find supported format!" };
+}
 
 // Can this physical device do graphics?
 // Returns false if physical device is null.

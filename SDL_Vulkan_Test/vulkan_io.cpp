@@ -2,6 +2,7 @@
 
 #include <iostream>
 #include <string>
+#include <tuple>
 
 std::ostream& flags_out(std::ostream& a_ostream, VkQueueFlags a_queue_flags)
 {
@@ -94,4 +95,70 @@ char const* vkresult_c_string(VkResult a_value)
 std::string vkresult_string(VkResult a_value)
 {
   return vkresult_c_string(a_value);
+}
+
+
+bool operator==(VkViewport const& a_lhs, VkViewport const& a_rhs) noexcept
+{
+  return
+    std::tie(a_lhs.x, a_lhs.y, a_lhs.width, a_lhs.height, a_lhs.minDepth, a_lhs.maxDepth)
+    ==
+    std::tie(a_rhs.x, a_rhs.y, a_rhs.width, a_rhs.height, a_rhs.minDepth, a_rhs.maxDepth);
+}
+
+bool operator!=(VkViewport const& a_lhs, VkViewport const& a_rhs) noexcept
+{
+  return !operator==(a_lhs, a_rhs);
+}
+
+bool operator==(VkRect2D const& a_lhs, VkRect2D const& a_rhs) noexcept
+{
+  return
+    std::tie(a_lhs.offset, a_lhs.extent)
+    ==
+    std::tie(a_rhs.offset, a_rhs.extent);
+}
+
+bool operator!=(VkRect2D const& a_lhs, VkRect2D const& a_rhs) noexcept
+{
+  return !operator==(a_lhs, a_rhs);
+}
+
+bool operator==(VkOffset2D const& a_lhs, VkOffset2D const& a_rhs) noexcept
+{
+  return
+    std::tie(a_lhs.x, a_lhs.y)
+    ==
+    std::tie(a_rhs.x, a_rhs.y);
+}
+
+bool operator!=(VkOffset2D const& a_lhs, VkOffset2D const& a_rhs) noexcept
+{
+  return !operator==(a_lhs, a_rhs);
+}
+
+bool operator==(VkOffset3D const& a_lhs, VkOffset3D const& a_rhs) noexcept
+{
+  return
+    std::tie(a_lhs.x, a_lhs.y, a_lhs.z)
+    ==
+    std::tie(a_rhs.x, a_rhs.y, a_rhs.z);
+}
+
+bool operator!=(VkOffset3D const& a_lhs, VkOffset3D const& a_rhs) noexcept
+{
+  return !operator==(a_lhs, a_rhs);
+}
+
+bool operator==(VkExtent2D const& a_lhs, VkExtent2D const& a_rhs) noexcept
+{
+  return
+    std::tie(a_lhs.width, a_lhs.height)
+    ==
+    std::tie(a_rhs.width, a_rhs.height);
+}
+
+bool operator!=(VkExtent2D const& a_lhs, VkExtent2D const& a_rhs) noexcept
+{
+  return !operator==(a_lhs, a_rhs);
 }

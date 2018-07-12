@@ -103,6 +103,19 @@ namespace sdlxvulkan
   {
     a_lhs.swap(a_rhs);
   }
+
+
+  template <typename T>
+  bool operator==(Handle<T> const& a_lhs, Handle<T> const& a_rhs) noexcept
+  {
+    return a_lhs.get() == a_rhs.get();
+  }
+
+  template <typename T>
+  bool operator!=(Handle<T> const& a_lhs, Handle<T> const& a_rhs) noexcept
+  {
+    return !operator==(a_lhs, a_rhs);
+  }
   
   //------------------------------------------------------------------------------------------------------------------------------------------------------
   // Handle Typedefs
@@ -249,6 +262,13 @@ namespace sdlxvulkan
   // Throws std::bad_alloc if the vector fails to be allocated.
   std::vector<VkExtensionProperties> get_physical_device_extension_properties(Handle<VkPhysicalDevice> const& a_physical_device);
 
+  // Throws std::runtime_error if physical device is null.
+  VkFormatProperties get_physical_device_format_properties(Handle<VkPhysicalDevice> const& a_physical_device, VkFormat a_format);
+
+  // Throws std::runtime_error if physical device is null.
+  // Throws std::runtime_error if a supported format is not found.
+  VkFormat find_supported_format(Handle<VkPhysicalDevice> const& a_physical_device, std::vector<VkFormat> const& a_candidates, VkImageTiling a_tiling, VkFormatFeatureFlags a_features);
+  
   // Can this physical device do graphics?
   // Returns false if physical device is null.
   bool can_graphics(Handle<VkPhysicalDevice> const& a_physical_device) noexcept;
