@@ -139,7 +139,7 @@ namespace sdlxvulkan
   //Handle<VkCommandPool>;                VkDevice                    VkDevice
   //Handle<VkCommandBuffer>;              VkCommandPool               VkDevice, VkCommandPool
   //Handle<VkDescriptorPool>;             VkDevice                    VkDevice
-  //Handle<VkDescriptorSet>;              VkDescriptorPool                                 VkDescriptorSetLayout
+  //Handle<VkDescriptorSet>;              VkDescriptorPool            VkDevice                     VkDescriptorSetLayout
   //Handle<VkDescriptorSetLayout>;        VkDevice                    VkDevice
   //Handle<VkDescriptorUpdateTemplate>;   VkDevice                    VkDevice
   //Handle<VkDeviceMemory>;               VkDevice                    VkDevice
@@ -186,7 +186,10 @@ namespace sdlxvulkan
 
   // Get the functions for a VkInstance. If the shared_ptr is nullptr this 
   // returns nullptr, otherwise it returns the corresponding functions.
-  Instance_Functions const* get_instance_functions(Handle<VkInstance> const& a_instance) noexcept;
+  Instance_Functions const* get_instance_functions
+  (
+    Handle<VkInstance> const& a_instance
+  ) noexcept;
 
   //------------------------------------------------------------------------------------------------------------------------------------------------------
   // VkDebugReportCallbackEXT
@@ -234,53 +237,112 @@ namespace sdlxvulkan
 
   // How many physcial devices does Instance have? 
   // Returns zero if Instance is null.
-  uint32_t get_physical_device_count(Handle<VkInstance> const& a_instance) noexcept;
+  uint32_t get_physical_device_count
+  (
+    Handle<VkInstance> const& a_instance
+  ) noexcept;
 
   // Get all the physcial devices that Instance has. 
   // Returns an empty vector if Instance is null. 
   // Throws std::bad_alloc if the vector fails to be allocated.
   // Throws std::bad_alloc if any Handle std::shared_ptr fails to be allocated.
-  std::vector<Handle<VkPhysicalDevice>> get_physical_devices(Handle<VkInstance> const& a_instance);
+  std::vector<VkPhysicalDevice> get_physical_devices
+  (
+    Handle<VkInstance> const& a_instance
+  );
   
   // Throws std::runtime_error if physical device is null.
-  VkPhysicalDeviceProperties get_physical_device_properties(Handle<VkPhysicalDevice> const& a_physical_device);
+  VkPhysicalDeviceProperties get_physical_device_properties
+  (
+    Handle<VkInstance> const& a_instance,
+    VkPhysicalDevice a_physical_device
+  );
 
   // Throws std::runtime_error if physical device is null.
-  VkPhysicalDeviceMemoryProperties get_physical_device_memory_properties(Handle<VkPhysicalDevice> const& a_physical_device);
+  VkPhysicalDeviceMemoryProperties get_physical_device_memory_properties
+  (
+    Handle<VkInstance> const& a_instance,
+    VkPhysicalDevice a_physical_device
+  );
 
   // Throws std::runtime_error if physical device is null.
-  VkPhysicalDeviceFeatures get_physical_device_features(Handle<VkPhysicalDevice> const& a_physical_device);
+  VkPhysicalDeviceFeatures get_physical_device_features
+  (
+    Handle<VkInstance> const& a_instance,
+    VkPhysicalDevice a_physical_device
+  );
 
 
   //uint32_t get_physical_device_queue_familiy_properties_count(Physical_Device const& a_physcial_device) noexcept;
 
   // Throws std::runtime_error if physical device is null.
   // Throws std::bad_alloc if the vector fails to be allocated.
-  std::vector<VkQueueFamilyProperties> get_physical_device_queue_familiy_properties(Handle<VkPhysicalDevice> const& a_physical_device);
+  std::vector<VkQueueFamilyProperties> get_physical_device_queue_familiy_properties
+  (
+    Handle<VkInstance> const& a_instance,
+    VkPhysicalDevice a_physical_device
+  );
 
   // Throws std::runtime_error if physical device is null.
   // Throws std::bad_alloc if the vector fails to be allocated.
-  std::vector<VkExtensionProperties> get_physical_device_extension_properties(Handle<VkPhysicalDevice> const& a_physical_device);
+  std::vector<VkExtensionProperties> get_physical_device_extension_properties
+  (
+    Handle<VkInstance> const& a_instance,
+    VkPhysicalDevice a_physical_device
+  );
 
   // Throws std::runtime_error if physical device is null.
-  VkFormatProperties get_physical_device_format_properties(Handle<VkPhysicalDevice> const& a_physical_device, VkFormat a_format);
+  VkFormatProperties get_physical_device_format_properties
+  (
+    Handle<VkInstance> const& a_instance,
+    VkPhysicalDevice a_physical_device, 
+    VkFormat a_format
+  );
 
   // Throws std::runtime_error if physical device is null.
   // Throws std::runtime_error if a supported format is not found.
-  VkFormat find_supported_format(Handle<VkPhysicalDevice> const& a_physical_device, std::vector<VkFormat> const& a_candidates, VkImageTiling a_tiling, VkFormatFeatureFlags a_features);
+  VkFormat find_supported_format
+  (
+    Handle<VkInstance> const& a_instance,
+    VkPhysicalDevice a_physical_device, 
+    std::vector<VkFormat> const& a_candidates, 
+    VkImageTiling a_tiling, VkFormatFeatureFlags 
+    a_features
+  );
   
+  // Throws std::runtime_error if physical device is null.
+  // Throws std::runtime_error if a supported format is not found.
+  VkFormat find_depth_format
+  (
+    Handle<VkInstance> const& a_instance,
+    VkPhysicalDevice a_physical_device
+  );
+
   // Can this physical device do graphics?
   // Returns false if physical device is null.
-  bool can_graphics(Handle<VkPhysicalDevice> const& a_physical_device) noexcept;
+  bool can_graphics
+  (
+    Handle<VkInstance> const& a_instance,
+    VkPhysicalDevice a_physical_device
+  ) noexcept;
 
   // Simple search for a queue family that can do graphics in this physical device.
   // Returns std::numeric_limits<uint32_t>::max() if physical device is null.
-  uint32_t first_graphics_qfi(Handle<VkPhysicalDevice> const& a_physical_device) noexcept;
+  uint32_t first_graphics_qfi
+  (
+    Handle<VkInstance> const& a_instance,
+    VkPhysicalDevice a_physical_device
+  ) noexcept;
   
   // Using the supplied properties, determine the right kind of memory to allocate.
   // Success returns the index to the value required to allocate the right type of memory. 
   // Failure throws if no matching memory found.
-  uint32_t get_memory_type_from_properties(VkPhysicalDeviceMemoryProperties const& a_properties, uint32_t a_typebits, VkMemoryPropertyFlags a_requirements);
+  uint32_t get_memory_type_from_properties
+  (
+    VkPhysicalDeviceMemoryProperties const& a_properties, 
+    uint32_t a_typebits, 
+    VkMemoryPropertyFlags a_requirements
+  );
   
   //------------------------------------------------------------------------------------------------------------------------------------------------------
   // VkSurfaceKHR
@@ -303,18 +365,45 @@ namespace sdlxvulkan
 
   // Can this physical device present to this surface?
   // Returns false it either are null.
-  bool can_present(Handle<VkPhysicalDevice> const& a_physical_device, Handle<VkSurfaceKHR> const& a_surface) noexcept;
+  bool can_present
+  (
+    Handle<VkInstance> const& a_instance,
+    VkPhysicalDevice a_physical_device, 
+    VkSurfaceKHR a_surface
+  ) noexcept;
 
   // Get the index of the first queue family that can present to this surface.
   // Returns std::numeric_limits<uint32_t>::max() if either are null.
   // Returns std::numeric_limits<uint32_t>::max() if no present queue family is
   // found.
-  uint32_t first_present_qfi(Handle<VkPhysicalDevice> const& a_physical_device, Handle<VkSurfaceKHR> const& a_surface);
+  uint32_t first_present_qfi
+  (
+    Handle<VkInstance> const& a_instance,
+    VkPhysicalDevice a_physical_device, 
+    VkSurfaceKHR a_surface
+  );
 
 
-  VkSurfaceCapabilitiesKHR get_surface_cababilites(Handle<VkPhysicalDevice> const& a_physical_device, Handle<VkSurfaceKHR> const& a_surface);
-  std::vector<VkSurfaceFormatKHR> get_surface_formats(Handle<VkPhysicalDevice> const& a_physical_device, Handle<VkSurfaceKHR> const& a_surface);
-  std::vector<VkPresentModeKHR> get_present_modes(Handle<VkPhysicalDevice> const& a_physical_device, Handle<VkSurfaceKHR> const& a_surface);
+  VkSurfaceCapabilitiesKHR get_surface_cababilites
+  (
+    Handle<VkInstance> const& a_instance,
+    VkPhysicalDevice a_physical_device, 
+    VkSurfaceKHR a_surface
+  );
+
+  std::vector<VkSurfaceFormatKHR> get_surface_formats
+  (
+    Handle<VkInstance> const& a_instance,
+    VkPhysicalDevice a_physical_device, 
+    VkSurfaceKHR a_surface
+  );
+
+  std::vector<VkPresentModeKHR> get_present_modes
+  (
+    Handle<VkInstance> const& a_instance,
+    VkPhysicalDevice a_physical_device, 
+    VkSurfaceKHR a_surface
+  );
 
 
 
@@ -332,14 +421,18 @@ namespace sdlxvulkan
   // Throws std::bad_alloc if the Handle std::shared_ptr fails to be allocated.
   Handle<VkDevice> make_device
   (
-    Handle<VkPhysicalDevice> const& a_physical_device,
+    Handle<VkInstance> const& a_instance,
+    VkPhysicalDevice a_physical_device,
     VkDeviceCreateInfo const& a_create_info,
     VkAllocationCallbacks const* a_allocation_callbacks = nullptr
   );
 
   // Get the functions for a VkDevice. If the shared_ptr is nullptr this 
   // returns nullptr, otherwise it returns the corresponding functions.
-  Device_Functions const* get_device_functions(Handle<VkDevice> const& a_device) noexcept;
+  Device_Functions const* get_device_functions
+  (
+    Handle<VkDevice> const& a_device
+  ) noexcept;
 
   //------------------------------------------------------------------------------------------------------------------------------------------------------
   // VkBuffer
@@ -366,7 +459,8 @@ namespace sdlxvulkan
   // Make a self-destroying VkBuffer.
   Handle<VkBufferView> make_buffer_view
   (
-    Handle<VkBuffer> const& a_buffer,
+    Handle<VkDevice> const& a_device,
+    VkBuffer a_buffer,
     VkBufferViewCreateInfo const& a_create_info,
     VkAllocationCallbacks const* a_allocation_callbacks = nullptr
   );
@@ -399,6 +493,7 @@ namespace sdlxvulkan
   // in the given allocate info.
   Handle<VkCommandBuffer> make_command_buffer
   (
+    Handle<VkDevice> const& a_device,
     Handle<VkCommandPool> const& a_command_pool,
     VkCommandBufferAllocateInfo const& a_allocate_info
   );
@@ -407,6 +502,7 @@ namespace sdlxvulkan
   // Destruction is independent for each so there's no batch freeing.
   std::vector<Handle<VkCommandBuffer>> make_command_buffers
   (
+    Handle<VkDevice> const& a_device,
     Handle<VkCommandPool> const& a_command_pool,
     VkCommandBufferAllocateInfo const& a_allocate_info
   );
@@ -435,18 +531,19 @@ namespace sdlxvulkan
   // It seems handles won't really work with these without type-guards on the 
   // Descriptor_Pool
 
-  // Make a self-destroying VkDescriptorSet.
-  Handle<VkDescriptorSet> make_descriptor_set
+  // Make a VkDescriptorSet.
+  VkDescriptorSet make_descriptor_set
   (
-    Handle<VkDescriptorPool> const& a_descriptor_pool,
+    Handle<VkDevice> const& a_device,
+    VkDescriptorPool a_descriptor_pool,
     VkDescriptorSetAllocateInfo const& a_allocate_info
   );
 
-  // Make a batch of self-destroying VkDescriptorSet.
-  // Destruction is independent for each so there's no batch freeing.
-  std::vector<Handle<VkDescriptorSet>> make_descriptor_sets
+  // Make a batch of VkDescriptorSet.
+  std::vector<VkDescriptorSet> make_descriptor_sets
   (
-    Handle<VkDescriptorPool> const& a_descriptor_pool,
+    Handle<VkDevice> const& a_device,
+    VkDescriptorPool a_descriptor_pool,
     VkDescriptorSetAllocateInfo const& a_allocate_info
   );
 
@@ -548,17 +645,6 @@ namespace sdlxvulkan
   // Handle<VkImage>
   //---------------------------------------------------------------------------
 
-  // An image may be parented by either a device or a swapchain. Use these to 
-  // determine which if not known beforehand.
-  bool is_image_device(Handle<VkImage> const& a_image) noexcept;
-  bool is_image_swapchain_khr(Handle<VkImage> const& a_image) noexcept;
-
-  // Get the parent handle. 
-  // Returns a null handle if the supplied handle is null, or is the wrong
-  // kind of image.
-  Handle<VkDevice> get_image_device(Handle<VkImage> const& a_image) noexcept;
-  Handle<VkSwapchainKHR> get_image_swapchain_khr(Handle<VkImage> const& a_image) noexcept;
-
   // Make a self-destroying VkImage.
   Handle<VkImage> make_image
   (
@@ -577,7 +663,8 @@ namespace sdlxvulkan
   // Make a self-destroying VkImageView.
   Handle<VkImageView> make_image_view
   (
-    Handle<VkImage> const& a_image,
+    Handle<VkDevice> const& a_device,
+    VkImage a_image,
     VkImageViewCreateInfo const& a_create_info,
     VkAllocationCallbacks const* a_allocation_callbacks = nullptr
   );
@@ -679,7 +766,7 @@ namespace sdlxvulkan
   //---------------------------------------------------------------------------
 
   // Make a self-destroying VkQueue.
-  Handle<VkQueue> make_queue
+  VkQueue make_queue
   (
     Handle<VkDevice> const& a_device,
     uint32_t a_queue_family_index,
@@ -783,7 +870,7 @@ namespace sdlxvulkan
     Handle<VkSwapchainKHR> const& a_swapchain
   );
 
-  std::vector<Handle<VkImage>> get_swapchain_images_khr
+  std::vector<VkImage> get_swapchain_images_khr
   (
     Handle<VkSwapchainKHR> const& a_swapchain
   );

@@ -492,15 +492,17 @@ namespace sdlxvulkan
 {
   namespace
   {
+    /*
     //using Physical_Device_Deleter = Blank_Instance_Destroyer<VkPhysicalDevice>;
     using Physical_Device_Deleter = Vulkan_Blank_Destroyer<VkPhysicalDevice, Handle<VkInstance>>;
 
-    Handle<VkInstance> const& get_instance(Handle<VkPhysicalDevice> const& a_physical_device) noexcept
+    Handle<VkInstance> const& get_instance(VkPhysicalDevice a_physical_device) noexcept
     {
       auto l_deleter = std::get_deleter<Physical_Device_Deleter>(a_physical_device.get_data());
       assert(l_deleter);
       return l_deleter->get<0>();
     }
+    */
 
     bool imp_is_graphics_capable(VkQueueFamilyProperties const& a_qf)
     {
@@ -519,8 +521,7 @@ namespace sdlxvulkan
         return false;
       }
     }
-
-    uint32_t imp_count_physical_device_queue_familiy_properties(Handle<VkPhysicalDevice> const& a_physical_device, Instance_Functions const* a_functions)
+    uint32_t imp_count_physical_device_queue_familiy_properties(VkPhysicalDevice a_physical_device, Instance_Functions const* a_functions)
     {
       uint32_t l_count{ 0 };
       a_functions->vkGetPhysicalDeviceQueueFamilyProperties(a_physical_device, &l_count, nullptr);
@@ -548,9 +549,12 @@ uint32_t sdlxvulkan::get_physical_device_count(Handle<VkInstance> const& a_insta
 // Returns an empty vector if Instance is null. 
 // Throws std::bad_alloc if the vector fails to be allocated.
 // Throws std::bad_alloc if any Handle std::shared_ptr fails to be allocated.
-std::vector<sdlxvulkan::Handle<VkPhysicalDevice>> sdlxvulkan::get_physical_devices(Handle<VkInstance> const& a_instance)
+std::vector<VkPhysicalDevice> sdlxvulkan::get_physical_devices
+(
+  Handle<VkInstance> const& a_instance
+)
 {
-  std::vector<Handle<VkPhysicalDevice>> l_result{};
+  std::vector<VkPhysicalDevice> l_result{};
   if (a_instance)
   {
     auto l_functions = get_instance_functions(a_instance);
@@ -560,21 +564,9 @@ std::vector<sdlxvulkan::Handle<VkPhysicalDevice>> sdlxvulkan::get_physical_devic
     uint32_t l_count{ 0 };
     l_functions->vkEnumeratePhysicalDevices(a_instance, &l_count, nullptr);
 
-    std::vector<VkPhysicalDevice> l_handles{};
-    l_handles.resize(l_count);
+    l_result.resize(l_count);
 
-    l_functions->vkEnumeratePhysicalDevices(a_instance, &l_count, l_handles.data());
-
-    l_result.reserve(l_count);
-    for (auto l_handle : l_handles)
-    {
-      //auto l_pd = make_blank_instance_child(l_handle, a_instance);
-      auto l_pd = make_blank_handle_vk(l_handle, a_instance);
-      assert(l_pd);
-      assert(l_pd.get() == l_handle);
-      assert(get_instance(l_pd));
-      l_result.push_back(std::move(l_pd));
-    }
+    l_functions->vkEnumeratePhysicalDevices(a_instance, &l_count, l_result.data());
   }
   return l_result;
 }
@@ -582,16 +574,15 @@ std::vector<sdlxvulkan::Handle<VkPhysicalDevice>> sdlxvulkan::get_physical_devic
 
 
 // Throws std::runtime_error if physical device is null.
-VkPhysicalDeviceProperties sdlxvulkan::get_physical_device_properties(Handle<VkPhysicalDevice> const& a_physical_device)
+VkPhysicalDeviceProperties sdlxvulkan::get_physical_device_properties
+(
+  Handle<VkInstance> const& a_instance, 
+  VkPhysicalDevice a_physical_device
+)
 {
-  if (!a_physical_device)
-  {
-    std::runtime_error{"Null Physical_Device"};
-  }
-  assert(a_physical_device);
-  auto const& l_instance = get_instance(a_physical_device);
-  assert(l_instance);
-  auto l_functions = get_instance_functions(l_instance);
+  assert(a_instance);
+  assert(a_physical_device != VK_NULL_HANDLE);
+  auto l_functions = get_instance_functions(a_instance);
   assert(l_functions != nullptr);
   assert(l_functions->vkGetPhysicalDeviceProperties != nullptr);
 
@@ -601,16 +592,15 @@ VkPhysicalDeviceProperties sdlxvulkan::get_physical_device_properties(Handle<VkP
 }
 
 // Throws std::runtime_error if physical device is null.
-VkPhysicalDeviceMemoryProperties sdlxvulkan::get_physical_device_memory_properties(Handle<VkPhysicalDevice> const& a_physical_device)
+VkPhysicalDeviceMemoryProperties sdlxvulkan::get_physical_device_memory_properties
+(
+  Handle<VkInstance> const& a_instance,
+  VkPhysicalDevice a_physical_device
+)
 {
-  if (!a_physical_device)
-  {
-    std::runtime_error{ "Null VkPhysicalDevice" };
-  }
-  assert(a_physical_device);
-  auto const& l_instance = get_instance(a_physical_device);
-  assert(l_instance);
-  auto l_functions = get_instance_functions(l_instance);
+  assert(a_instance);
+  assert(a_physical_device != VK_NULL_HANDLE);
+  auto l_functions = get_instance_functions(a_instance);
   assert(l_functions != nullptr);
   assert(l_functions->vkGetPhysicalDeviceMemoryProperties != nullptr);
 
@@ -620,16 +610,15 @@ VkPhysicalDeviceMemoryProperties sdlxvulkan::get_physical_device_memory_properti
 }
 
 // Throws std::runtime_error if physical device is null.
-VkPhysicalDeviceFeatures sdlxvulkan::get_physical_device_features(Handle<VkPhysicalDevice> const& a_physical_device)
+VkPhysicalDeviceFeatures sdlxvulkan::get_physical_device_features
+(
+  Handle<VkInstance> const& a_instance,
+  VkPhysicalDevice a_physical_device
+)
 {
-  if (!a_physical_device)
-  {
-    std::runtime_error{ "Null VkPhysicalDevice" };
-  }
-  assert(a_physical_device);
-  auto const& l_instance = get_instance(a_physical_device);
-  assert(l_instance);
-  auto l_functions = get_instance_functions(l_instance);
+  assert(a_instance);
+  assert(a_physical_device != VK_NULL_HANDLE);
+  auto l_functions = get_instance_functions(a_instance);
   assert(l_functions != nullptr);
   assert(l_functions->vkGetPhysicalDeviceFeatures != nullptr);
 
@@ -642,67 +631,68 @@ VkPhysicalDeviceFeatures sdlxvulkan::get_physical_device_features(Handle<VkPhysi
 
 // Throws std::runtime_error if physical device is null.
 // Throws std::bad_alloc if the vector fails to be allocated.
-std::vector<VkQueueFamilyProperties> sdlxvulkan::get_physical_device_queue_familiy_properties(Handle<VkPhysicalDevice> const& a_physical_device)
+std::vector<VkQueueFamilyProperties> sdlxvulkan::get_physical_device_queue_familiy_properties
+(
+  Handle<VkInstance> const& a_instance,
+  VkPhysicalDevice a_physical_device
+)
 {
+  assert(a_instance);
+  assert(a_physical_device != VK_NULL_HANDLE);
+  auto l_functions = get_instance_functions(a_instance);
+  assert(l_functions != nullptr);
+  assert(l_functions->vkGetPhysicalDeviceQueueFamilyProperties != nullptr);
+
   std::vector<VkQueueFamilyProperties> l_result{};
-  if (a_physical_device)
-  {
-    assert(a_physical_device);
-    auto const& l_instance = get_instance(a_physical_device);
-    assert(l_instance);
-    auto l_functions = get_instance_functions(l_instance);
-    assert(l_functions != nullptr);
-    assert(l_functions->vkGetPhysicalDeviceQueueFamilyProperties != nullptr);
+  //uint32_t l_count{ 0 };
+  //l_functions->vkGetPhysicalDeviceQueueFamilyProperties(a_physical_device, &l_count, nullptr);
 
-    //uint32_t l_count{ 0 };
-    //l_functions->vkGetPhysicalDeviceQueueFamilyProperties(a_physical_device, &l_count, nullptr);
+  uint32_t l_count = imp_count_physical_device_queue_familiy_properties(a_physical_device, l_functions);
+  l_result.resize(l_count);
 
-    uint32_t l_count = imp_count_physical_device_queue_familiy_properties(a_physical_device, l_functions);
-    l_result.resize(l_count);
-
-    l_functions->vkGetPhysicalDeviceQueueFamilyProperties(a_physical_device, &l_count, l_result.data());
-  }
+  l_functions->vkGetPhysicalDeviceQueueFamilyProperties(a_physical_device, &l_count, l_result.data());
+  
   return l_result;
 }
 
 // Throws std::runtime_error if physical device is null.
 // Throws std::bad_alloc if the vector fails to be allocated.
-std::vector<VkExtensionProperties> sdlxvulkan::get_physical_device_extension_properties(Handle<VkPhysicalDevice> const& a_physical_device)
+std::vector<VkExtensionProperties> sdlxvulkan::get_physical_device_extension_properties
+(
+  Handle<VkInstance> const& a_instance,
+  VkPhysicalDevice a_physical_device
+)
 {
-  std::vector<VkExtensionProperties> l_result{};
-  if (a_physical_device)
-  {
-    assert(a_physical_device);
-    auto const& l_instance = get_instance(a_physical_device);
-    assert(l_instance);
-    auto l_functions = get_instance_functions(l_instance);
-    assert(l_functions != nullptr);
-    assert(l_functions->vkEnumerateDeviceExtensionProperties != nullptr);
+  assert(a_instance);
+  assert(a_physical_device != VK_NULL_HANDLE);
+  auto l_functions = get_instance_functions(a_instance);
+  assert(l_functions != nullptr);
+  assert(l_functions->vkEnumerateDeviceExtensionProperties != nullptr);
 
-    uint32_t l_count{ 0 };
-    if (l_functions->vkEnumerateDeviceExtensionProperties(a_physical_device, nullptr, &l_count, nullptr) != VK_SUCCESS)
-    {
-      throw std::runtime_error{ "Vulkan: Failed to get physical device extension properties count." };
-    }
-    l_result.resize(l_count);
-    if (l_functions->vkEnumerateDeviceExtensionProperties(a_physical_device, nullptr, &l_count, l_result.data()) != VK_SUCCESS)
-    {
-      throw std::runtime_error{ "Vulkan: Failed to get physical device extension properties." };
-    }
+  std::vector<VkExtensionProperties> l_result{};
+  uint32_t l_count{ 0 };
+  if (l_functions->vkEnumerateDeviceExtensionProperties(a_physical_device, nullptr, &l_count, nullptr) != VK_SUCCESS)
+  {
+    throw std::runtime_error{ "Vulkan: Failed to get physical device extension properties count." };
   }
-  return l_result;
+  l_result.resize(l_count);
+  if (l_functions->vkEnumerateDeviceExtensionProperties(a_physical_device, nullptr, &l_count, l_result.data()) != VK_SUCCESS)
+  {
+    throw std::runtime_error{ "Vulkan: Failed to get physical device extension properties." };
+  }
+return l_result;
 }
 // Throws std::runtime_error if physical device is null.
-VkFormatProperties sdlxvulkan::get_physical_device_format_properties(Handle<VkPhysicalDevice> const& a_physical_device, VkFormat a_format)
+VkFormatProperties sdlxvulkan::get_physical_device_format_properties
+(
+  Handle<VkInstance> const& a_instance,
+  VkPhysicalDevice a_physical_device,
+  VkFormat a_format
+)
 {
-  if (!a_physical_device)
-  {
-    std::runtime_error{ "Null VkPhysicalDevice" };
-  }
-  assert(a_physical_device);
-  auto const& l_instance = get_instance(a_physical_device);
-  assert(l_instance);
-  auto l_functions = get_instance_functions(l_instance);
+  assert(a_instance);
+  assert(a_physical_device != VK_NULL_HANDLE);
+  auto l_functions = get_instance_functions(a_instance);
   assert(l_functions != nullptr);
   assert(l_functions->vkGetPhysicalDeviceFormatProperties != nullptr);
 
@@ -713,16 +703,20 @@ VkFormatProperties sdlxvulkan::get_physical_device_format_properties(Handle<VkPh
 
 // Throws std::runtime_error if physical device is null.
 // Throws std::runtime_error if a supported format is not found.
-VkFormat sdlxvulkan::find_supported_format(Handle<VkPhysicalDevice> const& a_physical_device, std::vector<VkFormat> const& a_candidates, VkImageTiling a_tiling, VkFormatFeatureFlags a_features)
+VkFormat sdlxvulkan::find_supported_format
+(
+  Handle<VkInstance> const& a_instance,
+  VkPhysicalDevice a_physical_device, 
+  std::vector<VkFormat> const& a_candidates, 
+  VkImageTiling a_tiling, 
+  VkFormatFeatureFlags a_features
+)
 {
-  if (!a_physical_device)
-  {
-    std::runtime_error{ "Null VkPhysicalDevice" };
-  }
-  assert(a_physical_device);
+  assert(a_instance);
+  assert(a_physical_device != VK_NULL_HANDLE);
   for (VkFormat l_format : a_candidates) 
   {
-   auto l_properties = get_physical_device_format_properties(a_physical_device, l_format);
+   auto l_properties = get_physical_device_format_properties(a_instance, a_physical_device, l_format);
 
    if (a_tiling == VK_IMAGE_TILING_LINEAR && (l_properties.linearTilingFeatures & a_features) == a_features)
    {
@@ -736,42 +730,80 @@ VkFormat sdlxvulkan::find_supported_format(Handle<VkPhysicalDevice> const& a_phy
   throw std::runtime_error{ "failed to find supported format!" };
 }
 
+// Throws std::runtime_error if physical device is null.
+// Throws std::runtime_error if a supported format is not found.
+VkFormat sdlxvulkan::find_depth_format
+(
+  Handle<VkInstance> const& a_instance,
+  VkPhysicalDevice a_physical_device
+)
+{
+  return find_supported_format
+  (
+    a_instance,
+    a_physical_device,
+    { VK_FORMAT_D32_SFLOAT, VK_FORMAT_D32_SFLOAT_S8_UINT, VK_FORMAT_D24_UNORM_S8_UINT },
+    VK_IMAGE_TILING_OPTIMAL,
+    VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT
+  );
+}
+
+
 // Can this physical device do graphics?
 // Returns false if physical device is null.
-bool sdlxvulkan::can_graphics(Handle<VkPhysicalDevice> const& a_physical_device) noexcept
+bool sdlxvulkan::can_graphics
+(
+  Handle<VkInstance> const& a_instance,
+  VkPhysicalDevice a_physical_device
+) noexcept
 {
-  if (a_physical_device)
+  assert(a_instance);
+  assert(a_physical_device != VK_NULL_HANDLE);
+
+  auto l_qfps = get_physical_device_queue_familiy_properties(a_instance, a_physical_device);
+  auto l_found = std::find_if(l_qfps.cbegin(), l_qfps.cend(), imp_is_graphics_capable);
+  if (l_found != l_qfps.cend())
   {
-    auto l_qfps = get_physical_device_queue_familiy_properties(a_physical_device);
-    auto l_found = std::find_if(l_qfps.cbegin(), l_qfps.cend(), imp_is_graphics_capable);
-    if (l_found != l_qfps.cend())
-    {
-      return true;
-    }
+    return true;
   }
-  return false;
+  else
+  {
+    return false;
+  }  
 }
 
 // Simple search for a queue family that can do graphics in this physical device.
 // Returns std::numeric_limits<uint32_t>::max() if physical device is null.
-uint32_t sdlxvulkan::first_graphics_qfi(Handle<VkPhysicalDevice> const& a_physical_device) noexcept
+uint32_t sdlxvulkan::first_graphics_qfi
+(
+  Handle<VkInstance> const& a_instance,
+  VkPhysicalDevice a_physical_device
+) noexcept
 {
-  if (a_physical_device)
+  assert(a_instance);
+  assert(a_physical_device != VK_NULL_HANDLE);
+
+  auto l_qfps = get_physical_device_queue_familiy_properties(a_instance, a_physical_device);
+  auto l_found = std::find_if(l_qfps.cbegin(), l_qfps.cend(), imp_is_graphics_capable);
+  if (l_found != l_qfps.cend())
   {
-    auto l_qfps = get_physical_device_queue_familiy_properties(a_physical_device);
-    auto l_found = std::find_if(l_qfps.cbegin(), l_qfps.cend(), imp_is_graphics_capable);
-    if (l_found != l_qfps.cend())
-    {
-      return static_cast<uint32_t>(std::distance(l_qfps.cbegin(), l_found));
-    }
+    return static_cast<uint32_t>(std::distance(l_qfps.cbegin(), l_found));
   }
-  return std::numeric_limits<uint32_t>::max();
+  else
+  {
+    return std::numeric_limits<uint32_t>::max();
+  }
 }
 
 // Using the supplied properties, determine the right kind of memory to allocate.
 // Success returns the index to the value required to allocate the right type of memory. 
 // Failure throws if no matching memory found.
-uint32_t sdlxvulkan::get_memory_type_from_properties(VkPhysicalDeviceMemoryProperties const& a_properties, uint32_t a_typebits, VkMemoryPropertyFlags a_requirements)
+uint32_t sdlxvulkan::get_memory_type_from_properties
+(
+  VkPhysicalDeviceMemoryProperties const& a_properties, 
+  uint32_t a_typebits, 
+  VkMemoryPropertyFlags a_requirements
+)
 {
   // Search memtypes to find first index with those properties
   for (uint32_t i = 0; i < a_properties.memoryTypeCount; i++)
@@ -802,8 +834,8 @@ namespace sdlxvulkan
 {
   namespace
   {
-    using Surface_KHR_Deleter = Vulkan_Destroyer<VkSurfaceKHR, VkInstance, Handle<VkInstance>, Window>;
-
+    using Surface_KHR_Deleter = Vulkan_Destroyer<VkSurfaceKHR, VkInstance, Handle<VkInstance>>;
+    /*
     Handle<VkInstance> const& get_instance(Handle<VkSurfaceKHR> const& a_surface) noexcept
     {
       auto l_deleter = std::get_deleter<Surface_KHR_Deleter>(a_surface.get_data());
@@ -817,11 +849,11 @@ namespace sdlxvulkan
       assert(l_deleter);
       return l_deleter->get<1>();
     }
-
-    bool is_present_capable(Handle<VkPhysicalDevice> const& a_physical_device, uint32_t a_qfi, Handle<VkSurfaceKHR> const& a_surface, Instance_Functions const* a_functions)
+    */
+    bool is_present_capable(VkPhysicalDevice a_physical_device, uint32_t a_qfi, VkSurfaceKHR a_surface, Instance_Functions const* a_functions)
     {
-      assert(a_physical_device != nullptr);
-      assert(a_surface != nullptr);
+      assert(a_physical_device != VK_NULL_HANDLE);
+      assert(a_surface != VK_NULL_HANDLE);
       assert(a_functions != nullptr);
       assert(a_functions->vkGetPhysicalDeviceSurfaceSupportKHR != nullptr);
       VkBool32 l_qf_can_present{ VK_FALSE };
@@ -853,29 +885,32 @@ sdlxvulkan::Handle<VkSurfaceKHR> sdlxvulkan::make_surface_khr
   {
     throw std::runtime_error("SDL: Failed to create a VkSurfaceKHR.");
   }
-  auto l_caught = make_unique_vk( l_surface, a_instance.get(), nullptr, l_functions->vkDestroySurfaceKHR, std::make_tuple(a_instance, a_window) );
+  auto l_caught = make_unique_vk( l_surface, a_instance.get(), nullptr, l_functions->vkDestroySurfaceKHR, std::make_tuple(a_instance) );
   return Handle<VkSurfaceKHR>{ Vulkan_Sptr<VkSurfaceKHR>{std::move(l_caught)} };
 }
 
 // Can this physical device present to this surface?
 // Returns false it either are null.
-bool sdlxvulkan::can_present(Handle<VkPhysicalDevice> const& a_physical_device, Handle<VkSurfaceKHR> const& a_surface) noexcept
+bool sdlxvulkan::can_present
+(
+  Handle<VkInstance> const& a_instance,
+  VkPhysicalDevice a_physical_device, 
+  VkSurfaceKHR a_surface
+) noexcept
 {
-  if (a_physical_device && a_surface)
+  assert(a_instance);
+  assert(a_physical_device != VK_NULL_HANDLE);
+  assert(a_surface != VK_NULL_HANDLE);
+  auto l_functions = get_instance_functions(a_instance);
+  assert(l_functions != nullptr);
+
+  // probably should just ge the count...
+  auto l_count = imp_count_physical_device_queue_familiy_properties(a_physical_device, l_functions);
+  for (uint32_t l_index = 0; l_index != l_count; ++l_index)
   {
-    assert(a_physical_device);
-    auto const& l_instance = get_instance(a_physical_device);
-    assert(l_instance);
-    auto l_functions = get_instance_functions(l_instance);
-    assert(l_functions != nullptr);
-    // probably should just ge the count...
-    auto l_count = imp_count_physical_device_queue_familiy_properties(a_physical_device, l_functions);
-    for (uint32_t l_index = 0; l_index != l_count; ++l_index)
+    if (is_present_capable(a_physical_device, l_index, a_surface, l_functions))
     {
-      if (is_present_capable(a_physical_device, l_index, a_surface, l_functions))
-      {
-        return true;
-      }
+      return true;
     }
   }
   return false;
@@ -885,37 +920,41 @@ bool sdlxvulkan::can_present(Handle<VkPhysicalDevice> const& a_physical_device, 
 // Returns std::numeric_limits<uint32_t>::max() if either are null.
 // Returns std::numeric_limits<uint32_t>::max() if no present queue family is
 // found.
-uint32_t sdlxvulkan::first_present_qfi(Handle<VkPhysicalDevice> const& a_physical_device, Handle<VkSurfaceKHR> const& a_surface)
+uint32_t sdlxvulkan::first_present_qfi
+(
+  Handle<VkInstance> const& a_instance,
+  VkPhysicalDevice a_physical_device, 
+  VkSurfaceKHR a_surface
+)
 {
-  if (a_physical_device && a_surface)
+  assert(a_instance);
+  assert(a_physical_device != VK_NULL_HANDLE);
+  assert(a_surface != VK_NULL_HANDLE);
+  auto l_functions = get_instance_functions(a_instance);
+  assert(l_functions != nullptr);
+
+  auto l_count = imp_count_physical_device_queue_familiy_properties(a_physical_device, l_functions);
+  for (uint32_t l_index = 0; l_index != l_count; ++l_index)
   {
-    assert(a_physical_device);
-    auto const& l_instance = get_instance(a_physical_device);
-    assert(l_instance);
-    auto l_functions = get_instance_functions(l_instance);
-    assert(l_functions != nullptr);
-    auto l_count = imp_count_physical_device_queue_familiy_properties(a_physical_device, l_functions);
-    for (uint32_t l_index = 0; l_index != l_count; ++l_index)
+    if (is_present_capable(a_physical_device, l_index, a_surface, l_functions))
     {
-      if (is_present_capable(a_physical_device, l_index, a_surface, l_functions))
-      {
-        return l_index;
-      }
+      return l_index;
     }
   }
   return std::numeric_limits<uint32_t>::max();
 }
 
-VkSurfaceCapabilitiesKHR sdlxvulkan::get_surface_cababilites(Handle<VkPhysicalDevice> const& a_physical_device, Handle<VkSurfaceKHR> const& a_surface)
+VkSurfaceCapabilitiesKHR sdlxvulkan::get_surface_cababilites
+(
+  Handle<VkInstance> const& a_instance,
+  VkPhysicalDevice a_physical_device, 
+  VkSurfaceKHR a_surface
+)
 {
-  if (!a_physical_device || !a_surface)
-  {
-    std::runtime_error{ "Null argument supplied" };
-  }
-  assert(a_physical_device);
-  auto const& l_instance = get_instance(a_physical_device);
-  assert(l_instance);
-  auto l_functions = get_instance_functions(l_instance);
+  assert(a_instance);
+  assert(a_physical_device != VK_NULL_HANDLE);
+  assert(a_surface != VK_NULL_HANDLE);
+  auto l_functions = get_instance_functions(a_instance);
   assert(l_functions != nullptr);
   assert(l_functions->vkGetPhysicalDeviceSurfaceCapabilitiesKHR != nullptr);
 
@@ -927,55 +966,61 @@ VkSurfaceCapabilitiesKHR sdlxvulkan::get_surface_cababilites(Handle<VkPhysicalDe
   return l_result;
 }
 
-std::vector<VkSurfaceFormatKHR> sdlxvulkan::get_surface_formats(Handle<VkPhysicalDevice> const& a_physical_device, Handle<VkSurfaceKHR> const& a_surface)
+std::vector<VkSurfaceFormatKHR> sdlxvulkan::get_surface_formats
+(
+  Handle<VkInstance> const& a_instance,
+  VkPhysicalDevice a_physical_device, 
+  VkSurfaceKHR a_surface
+)
 {
-  std::vector<VkSurfaceFormatKHR> l_result{};
-  if (a_physical_device && a_surface)
-  {
-    assert(a_physical_device);
-    auto const& l_instance = get_instance(a_physical_device);
-    assert(l_instance);
-    auto l_functions = get_instance_functions(l_instance);
-    assert(l_functions != nullptr);
-    assert(l_functions->vkGetPhysicalDeviceSurfaceFormatsKHR != nullptr);
+  assert(a_instance);
+  assert(a_physical_device != VK_NULL_HANDLE);
+  assert(a_surface != VK_NULL_HANDLE);
+  auto l_functions = get_instance_functions(a_instance);
+  assert(l_functions != nullptr);
+  assert(l_functions->vkGetPhysicalDeviceSurfaceFormatsKHR != nullptr);
 
-    uint32_t l_count{ 0 };
-    if (l_functions->vkGetPhysicalDeviceSurfaceFormatsKHR(a_physical_device, a_surface, &l_count, nullptr) != VK_SUCCESS)
-    {
-      throw std::runtime_error{ "Vulkan: Failed to get surface format count." };
-    }
-    l_result.resize(l_count);
-    if (l_functions->vkGetPhysicalDeviceSurfaceFormatsKHR(a_physical_device, a_surface, &l_count, l_result.data()) != VK_SUCCESS)
-    {
-      throw std::runtime_error{ "Vulkan: Failed to get surface formats." };
-    }
+  std::vector<VkSurfaceFormatKHR> l_result{};
+  uint32_t l_count{ 0 };
+  if (l_functions->vkGetPhysicalDeviceSurfaceFormatsKHR(a_physical_device, a_surface, &l_count, nullptr) != VK_SUCCESS)
+  {
+    throw std::runtime_error{ "Vulkan: Failed to get surface format count." };
+  }
+  l_result.resize(l_count);
+  if (l_functions->vkGetPhysicalDeviceSurfaceFormatsKHR(a_physical_device, a_surface, &l_count, l_result.data()) != VK_SUCCESS)
+  {
+    throw std::runtime_error{ "Vulkan: Failed to get surface formats." };
   }
   return l_result;
 }
 
-std::vector<VkPresentModeKHR> sdlxvulkan::get_present_modes(Handle<VkPhysicalDevice> const& a_physical_device, Handle<VkSurfaceKHR> const& a_surface)
+std::vector<VkPresentModeKHR> sdlxvulkan::get_present_modes
+(
+  Handle<VkInstance> const& a_instance,
+  VkPhysicalDevice a_physical_device, 
+  VkSurfaceKHR a_surface
+)
 {
-  std::vector<VkPresentModeKHR> l_result{};
-  if (a_physical_device && a_surface)
-  {
-    assert(a_physical_device);
-    auto const& l_instance = get_instance(a_physical_device);
-    assert(l_instance);
-    auto l_functions = get_instance_functions(l_instance);
-    assert(l_functions != nullptr);
-    assert(l_functions->vkGetPhysicalDeviceSurfacePresentModesKHR != nullptr);
+  assert(a_instance);
+  assert(a_physical_device != VK_NULL_HANDLE);
+  assert(a_surface != VK_NULL_HANDLE);
+  auto l_functions = get_instance_functions(a_instance);
+  assert(l_functions != nullptr);
+  assert(l_functions->vkGetPhysicalDeviceSurfacePresentModesKHR != nullptr);
 
-    uint32_t l_count{ 0 };
-    if (l_functions->vkGetPhysicalDeviceSurfacePresentModesKHR(a_physical_device, a_surface, &l_count, nullptr) != VK_SUCCESS)
-    {
-      throw std::runtime_error{ "Vulkan: Failed to get surface present modes." };
-    }
-    l_result.resize(l_count);
-    if (l_functions->vkGetPhysicalDeviceSurfacePresentModesKHR(a_physical_device, a_surface, &l_count, l_result.data()) != VK_SUCCESS)
-    {
-      throw std::runtime_error{ "Vulkan: Failed to get surface present modes." };
-    }
+  std::vector<VkPresentModeKHR> l_result{};
+ 
+  uint32_t l_count{ 0 };
+  if (l_functions->vkGetPhysicalDeviceSurfacePresentModesKHR(a_physical_device, a_surface, &l_count, nullptr) != VK_SUCCESS)
+  {
+    throw std::runtime_error{ "Vulkan: Failed to get surface present modes." };
   }
+  l_result.resize(l_count);
+  if (l_functions->vkGetPhysicalDeviceSurfacePresentModesKHR(a_physical_device, a_surface, &l_count, l_result.data()) != VK_SUCCESS)
+  {
+    throw std::runtime_error{ "Vulkan: Failed to get surface present modes." };
+  }
+  
   return l_result;
 }
 
@@ -1007,15 +1052,15 @@ namespace sdlxvulkan
 // Throws std::bad_alloc if the Handle std::shared_ptr fails to be allocated.
 sdlxvulkan::Handle<VkDevice> sdlxvulkan::make_device
 (
-  Handle<VkPhysicalDevice> const& a_physical_device,
+  Handle<VkInstance> const& a_instance,
+  VkPhysicalDevice a_physical_device,
   VkDeviceCreateInfo const& a_create_info,
   VkAllocationCallbacks const* a_allocation_callbacks
 )
 {
-  assert(a_physical_device != nullptr);
-  auto const& l_instance = std::get_deleter<Physical_Device_Deleter>(a_physical_device.get_data())->get<0>();
-  assert(l_instance);
-  auto l_instance_funcs = get_instance_functions(l_instance);
+  assert(a_instance);
+  assert(a_physical_device != VK_NULL_HANDLE);
+  auto l_instance_funcs = get_instance_functions(a_instance);
   assert(l_instance_funcs != nullptr);
   assert(l_instance_funcs->vkCreateDevice != nullptr);
   assert(l_instance_funcs->vkGetDeviceProcAddr != nullptr);
@@ -1027,14 +1072,17 @@ sdlxvulkan::Handle<VkDevice> sdlxvulkan::make_device
   Device_Functions l_functions{ l_device, *l_instance_funcs };
 
   using Deleter_Type = Device_Destroyer;
-  Vulkan_Uptr<VkDevice, Deleter_Type> l_caught{ l_device, Deleter_Type{ l_instance, a_allocation_callbacks, std::move(l_functions) } };
+  Vulkan_Uptr<VkDevice, Deleter_Type> l_caught{ l_device, Deleter_Type{ a_instance, a_allocation_callbacks, std::move(l_functions) } };
   return Handle<VkDevice>{ Vulkan_Sptr<VkDevice>{std::move(l_caught)} };
 }
 
 
 // Get the functions for a VkDevice. If the shared_ptr is nullptr this 
 // returns nullptr, otherwise it returns the corresponding functions.
-sdlxvulkan::Device_Functions const* sdlxvulkan::get_device_functions(Handle<VkDevice> const& a_device) noexcept
+sdlxvulkan::Device_Functions const* sdlxvulkan::get_device_functions
+(
+  Handle<VkDevice> const& a_device
+) noexcept
 {
   if (a_device != nullptr)
   {
@@ -1093,32 +1141,33 @@ namespace sdlxvulkan
 {
   namespace
   {
-    using Buffer_View_Deleter = Vulkan_Destroyer<VkBufferView, VkDevice, Handle<VkBuffer>>;
-
+    using Buffer_View_Deleter = Vulkan_Destroyer<VkBufferView, VkDevice, Handle<VkDevice>>;
+    /*
     Handle<VkBuffer> const& getbuffer(Handle<VkBufferView> const& a_handle) noexcept
     {
       assert(a_handle);
       return std::get_deleter<Buffer_View_Deleter>(a_handle.get_data())->get<0>();
     }
+    */
   }
 }
 
 // Make a self-destroying VkBuffer.
 sdlxvulkan::Handle<VkBufferView> sdlxvulkan::make_buffer_view
 (
-  Handle<VkBuffer> const& a_buffer,
+  Handle<VkDevice> const& a_device,
+  VkBuffer a_buffer,
   VkBufferViewCreateInfo const& a_create_info,
   VkAllocationCallbacks const* a_allocation_callbacks
 )
 {
-  assert(a_buffer != nullptr);
-  auto const& l_device = get_device(a_buffer);
-  assert(l_device != nullptr);
-  auto l_functions = get_device_functions(l_device);
+  assert(a_device);
+  assert(a_buffer != VK_NULL_HANDLE);
+  auto l_functions = get_device_functions(a_device);
   assert(l_functions != nullptr);
 
   // How are we going to convert from buffer to device...
-  return make_device_child(l_device, a_create_info, a_allocation_callbacks, l_functions->vkCreateBufferView, l_functions->vkDestroyBufferView, a_buffer); 
+  return make_device_child(a_device, a_create_info, a_allocation_callbacks, l_functions->vkCreateBufferView, l_functions->vkDestroyBufferView, a_buffer); 
   // for now just stuff buffer in here for now
 }
 
@@ -1176,11 +1225,13 @@ namespace sdlxvulkan
     public:
       // Member Data
       //============================================================
+      Handle<VkDevice> m_device;
       Handle<VkCommandPool> m_command_pool;
 
       // Special 6
       //============================================================
-      explicit Single_Command_Buffer_Destroyer(Handle<VkCommandPool> const& a_command_pool) :
+      explicit Single_Command_Buffer_Destroyer(Handle<VkDevice> const& a_device, Handle<VkCommandPool> const& a_command_pool) :
+        m_device{ a_device },
         m_command_pool{ a_command_pool }
       {
         assert(m_command_pool);
@@ -1190,11 +1241,10 @@ namespace sdlxvulkan
       //============================================================
       void operator()(VkCommandBuffer a_command_buffer) const noexcept
       {
-        auto const& l_device = get_device(m_command_pool);
-        auto l_functions = get_device_functions(l_device);
+        auto l_functions = get_device_functions(m_device);
         assert(l_functions);
         assert(l_functions->vkFreeCommandBuffers != nullptr);
-        l_functions->vkFreeCommandBuffers(l_device, m_command_pool, 1, &a_command_buffer);
+        l_functions->vkFreeCommandBuffers(m_device, m_command_pool, 1, &a_command_buffer);
       }
     };
 
@@ -1263,21 +1313,21 @@ namespace sdlxvulkan
 
     std::vector<VkCommandBuffer> imp_make_except_command_buffers
     (
+      Handle<VkDevice> const& a_device,
       Handle<VkCommandPool> const& a_command_pool,
       VkCommandBufferAllocateInfo const& a_allocate_info
     )
     {
+      assert(a_device);
       assert(a_command_pool);
-      auto const& l_device = get_device(a_command_pool);
-      assert(l_device);
-      auto l_functions = get_device_functions(l_device);
+      auto l_functions = get_device_functions(a_device);
       assert(l_functions != nullptr);
       assert(l_functions->vkAllocateCommandBuffers != nullptr);
       assert(l_functions->vkFreeCommandBuffers != nullptr);
       // Construct with size and all null handle
       std::vector<VkCommandBuffer> l_result{ a_allocate_info.commandBufferCount, VK_NULL_HANDLE };
 
-      if (l_functions->vkAllocateCommandBuffers(l_device, &a_allocate_info, l_result.data()) != VK_SUCCESS)
+      if (l_functions->vkAllocateCommandBuffers(a_device, &a_allocate_info, l_result.data()) != VK_SUCCESS)
       {
         throw std::runtime_error{ "Vulkan: Failed to create command buffers." };
       }
@@ -1287,13 +1337,14 @@ namespace sdlxvulkan
 
     VkCommandBuffer imp_make_except_command_buffer
     (
+      Handle<VkDevice> const& a_device,
       Handle<VkCommandPool> const& a_command_pool,
       VkCommandBufferAllocateInfo const& a_allocate_info
     )
     {
       VkCommandBufferAllocateInfo l_allocate_info = a_allocate_info;
       l_allocate_info.commandBufferCount = 1;
-      return imp_make_except_command_buffers(a_command_pool, l_allocate_info).front();
+      return imp_make_except_command_buffers(a_device, a_command_pool, l_allocate_info).front();
     }
 
   }
@@ -1313,24 +1364,23 @@ namespace sdlxvulkan
 // in the given allocate info.
 sdlxvulkan::Handle<VkCommandBuffer> sdlxvulkan::make_command_buffer
 (
+  Handle<VkDevice> const& a_device,
   Handle<VkCommandPool> const& a_command_pool,
   VkCommandBufferAllocateInfo const& a_allocate_info
 )
 {
   assert(a_command_pool);
   assert(a_allocate_info.commandPool == a_command_pool.get());
-  auto const& l_device = get_device(a_command_pool);
-  assert(l_device);
-  auto l_functions = get_device_functions(l_device);
+  assert(a_device);
+  auto l_functions = get_device_functions(a_device);
   assert(l_functions);
   assert(l_functions->vkAllocateCommandBuffers != nullptr);
   assert(l_functions->vkFreeCommandBuffers != nullptr);
 
-  VkCommandBuffer l_handle = imp_make_except_command_buffer(a_command_pool, a_allocate_info);
-
-  //using Deleter_Type = Single_Command_Buffer_Destroyer;
+  VkCommandBuffer l_handle = imp_make_except_command_buffer(a_device, a_command_pool, a_allocate_info);
   
-  Vulkan_Uptr<VkCommandBuffer, Command_Buffer_Destroyer> l_caught{ l_handle, Command_Buffer_Destroyer{ l_device.get(), a_command_pool.get(), l_functions->vkFreeCommandBuffers, std::make_tuple(a_command_pool) } };
+  using Deleter_Type = Command_Buffer_Destroyer;
+  Vulkan_Uptr<VkCommandBuffer, Deleter_Type> l_caught{ l_handle, Deleter_Type{ a_device.get(), a_command_pool.get(), l_functions->vkFreeCommandBuffers, std::make_tuple(a_command_pool) } };
   return Handle<VkCommandBuffer>{ Vulkan_Sptr<VkCommandBuffer>{std::move(l_caught)} };
 }
 
@@ -1338,34 +1388,34 @@ sdlxvulkan::Handle<VkCommandBuffer> sdlxvulkan::make_command_buffer
 // Destruction is independent for each so there's no batch freeing.
 std::vector<sdlxvulkan::Handle<VkCommandBuffer>> sdlxvulkan::make_command_buffers
 (
+  Handle<VkDevice> const& a_device,
   Handle<VkCommandPool> const& a_command_pool,
   VkCommandBufferAllocateInfo const& a_allocate_info
 )
 {
+  assert(a_device);
   assert(a_command_pool);
   assert(a_allocate_info.commandPool == a_command_pool.get());
-  auto const& l_device = get_device(a_command_pool);
-  assert(l_device);
-  auto l_functions = get_device_functions(l_device);
+  auto l_functions = get_device_functions(a_device);
   assert(l_functions);
   assert(l_functions->vkAllocateCommandBuffers != nullptr);
   assert(l_functions->vkFreeCommandBuffers != nullptr);
 
   // Start by making sure we have aquired enough memory to capture the Vulkan handles.
-  using Deleter_Type = Single_Command_Buffer_Destroyer;
+  using Deleter_Type = Command_Buffer_Destroyer;
   std::vector<Vulkan_Uptr<VkCommandBuffer, Deleter_Type>> l_caught_ptrs{ };
 
   // This allocation could throw, if it does there's nothing special to clean up.
   l_caught_ptrs.reserve(a_allocate_info.commandBufferCount);
 
   // If this breaks no resources leak
-  auto l_raw_command_buffers = imp_make_except_command_buffers(a_command_pool, a_allocate_info); 
+  auto l_raw_command_buffers = imp_make_except_command_buffers(a_device, a_command_pool, a_allocate_info);
 
   // Now  put them all in the unique_ptr, none of this should throw.
   for (auto l_raw_command_buffer : l_raw_command_buffers)
   {
     assert(l_raw_command_buffer != VK_NULL_HANDLE);
-    Vulkan_Uptr<VkCommandBuffer, Deleter_Type> l_caught{ l_raw_command_buffer, Single_Command_Buffer_Destroyer{ a_command_pool } };
+    Vulkan_Uptr<VkCommandBuffer, Deleter_Type> l_caught{ l_raw_command_buffer, Deleter_Type{ a_device.get(), a_command_pool.get(), l_functions->vkFreeCommandBuffers, std::make_tuple(a_command_pool) } };
     l_caught_ptrs.push_back(std::move(l_caught));
   }
   // Now every handle has a deleter.
@@ -1441,21 +1491,21 @@ namespace sdlxvulkan
 
     std::vector<VkDescriptorSet> imp_make_descriptor_sets
     (
-      Handle<VkDescriptorPool> const& a_descriptor_pool,
+      Handle<VkDevice> const& a_device,
+      VkDescriptorPool a_descriptor_pool,
       VkDescriptorSetAllocateInfo const& a_allocate_info
     )
     {
-      assert(a_descriptor_pool);
-      auto const& l_device = get_device(a_descriptor_pool);
-      assert(l_device);
-      auto l_functions = get_device_functions(l_device);
+      assert(a_device);
+      assert(a_descriptor_pool != VK_NULL_HANDLE);
+      auto l_functions = get_device_functions(a_device);
       assert(l_functions != nullptr);
       assert(l_functions->vkAllocateDescriptorSets != nullptr);
       assert(l_functions->vkFreeDescriptorSets != nullptr);
       // Construct with size and all null handle
       std::vector<VkDescriptorSet> l_result{ a_allocate_info.descriptorSetCount, VK_NULL_HANDLE };
 
-      if (l_functions->vkAllocateDescriptorSets(l_device, &a_allocate_info, l_result.data()) != VK_SUCCESS)
+      if (l_functions->vkAllocateDescriptorSets(a_device, &a_allocate_info, l_result.data()) != VK_SUCCESS)
       {
         throw std::runtime_error{ "Vulkan: Failed to create descriptor sets." };
       }
@@ -1468,47 +1518,45 @@ namespace sdlxvulkan
 
 
 // Make a self-destroying VkDescriptorSet.
-sdlxvulkan::Handle<VkDescriptorSet> sdlxvulkan::make_descriptor_set
+VkDescriptorSet sdlxvulkan::make_descriptor_set
 (
-  Handle<VkDescriptorPool> const& a_descriptor_pool,
+  Handle<VkDevice> const& a_device,
+  VkDescriptorPool a_descriptor_pool,
   VkDescriptorSetAllocateInfo const& a_allocate_info
 )
 {
-  assert(a_descriptor_pool);
-  assert(a_allocate_info.descriptorPool == a_descriptor_pool.get());
+  assert(a_device);
+  assert(a_descriptor_pool != VK_NULL_HANDLE);
+  assert(a_allocate_info.descriptorPool == a_descriptor_pool);
   assert(a_allocate_info.descriptorSetCount == 1);
-  auto const& l_device = get_device(a_descriptor_pool);
-  assert(l_device);
-  auto l_functions = get_device_functions(l_device);
+  auto l_functions = get_device_functions(a_device);
   assert(l_functions);
   assert(l_functions->vkAllocateDescriptorSets != nullptr);
   assert(l_functions->vkFreeDescriptorSets != nullptr); // not actually used? or sometimes used?....erk
 
-  VkDescriptorSet l_raw_handle = imp_make_descriptor_sets(a_descriptor_pool, a_allocate_info).front();
-  //static_assert(std::is_same_v<PFN_vkFreeDescriptorSets, typename Descriptor_Set_Destroyer::Destroyer_Func_Type>,"Bad function type match.");
-
-  //Vulkan_Uptr<VkDescriptorSet, Descriptor_Set_Destroyer> l_caught{ l_handle, Descriptor_Set_Destroyer{ l_device.get(), a_descriptor_pool.get(), l_functions->vkFreeDescriptorSets, std::make_tuple(a_descriptor_pool) } };
-  Vulkan_Uptr<VkDescriptorSet, Descriptor_Set_Destroyer> l_caught{ l_raw_handle, Descriptor_Set_Destroyer{ std::make_tuple(a_descriptor_pool) } };
-  return Handle<VkDescriptorSet>{ Vulkan_Sptr<VkDescriptorSet>{std::move(l_caught)} };
+  //VkDescriptorSet l_raw_handle = imp_make_descriptor_sets(a_device, a_descriptor_pool, a_allocate_info).front();
+  //Vulkan_Uptr<VkDescriptorSet, Descriptor_Set_Destroyer> l_caught{ l_raw_handle, Descriptor_Set_Destroyer{ std::make_tuple(a_descriptor_pool) } };
+  //return Handle<VkDescriptorSet>{ Vulkan_Sptr<VkDescriptorSet>{std::move(l_caught)} };
+  return imp_make_descriptor_sets(a_device, a_descriptor_pool, a_allocate_info).front();
 }
 
 // Make a batch of self-destroying VkDescriptorSet.
 // Destruction is independent for each so there's no batch freeing.
-std::vector<sdlxvulkan::Handle<VkDescriptorSet>> sdlxvulkan::make_descriptor_sets
+std::vector<VkDescriptorSet> sdlxvulkan::make_descriptor_sets
 (
-  Handle<VkDescriptorPool> const& a_descriptor_pool,
+  Handle<VkDevice> const& a_device,
+  VkDescriptorPool a_descriptor_pool,
   VkDescriptorSetAllocateInfo const& a_allocate_info
 )
 {
-  assert(a_descriptor_pool);
-  assert(a_allocate_info.descriptorPool == a_descriptor_pool.get());
-  auto const& l_device = get_device(a_descriptor_pool);
-  assert(l_device);
-  auto l_functions = get_device_functions(l_device);
+  assert(a_device);
+  assert(a_descriptor_pool != VK_NULL_HANDLE);
+  assert(a_allocate_info.descriptorPool == a_descriptor_pool);
+  auto l_functions = get_device_functions(a_device);
   assert(l_functions);
   assert(l_functions->vkAllocateDescriptorSets != nullptr);
   assert(l_functions->vkFreeDescriptorSets != nullptr);
-  
+  /*
   // Start by making sure we have aquired enough memory to capture the Vulkan handles.
   using Deleter_Type = Descriptor_Set_Destroyer;
   std::vector<Vulkan_Uptr<VkDescriptorSet, Deleter_Type>> l_caught_ptrs{};
@@ -1517,7 +1565,7 @@ std::vector<sdlxvulkan::Handle<VkDescriptorSet>> sdlxvulkan::make_descriptor_set
   l_caught_ptrs.reserve(a_allocate_info.descriptorSetCount);
 
   // If this breaks no resources leak
-  auto l_raw_handles = imp_make_descriptor_sets(a_descriptor_pool, a_allocate_info);
+  auto l_raw_handles = imp_make_descriptor_sets(a_device, a_descriptor_pool, a_allocate_info);
 
   // Now  put them all in the unique_ptr, none of this should throw.
   for (auto l_raw_handle : l_raw_handles)
@@ -1546,6 +1594,8 @@ std::vector<sdlxvulkan::Handle<VkDescriptorSet>> sdlxvulkan::make_descriptor_set
 
   assert(l_result.size() == a_allocate_info.descriptorSetCount);
   return l_result;
+  */
+  return imp_make_descriptor_sets(a_device, a_descriptor_pool, a_allocate_info);
 }
 
 //------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -1770,9 +1820,9 @@ namespace sdlxvulkan
   namespace
   {
     using Image_Deleter = Vulkan_Destroyer<VkImage, VkDevice, Handle<VkDevice>>;
-
-    using Swapchain_Image_Deleter = Vulkan_Blank_Destroyer<VkImage, Handle<VkSwapchainKHR>>;
     /*
+    using Swapchain_Image_Deleter = Vulkan_Blank_Destroyer<VkImage, Handle<VkSwapchainKHR>>;
+    
     Handle<VkDevice> const& get_image_device(Handle<VkImage> const& a_handle) noexcept
     {
       assert(a_handle);
@@ -1780,7 +1830,7 @@ namespace sdlxvulkan
       assert(l_deleter);
       return l_deleter->get<0>();
     }
-    */
+    
     decltype(auto) get_image_device_deleter(Handle<VkImage> const& a_image) noexcept
     {
       return std::get_deleter<Image_Deleter>(a_image.get_data());
@@ -1789,10 +1839,10 @@ namespace sdlxvulkan
     decltype(auto) get_image_swapchain_deleter(Handle<VkImage> const& a_image) noexcept
     {
       return std::get_deleter<Swapchain_Image_Deleter>(a_image.get_data());
-    }
+    }*/
   }
 }
-
+/*
 bool sdlxvulkan::is_image_device(Handle<VkImage> const& a_image) noexcept
 {
   return get_image_device_deleter(a_image) != nullptr;
@@ -1830,7 +1880,7 @@ sdlxvulkan::Handle<VkSwapchainKHR> sdlxvulkan::get_image_swapchain_khr(Handle<Vk
     return Handle<VkSwapchainKHR>{};
   }
 }
-
+*/
 
 // Make a self-destroying VkImage.
 sdlxvulkan::Handle<VkImage> sdlxvulkan::make_image
@@ -1857,36 +1907,32 @@ namespace sdlxvulkan
 {
   namespace
   {
-    using Image_View_Deleter = Vulkan_Destroyer<VkImageView, VkDevice, Handle<VkImage>>;
-
+    using Image_View_Deleter = Vulkan_Destroyer<VkImageView, VkDevice, Handle<VkDevice>>;
+    /*
     Handle<VkImage> const& get_image(Handle<VkImageView> const& a_handle) noexcept
     {
       assert(a_handle);
       return std::get_deleter<Image_View_Deleter>(a_handle.get_data())->get<0>();
     }
+    */
   }
 }
 
 // Make a self-destroying VkImageView.
 sdlxvulkan::Handle<VkImageView> sdlxvulkan::make_image_view
 (
-  Handle<VkImage> const& a_image,
+  Handle<VkDevice> const& a_device,
+  VkImage a_image,
   VkImageViewCreateInfo const& a_create_info,
   VkAllocationCallbacks const* a_allocation_callbacks
 )
 {
-  assert(a_image);
-  auto l_device = get_image_device(a_image);
-  if (!l_device)
-  {
-    auto l_swapchain = get_image_swapchain_khr(a_image);
-    assert(l_swapchain);
-    l_device = get_swapchain_device_khr(l_swapchain);
-  }
-  assert(l_device);
-  auto l_functions = get_device_functions(l_device);
+  assert(a_device);
+  assert(a_image != VK_NULL_HANDLE);
+  auto l_functions = get_device_functions(a_device);
   assert(l_functions != nullptr);
-  return make_device_child(l_device, a_create_info, a_allocation_callbacks, l_functions->vkCreateImageView, l_functions->vkDestroyImageView, a_image);
+  assert(a_image);
+  return make_device_child(a_device, a_create_info, a_allocation_callbacks, l_functions->vkCreateImageView, l_functions->vkDestroyImageView, a_device);
 }
 
 //------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -2155,7 +2201,7 @@ sdlxvulkan::Handle<VkQueryPool> sdlxvulkan::make_query_pool
 //---------------------------------------------------------------------------
 
 // Make a self-destroying VkQueue.
-sdlxvulkan::Handle<VkQueue> sdlxvulkan::make_queue
+VkQueue sdlxvulkan::make_queue
 (
   Handle<VkDevice> const& a_device,
   uint32_t a_queue_family_index,
@@ -2173,8 +2219,8 @@ sdlxvulkan::Handle<VkQueue> sdlxvulkan::make_queue
   {
     throw std::runtime_error{ "Vulkan: Failed to create a queue." };
   }
-
-  return make_blank_device_child(l_queue, a_device);
+  return l_queue;
+  //return make_blank_device_child(l_queue, a_device);
 }
 
 //------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -2418,7 +2464,7 @@ uint32_t sdlxvulkan::get_swapchain_image_count_khr
   return l_count;
 }
 
-std::vector<sdlxvulkan::Handle<VkImage>> sdlxvulkan::get_swapchain_images_khr
+std::vector<VkImage> sdlxvulkan::get_swapchain_images_khr
 (
   Handle<VkSwapchainKHR> const& a_swapchain
 )
@@ -2445,6 +2491,8 @@ std::vector<sdlxvulkan::Handle<VkImage>> sdlxvulkan::get_swapchain_images_khr
   {
     throw std::runtime_error{ "Vulkan: Failed to get swapchain images." };
   }
+  return l_raw_image_vector;
+  /*
   std::vector<sdlxvulkan::Handle<VkImage>> l_image_vector{};
   l_image_vector.reserve(l_count);
 
@@ -2461,6 +2509,7 @@ std::vector<sdlxvulkan::Handle<VkImage>> sdlxvulkan::get_swapchain_images_khr
 
   assert(l_image_vector.size() == l_count);
   return l_image_vector;
+  */
 }
 
 // Shared Swapchains???????

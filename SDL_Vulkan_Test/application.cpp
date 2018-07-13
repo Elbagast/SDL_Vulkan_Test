@@ -31,135 +31,142 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
-namespace
+namespace sdlxvulkan
 {
-  
-  struct Vertex
+  namespace
   {
-    glm::vec3 pos;
-    glm::vec3 color;
-    glm::vec2 texCoord;
 
-    static auto get_binding_description()
+    struct Example_Vertex
     {
-      VkVertexInputBindingDescription l_binding_description {};
-      l_binding_description.binding = 0;
-      l_binding_description.stride = sizeof(Vertex);
-      l_binding_description.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
+      glm::vec3 pos;
+      glm::vec3 color;
+      glm::vec2 texCoord;
 
-      return l_binding_description;
-    }
+      static auto get_binding_description()
+      {
+        VkVertexInputBindingDescription l_binding_description{};
+        l_binding_description.binding = 0;
+        l_binding_description.stride = sizeof(Example_Vertex);
+        l_binding_description.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
 
-    static auto get_attribute_descriptions() 
+        return l_binding_description;
+      }
+
+      static auto get_attribute_descriptions()
+      {
+        std::array<VkVertexInputAttributeDescription, 3> l_attribute_descriptions{};
+
+        l_attribute_descriptions[0].binding = 0;
+        l_attribute_descriptions[0].location = 0;
+        l_attribute_descriptions[0].format = VK_FORMAT_R32G32B32_SFLOAT;
+        l_attribute_descriptions[0].offset = offsetof(Example_Vertex, pos);
+
+        l_attribute_descriptions[1].binding = 0;
+        l_attribute_descriptions[1].location = 1;
+        l_attribute_descriptions[1].format = VK_FORMAT_R32G32B32_SFLOAT;
+        l_attribute_descriptions[1].offset = offsetof(Example_Vertex, color);
+
+        l_attribute_descriptions[2].binding = 0;
+        l_attribute_descriptions[2].location = 2;
+        l_attribute_descriptions[2].format = VK_FORMAT_R32G32_SFLOAT;
+        l_attribute_descriptions[2].offset = offsetof(Example_Vertex, texCoord);
+
+        return l_attribute_descriptions;
+      }
+
+      static auto get_attribute_descriptions_vector()
+      {
+        std::vector<VkVertexInputAttributeDescription> l_attribute_descriptions{};
+        l_attribute_descriptions.resize(3);
+
+        l_attribute_descriptions[0].binding = 0;
+        l_attribute_descriptions[0].location = 0;
+        l_attribute_descriptions[0].format = VK_FORMAT_R32G32B32_SFLOAT;
+        l_attribute_descriptions[0].offset = offsetof(Example_Vertex, pos);
+
+        l_attribute_descriptions[1].binding = 0;
+        l_attribute_descriptions[1].location = 1;
+        l_attribute_descriptions[1].format = VK_FORMAT_R32G32B32_SFLOAT;
+        l_attribute_descriptions[1].offset = offsetof(Example_Vertex, color);
+
+        l_attribute_descriptions[2].binding = 0;
+        l_attribute_descriptions[2].location = 2;
+        l_attribute_descriptions[2].format = VK_FORMAT_R32G32_SFLOAT;
+        l_attribute_descriptions[2].offset = offsetof(Example_Vertex, texCoord);
+
+        return l_attribute_descriptions;
+      }
+    };
+
+    static std::vector<Example_Vertex> const c_vertices =
     {
-      std::array<VkVertexInputAttributeDescription, 3> l_attribute_descriptions {};
+      { { -0.5f, -0.5f, 0.0f },{ 1.0f, 0.0f, 0.0f },{ 0.0f, 0.0f } },
+      { { 0.5f, -0.5f, 0.0f },{ 0.0f, 1.0f, 0.0f },{ 1.0f, 0.0f } },
+      { { 0.5f, 0.5f, 0.0f },{ 0.0f, 0.0f, 1.0f },{ 1.0f, 1.0f } },
+      { { -0.5f, 0.5f, 0.0f },{ 1.0f, 1.0f, 1.0f },{ 0.0f, 1.0f } },
 
-      l_attribute_descriptions[0].binding = 0;
-      l_attribute_descriptions[0].location = 0;
-      l_attribute_descriptions[0].format = VK_FORMAT_R32G32B32_SFLOAT;
-      l_attribute_descriptions[0].offset = offsetof(Vertex, pos);
-
-      l_attribute_descriptions[1].binding = 0;
-      l_attribute_descriptions[1].location = 1;
-      l_attribute_descriptions[1].format = VK_FORMAT_R32G32B32_SFLOAT;
-      l_attribute_descriptions[1].offset = offsetof(Vertex, color);
-
-      l_attribute_descriptions[2].binding = 0;
-      l_attribute_descriptions[2].location = 2;
-      l_attribute_descriptions[2].format = VK_FORMAT_R32G32_SFLOAT;
-      l_attribute_descriptions[2].offset = offsetof(Vertex, texCoord);
-
-      return l_attribute_descriptions;
-    }
-
-    static auto get_attribute_descriptions_vector()
+      { { -0.5f, -0.5f, -0.5f },{ 1.0f, 0.0f, 0.0f },{ 0.0f, 0.0f } },
+      { { 0.5f, -0.5f, -0.5f },{ 0.0f, 1.0f, 0.0f },{ 1.0f, 0.0f } },
+      { { 0.5f, 0.5f, -0.5f },{ 0.0f, 0.0f, 1.0f },{ 1.0f, 1.0f } },
+      { { -0.5f, 0.5f, -0.5f },{ 1.0f, 1.0f, 1.0f },{ 0.0f, 1.0f } }
+    };
+    static std::vector<uint32_t> const c_indices =
     {
-      std::vector<VkVertexInputAttributeDescription> l_attribute_descriptions{};
-      l_attribute_descriptions.resize(3);
+      0, 1, 2, 2, 3, 0,
+      4, 5, 6, 6, 7, 4
+    };
 
-      l_attribute_descriptions[0].binding = 0;
-      l_attribute_descriptions[0].location = 0;
-      l_attribute_descriptions[0].format = VK_FORMAT_R32G32B32_SFLOAT;
-      l_attribute_descriptions[0].offset = offsetof(Vertex, pos);
-
-      l_attribute_descriptions[1].binding = 0;
-      l_attribute_descriptions[1].location = 1;
-      l_attribute_descriptions[1].format = VK_FORMAT_R32G32B32_SFLOAT;
-      l_attribute_descriptions[1].offset = offsetof(Vertex, color);
-
-      l_attribute_descriptions[2].binding = 0;
-      l_attribute_descriptions[2].location = 2;
-      l_attribute_descriptions[2].format = VK_FORMAT_R32G32_SFLOAT;
-      l_attribute_descriptions[2].offset = offsetof(Vertex, texCoord);
-
-      return l_attribute_descriptions;
-    }
-  };
-
-  static std::vector<Vertex> const c_vertices = 
-  {
-    { { -0.5f, -0.5f, 0.0f },{ 1.0f, 0.0f, 0.0f },{ 0.0f, 0.0f } },
-    { { 0.5f, -0.5f, 0.0f },{ 0.0f, 1.0f, 0.0f },{ 1.0f, 0.0f } },
-    { { 0.5f, 0.5f, 0.0f },{ 0.0f, 0.0f, 1.0f },{ 1.0f, 1.0f } },
-    { { -0.5f, 0.5f, 0.0f },{ 1.0f, 1.0f, 1.0f },{ 0.0f, 1.0f } },
-
-    { { -0.5f, -0.5f, -0.5f },{ 1.0f, 0.0f, 0.0f },{ 0.0f, 0.0f } },
-    { { 0.5f, -0.5f, -0.5f },{ 0.0f, 1.0f, 0.0f },{ 1.0f, 0.0f } },
-    { { 0.5f, 0.5f, -0.5f },{ 0.0f, 0.0f, 1.0f },{ 1.0f, 1.0f } },
-    { { -0.5f, 0.5f, -0.5f },{ 1.0f, 1.0f, 1.0f },{ 0.0f, 1.0f } }
-  };
-  static std::vector<uint16_t> const c_indices = 
-  {
-    0, 1, 2, 2, 3, 0,
-    4, 5, 6, 6, 7, 4
-  };
-
-  struct Uniform_Buffer_Object 
-  {
-    glm::mat4 model;
-    glm::mat4 view;
-    glm::mat4 proj;
-  };
+    struct Example_Uniform_Buffer_Object
+    {
+      glm::mat4 model;
+      glm::mat4 view;
+      glm::mat4 proj;
+    };
 
 
 
-  // Make sure environment variable VK_LAYER_PATH is set to the Vulkan binary path
-  // e.g. 
+    // Make sure environment variable VK_LAYER_PATH is set to the Vulkan binary path
+    // e.g. 
 
 
 #ifdef NDEBUG
-  constexpr bool c_enable_validation_layers = false;
-  std::vector<std::string> const c_extension_names{  };
-  std::vector<std::string> const c_validation_layers { };
+    constexpr bool c_enable_validation_layers = false;
+    std::vector<std::string> const c_extension_names{  };
+    std::vector<std::string> const c_validation_layers{ };
 #else
-  constexpr bool c_enable_validation_layers = true;
-  std::vector<std::string> const c_extension_names{ VK_EXT_DEBUG_REPORT_EXTENSION_NAME };
-  std::vector<std::string> const c_validation_layers = { "VK_LAYER_LUNARG_standard_validation" };
-  //std::vector<std::string> const c_extension_names{  };
-  //std::vector<std::string> const c_validation_layers = {  };
+    constexpr bool c_enable_validation_layers = true;
+    std::vector<std::string> const c_extension_names{ VK_EXT_DEBUG_REPORT_EXTENSION_NAME };
+    std::vector<std::string> const c_validation_layers = { "VK_LAYER_LUNARG_standard_validation" };
+    //std::vector<std::string> const c_extension_names{  };
+    //std::vector<std::string> const c_validation_layers = {  };
 #endif
 
-  constexpr size_t c_frames_in_flight{ 2 };
-  constexpr uint32_t c_start_width{ 800 };
-  constexpr uint32_t c_start_height{ 600 };
+    // This is the number of frames we will buffer for. The swap chain MIGHT 
+    // have a different number.
+    constexpr size_t c_frames_in_flight{ 2 };
 
-  std::string const c_application_name = "SDL x Vulkan";
-  uint32_t const c_application_version = VK_MAKE_VERSION(1, 0, 0);
-  std::string const c_engine_name = "No Engine";
-  uint32_t const c_engine_version = VK_MAKE_VERSION(1, 0, 0);
-  uint32_t const c_vulkan_version = VK_API_VERSION_1_1;
-  
 
-  std::vector<std::string> const c_device_extension_names{ VK_KHR_SWAPCHAIN_EXTENSION_NAME };
-  
-  // Callback function that is given to Vulkan. It will interpret
-  // the user data void* as an Abstract_Debug_Callback* and call
-  // Abstract_Debug_Callback::do_callback on it with the arguments.
-  // Always returns VK_FALSE.
-  VKAPI_ATTR VkBool32 VKAPI_CALL debug_callback(VkDebugReportFlagsEXT a_flags, VkDebugReportObjectTypeEXT a_obj_type, uint64_t a_obj, size_t a_location, int32_t a_code, const char* a_layer_prefix, const char* a_msg, void* a_user_data)
-  {
-    std::cerr << "DEBUG: " << a_msg << std::endl << std::endl;
-    return VK_FALSE;
+    constexpr uint32_t c_start_width{ 800 };
+    constexpr uint32_t c_start_height{ 600 };
+
+    std::string const c_application_name = "SDL x Vulkan";
+    uint32_t const c_application_version = VK_MAKE_VERSION(1, 0, 0);
+    std::string const c_engine_name = "No Engine";
+    uint32_t const c_engine_version = VK_MAKE_VERSION(1, 0, 0);
+    uint32_t const c_vulkan_version = VK_API_VERSION_1_1;
+
+
+    std::vector<std::string> const c_device_extension_names{ VK_KHR_SWAPCHAIN_EXTENSION_NAME };
+
+    // Callback function that is given to Vulkan. It will interpret
+    // the user data void* as an Abstract_Debug_Callback* and call
+    // Abstract_Debug_Callback::do_callback on it with the arguments.
+    // Always returns VK_FALSE.
+    VKAPI_ATTR VkBool32 VKAPI_CALL debug_callback(VkDebugReportFlagsEXT a_flags, VkDebugReportObjectTypeEXT a_obj_type, uint64_t a_obj, size_t a_location, int32_t a_code, const char* a_layer_prefix, const char* a_msg, void* a_user_data)
+    {
+      std::cerr << "DEBUG: " << a_msg << std::endl << std::endl;
+      return VK_FALSE;
+    }
   }
 }
 
@@ -187,7 +194,7 @@ namespace sdlxvulkan
     //--------------------
     // Physical Device
 
-    Handle<VkPhysicalDevice> m_physical_device;
+    VkPhysicalDevice m_physical_device;
 
     // Caching...
     VkPhysicalDeviceFeatures m_supported_features;
@@ -203,8 +210,8 @@ namespace sdlxvulkan
     Handle<VkDevice> m_device;
     Device_Functions const* m_device_functions;
 
-    Handle<VkQueue> m_graphics_queue;
-    Handle<VkQueue> m_present_queue;
+    VkQueue m_graphics_queue;
+    VkQueue m_present_queue;
 
     Handle<VkCommandPool> m_command_pool;
 
@@ -232,7 +239,7 @@ namespace sdlxvulkan
     Image_Trio m_depth;
     
     Handle<VkDescriptorPool> m_descriptor_pool;
-    std::vector<Handle<VkDescriptorSet>> m_descriptor_sets;
+    std::vector<VkDescriptorSet> m_descriptor_sets;
 
     Handle<VkRenderPass> m_render_pass;
     
@@ -276,7 +283,7 @@ namespace sdlxvulkan
                 
     void resize();
             
-    void write_commands();
+    void write_commands(uint32_t a_swapchain_image_index);
     
     void draw_frame();
 
@@ -322,42 +329,42 @@ sdlxvulkan::Application::Implementation::Implementation(int argc, char** argv) :
   m_debug_callback{ app_make_debug_report_callback_ext(m_instance, VK_DEBUG_REPORT_ERROR_BIT_EXT | VK_DEBUG_REPORT_WARNING_BIT_EXT, debug_callback) },
   m_surface{ make_surface_khr(m_instance, m_window) },
   m_physical_device{ get_physical_devices(m_instance).front() },
-  m_supported_features{ get_physical_device_features(m_physical_device) },
+  m_supported_features{ get_physical_device_features(m_instance, m_physical_device) },
   m_required_features{ app_make_required_device_features(m_supported_features) },
-  m_depth_format{ find_depth_format(m_physical_device) },
+  m_depth_format{ find_depth_format(m_instance, m_physical_device) },
 
   // If we wanted to manage queue families in more detail then stuff goes here.
-  m_graphics_qfi{ first_graphics_qfi(m_physical_device) },
-  m_present_qfi{ first_present_qfi(m_physical_device, m_surface) },
-  m_device{ app_make_device(m_physical_device, m_graphics_qfi, m_present_qfi, m_required_features, c_device_extension_names) },
+  m_graphics_qfi{ first_graphics_qfi(m_instance, m_physical_device) },
+  m_present_qfi{ first_present_qfi(m_instance, m_physical_device, m_surface) },
+  m_device{ app_make_device(m_instance, m_physical_device, m_graphics_qfi, m_present_qfi, m_required_features, c_device_extension_names) },
   m_device_functions{ get_device_functions(m_device) },
 
   m_graphics_queue{ make_queue(m_device, m_graphics_qfi, 0) },
   m_present_queue{ make_queue(m_device, m_present_qfi, 0) },
 
-  m_command_pool{ app_make_command_pool(m_device, m_graphics_qfi, 0) },
+  m_command_pool{ app_make_command_pool(m_device, m_graphics_qfi, VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT) },
   
   m_descriptor_set_layout{ app_make_descriptor_set_layout(m_device) },
 
   m_shaders{ app_make_shader_group(m_device, m_args[0]) },
   
   //m_texture_data{ get_filepath(m_args[0], u8"texture.jpg") },
-  m_texture{ app_make_texture_image_trio(m_physical_device, m_device, m_command_pool, m_graphics_queue, get_filepath(m_args[0], u8"texture.jpg")) },
+  m_texture{ app_make_texture_image_trio(m_instance, m_physical_device, m_device, m_command_pool, m_graphics_queue, get_filepath(m_args[0], u8"textures\\example.jpg")) },
   m_sampler{ app_make_sampler(m_device, m_required_features) },
 
-  m_swapchain{ app_make_swapchain(m_window, m_physical_device, m_device, m_surface, m_graphics_qfi, m_present_qfi) },
+  m_swapchain{ app_make_swapchain(m_window, m_instance, m_physical_device, m_device, m_surface, m_graphics_qfi, m_present_qfi, c_frames_in_flight) },
   
-  m_vertex{ app_make_vertex_buffer_pair(m_physical_device, m_device, m_command_pool, m_graphics_queue, sizeof(c_vertices[0]) * c_vertices.size(), c_vertices.data()) },
+  m_vertex{ app_make_vertex_buffer_pair(m_instance, m_physical_device, m_device, m_command_pool, m_graphics_queue, sizeof(c_vertices[0]) * c_vertices.size(), c_vertices.data()) },
   
-  m_index{ app_make_index_buffer_pair(m_physical_device, m_device, m_command_pool, m_graphics_queue, sizeof(c_indices[0]) * c_indices.size(), c_indices.data()) },
+  m_index{ app_make_index_buffer_pair(m_instance, m_physical_device, m_device, m_command_pool, m_graphics_queue, sizeof(c_indices[0]) * c_indices.size(), c_indices.data()) },
 
-  m_uniforms{ app_make_uniforms(m_physical_device, m_device, m_swapchain.image_count, sizeof(Uniform_Buffer_Object)) },
+  m_uniforms{ app_make_uniforms(m_instance, m_physical_device, m_device, c_frames_in_flight, sizeof(Example_Uniform_Buffer_Object)) },
 
-  m_depth{ app_make_depth_image_trio(m_physical_device, m_device, m_command_pool, m_graphics_queue, m_swapchain.extent.width, m_swapchain.extent.height) },
+  m_depth{ app_make_depth_image_trio(m_instance, m_physical_device, m_device, m_command_pool, m_graphics_queue, m_swapchain.extent.width, m_swapchain.extent.height) },
 
-  m_descriptor_pool{ app_make_descriptor_pool(m_device, m_swapchain.image_count) },
+  m_descriptor_pool{ app_make_descriptor_pool(m_device, c_frames_in_flight) },
 
-  m_descriptor_sets{ app_make_descriptor_sets(m_device, m_descriptor_set_layout, m_descriptor_pool, m_swapchain, m_texture, m_sampler, m_uniforms, sizeof(Uniform_Buffer_Object)) },
+  m_descriptor_sets{ app_make_descriptor_sets(m_device, m_descriptor_set_layout, m_descriptor_pool, m_texture, m_sampler, m_uniforms, sizeof(Example_Uniform_Buffer_Object), c_frames_in_flight) },
 
   // Render Pass
   m_render_pass{ app_make_render_pass(m_device, m_swapchain.format, m_depth_format) },
@@ -367,16 +374,16 @@ sdlxvulkan::Application::Implementation::Implementation(int argc, char** argv) :
   m_scissor{ app_make_scissor(m_swapchain) },
   m_pipeline_cache{ app_make_pipeline_cache(m_device) },
   m_pipeline_layout{ app_make_pipeline_layout(m_device, m_descriptor_set_layout) },
-  m_pipeline{ app_make_dynamic_pipeline(m_device, m_pipeline_cache, m_pipeline_layout, m_render_pass, m_shaders, {Vertex::get_binding_description()}, Vertex::get_attribute_descriptions_vector()) },//, { m_viewport }, { m_scissor }) },
+  m_pipeline{ app_make_dynamic_pipeline(m_device, m_pipeline_cache, m_pipeline_layout, m_render_pass, m_shaders, {Example_Vertex::get_binding_description()}, Example_Vertex::get_attribute_descriptions_vector()) },//, { m_viewport }, { m_scissor }) },
 
   m_swapchain_framebuffers{ app_make_swapchain_framebuffers(m_device, m_swapchain, m_render_pass, m_depth) },
 
-  m_command_buffers{ app_make_command_buffers(m_command_pool, VK_COMMAND_BUFFER_LEVEL_PRIMARY, m_swapchain.image_count) },
+  m_command_buffers{ app_make_command_buffers(m_device, m_command_pool, VK_COMMAND_BUFFER_LEVEL_PRIMARY, c_frames_in_flight) },
 
   // Sync Objects
-  m_image_available_semaphores{ app_make_semaphores(m_device, m_swapchain.image_count) },
-  m_render_finished_semaphores{ app_make_semaphores(m_device, m_swapchain.image_count) },
-  m_fences{ app_make_fences(m_device, m_swapchain.image_count, VK_FENCE_CREATE_SIGNALED_BIT) },
+  m_image_available_semaphores{ app_make_semaphores(m_device, c_frames_in_flight) },
+  m_render_finished_semaphores{ app_make_semaphores(m_device, c_frames_in_flight) },
+  m_fences{ app_make_fences(m_device, c_frames_in_flight, VK_FENCE_CREATE_SIGNALED_BIT) },
   m_current_frame{0}
 {
   std::cout << "Application::Implementation::Implementation(argc, * argv)" << std::endl;
@@ -387,7 +394,7 @@ sdlxvulkan::Application::Implementation::Implementation(int argc, char** argv) :
     std::cout << i << std::endl;
   }
 
-  write_commands();
+  //write_commands();
 }
 
 sdlxvulkan::Application::Implementation::~Implementation() = default;
@@ -494,6 +501,7 @@ void sdlxvulkan::Application::Implementation::main_loop()
     }
     update_uniform_buffer();
     // Drawing
+    //write_commands();
     draw_frame();
     ++l_frame_count;
 
@@ -506,7 +514,7 @@ void sdlxvulkan::Application::Implementation::main_loop()
       l_quit = true;
     }
 
-
+    //std::cout << std::endl << std::endl << std::endl;
     // Tick rate limit
     //SDL_Delay(32); //~30FPS
     //SDL_Delay(16); //~60FPS
@@ -531,7 +539,7 @@ void sdlxvulkan::Application::Implementation::resize()
   m_device_functions->vkDeviceWaitIdle(m_device);
 
   // Reset all the associated command buffers instead of completely remaking them
-  m_device_functions->vkResetCommandPool(m_device, m_command_pool, 0);
+  //m_device_functions->vkResetCommandPool(m_device, m_command_pool, 0);
 
   // At this point the window size has changed already.
   auto l_width = static_cast<uint32_t>(m_window.draw_width());
@@ -541,7 +549,7 @@ void sdlxvulkan::Application::Implementation::resize()
   // render image to the new size. Since the current setup is still valid, but not
   // optimal, we build then swap in things that need to change.
 
-  auto l_new_swapchain = app_make_swapchain(m_window, m_physical_device, m_device, m_surface, m_graphics_qfi, m_present_qfi, m_swapchain);
+  auto l_new_swapchain = app_make_swapchain(m_window, m_instance, m_physical_device, m_device, m_surface, m_graphics_qfi, m_present_qfi, c_frames_in_flight, m_swapchain);
   auto l_new_viewport = app_make_viewport(l_new_swapchain);
   auto l_new_scissor = app_make_scissor(l_new_swapchain);
 
@@ -551,7 +559,7 @@ void sdlxvulkan::Application::Implementation::resize()
   // Only make a new one if the swapchain format changed.
   if (l_new_swapchain.format != m_swapchain.format)
   {
-    std::cout << "render pass changed" << std::endl;
+    //std::cout << "render pass changed" << std::endl;
     l_new_render_pass = app_make_render_pass(m_device, l_new_swapchain.format, m_depth_format);
   }
   else
@@ -567,7 +575,7 @@ void sdlxvulkan::Application::Implementation::resize()
   // we have no choice but to rebuild the pipeline entirely.
   if (l_new_render_pass != m_render_pass)
   {
-    l_new_pipeline = app_make_dynamic_pipeline(m_device, m_pipeline_cache, m_pipeline_layout, l_new_render_pass, m_shaders, { Vertex::get_binding_description() }, Vertex::get_attribute_descriptions_vector());// , { l_new_viewport }, { l_new_scissor });
+    l_new_pipeline = app_make_dynamic_pipeline(m_device, m_pipeline_cache, m_pipeline_layout, l_new_render_pass, m_shaders, { Example_Vertex::get_binding_description() }, Example_Vertex::get_attribute_descriptions_vector());// , { l_new_viewport }, { l_new_scissor });
   }
   // Else we only have dynamic changes that get handled in drawing.
   else
@@ -577,7 +585,7 @@ void sdlxvulkan::Application::Implementation::resize()
   }
 
   // Make a new depth buffer because it must have the new size.
-  auto l_new_depth = app_make_depth_image_trio(m_physical_device, m_device, m_command_pool, m_graphics_queue, l_new_swapchain.extent.width, l_new_swapchain.extent.height);
+  auto l_new_depth = app_make_depth_image_trio(m_instance, m_physical_device, m_device, m_command_pool, m_graphics_queue, l_new_swapchain.extent.width, l_new_swapchain.extent.height);
 
   // Remake the framebuffers since they rely on the new swapchain
   auto l_new_swapchain_framebuffers = app_make_swapchain_framebuffers(m_device, l_new_swapchain, l_new_render_pass, l_new_depth);
@@ -592,76 +600,124 @@ void sdlxvulkan::Application::Implementation::resize()
   std::swap(l_new_swapchain_framebuffers, m_swapchain_framebuffers);
   
   // rebuild the commands since these don't change each frame right now.
-  write_commands();
+  //write_commands();
 }
 
 
-void sdlxvulkan::Application::Implementation::write_commands()
+void sdlxvulkan::Application::Implementation::write_commands(uint32_t a_swapchain_image_index)
 {
   // Currently just preloads the draw commands into all the command buffers.
-  for (size_t l_index = 0; l_index != m_command_buffers.size(); l_index++)
+  //for (size_t l_index = 0; l_index != m_command_buffers.size(); l_index++)
+  //{
+
+  // Reset so we can write again
+  m_device_functions->vkResetCommandBuffer(m_command_buffers[m_current_frame], 0);
+
+  
+  VkCommandBufferBeginInfo l_begin_info = {};
+  l_begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+  l_begin_info.flags = VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT;
+  l_begin_info.pInheritanceInfo = nullptr; // Optional
+
+  if (m_device_functions->vkBeginCommandBuffer(m_command_buffers[m_current_frame], &l_begin_info) != VK_SUCCESS)
   {
-    VkCommandBufferBeginInfo l_begin_info = {};
-    l_begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-    l_begin_info.flags = VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT;
-    l_begin_info.pInheritanceInfo = nullptr; // Optional
-
-    if (m_device_functions->vkBeginCommandBuffer(m_command_buffers[l_index], &l_begin_info) != VK_SUCCESS)
-    {
-      throw std::runtime_error("Vulkan: Failed to begin recording command buffer.");
-    }
-
-    // got to do this every time things get drawn with a dynamic pipeline.
-    m_device_functions->vkCmdSetViewport(m_command_buffers[l_index], 0, 1, &m_viewport);
-    m_device_functions->vkCmdSetScissor(m_command_buffers[l_index], 0, 1, &m_scissor);
-
-    
-    std::array<VkClearValue, 2> l_clear_values = {};
-
-    // colour image
-    l_clear_values[0].color = { 0.0f, 0.0f, 0.0f, 1.0f };
-    l_clear_values[0].depthStencil = { 0.0f, 0 }; // ignored
-
-    // depth image
-    l_clear_values[0].color = { 0.0f, 0.0f, 0.0f, 0.0f }; // ignored
-    l_clear_values[1].depthStencil = { 1.0f, 0 };
-
-    VkRenderPassBeginInfo l_render_pass_info = {};
-    l_render_pass_info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-    l_render_pass_info.renderPass = m_render_pass;
-    l_render_pass_info.framebuffer = m_swapchain_framebuffers[l_index];
-    l_render_pass_info.renderArea.offset = { 0, 0 };
-    l_render_pass_info.renderArea.extent = m_swapchain.extent;
-    l_render_pass_info.clearValueCount = static_cast<uint32_t>(l_clear_values.size());
-    l_render_pass_info.pClearValues = l_clear_values.data();
-
-    m_device_functions->vkCmdBeginRenderPass(m_command_buffers[l_index], &l_render_pass_info, VK_SUBPASS_CONTENTS_INLINE);
-
-    m_device_functions->vkCmdBindPipeline(m_command_buffers[l_index], VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipeline);
-    
-    VkBuffer l_vertex_buffers[] { m_vertex.buffer };
-    VkDeviceSize l_offsets[] = { 0 };
-    m_device_functions->vkCmdBindVertexBuffers(m_command_buffers[l_index], 0, 1, l_vertex_buffers, l_offsets);
-
-    // Bind the index buffer - there can be only one
-    m_device_functions->vkCmdBindIndexBuffer(m_command_buffers[l_index], m_index.buffer, 0, VK_INDEX_TYPE_UINT16);
-
-    std::array<VkDescriptorSet, 1> l_descriptor_set{ m_descriptor_sets[l_index] };
-
-    m_device_functions->vkCmdBindDescriptorSets(m_command_buffers[l_index], VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipeline_layout, 0, 1, l_descriptor_set.data(), 0, nullptr);
-
-    // Now we draw using the indices
-    m_device_functions->vkCmdDrawIndexed(m_command_buffers[l_index], static_cast<uint32_t>(c_indices.size()), 1, 0, 0, 0);
-    
-    m_device_functions->vkCmdEndRenderPass(m_command_buffers[l_index]);
-
-    if (m_device_functions->vkEndCommandBuffer(m_command_buffers[l_index]) != VK_SUCCESS)
-    {
-      throw std::runtime_error("Vulkan: Failed to record command buffer.");
-    }
-
-    std::cout << "Commands recorded to index = " << l_index << std::endl;
+    throw std::runtime_error("Vulkan: Failed to begin recording command buffer.");
   }
+
+  // got to do this every time things get drawn with a dynamic pipeline.
+  m_device_functions->vkCmdSetViewport(m_command_buffers[m_current_frame], 0, 1, &m_viewport);
+  m_device_functions->vkCmdSetScissor(m_command_buffers[m_current_frame], 0, 1, &m_scissor);
+
+    
+  std::array<VkClearValue, 2> l_clear_values = {};
+
+  // colour image
+  l_clear_values[0].color = { 0.0f, 0.0f, 0.0f, 1.0f };
+  l_clear_values[0].depthStencil = { 0.0f, 0 }; // ignored
+
+  // depth image
+  l_clear_values[0].color = { 0.0f, 0.0f, 0.0f, 0.0f }; // ignored
+  l_clear_values[1].depthStencil = { 1.0f, 0 };
+
+  /*
+  // Try and draw a background image
+  VkImageBlit l_region{};
+  l_region.srcSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+  l_region.srcSubresource.mipLevel = 0;
+  l_region.srcSubresource.baseArrayLayer = 0;
+  l_region.srcSubresource.layerCount = 1;
+  l_region.srcOffsets[0] = { 0,0,0 };
+  l_region.srcOffsets[1] = { 512,512,1 }; //z must be 1 here for 1D, 2D images
+  l_region.dstSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+  l_region.dstSubresource.mipLevel = 0;
+  l_region.dstSubresource.baseArrayLayer = 0;
+  l_region.dstSubresource.layerCount = 1;
+  l_region.dstOffsets[0] = { 0,0,0 };
+  l_region.dstOffsets[1] = { static_cast<int32_t>(m_swapchain.extent.width), static_cast<int32_t>(m_swapchain.extent.height),1 }; //z must be 1 here for 1D, 2D images
+  
+  // Can't do this in a render pass.
+  // Also the framebuffer gets cleared at the start of a renderpass...
+  m_device_functions->vkCmdBlitImage(m_command_buffers[m_current_frame], m_texture.image, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, m_swapchain.images[a_swapchain_image_index], VK_IMAGE_LAYOUT_PRESENT_SRC_KHR, 1, &l_region, VK_FILTER_LINEAR);
+  
+  // Ok this isn't the way to do this for a swapchain image
+  */
+
+  VkRenderPassBeginInfo l_render_pass_info = {};
+  l_render_pass_info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+  l_render_pass_info.renderPass = m_render_pass;
+  l_render_pass_info.framebuffer = m_swapchain_framebuffers[a_swapchain_image_index];
+  l_render_pass_info.renderArea.offset = { 0, 0 };
+  l_render_pass_info.renderArea.extent = m_swapchain.extent;
+  l_render_pass_info.clearValueCount = static_cast<uint32_t>(l_clear_values.size());
+  l_render_pass_info.pClearValues = l_clear_values.data();
+
+  m_device_functions->vkCmdBeginRenderPass(m_command_buffers[m_current_frame], &l_render_pass_info, VK_SUBPASS_CONTENTS_INLINE);
+
+  m_device_functions->vkCmdBindPipeline(m_command_buffers[m_current_frame], VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipeline);
+    
+  std::array<VkBuffer,1> l_vertex_buffers{ m_vertex.buffer };
+  VkDeviceSize l_offsets[] = { 0 };
+  m_device_functions->vkCmdBindVertexBuffers(m_command_buffers[m_current_frame], 0, 1, l_vertex_buffers.data(), l_offsets);
+  
+  // Bind the index buffer - there can be only one
+  m_device_functions->vkCmdBindIndexBuffer(m_command_buffers[m_current_frame], m_index.buffer, 0, VK_INDEX_TYPE_UINT32);
+
+  std::array<VkDescriptorSet, 1> l_descriptor_set{ m_descriptor_sets[m_current_frame] };
+
+  m_device_functions->vkCmdBindDescriptorSets(m_command_buffers[m_current_frame], VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipeline_layout, 0, 1, l_descriptor_set.data(), 0, nullptr);
+
+  /*
+  VkImageResolve l_region{};
+  l_region.srcSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+  l_region.srcSubresource.mipLevel = 0;
+  l_region.srcSubresource.baseArrayLayer = 0;
+  l_region.srcSubresource.layerCount = 1;
+  l_region.srcOffset = { 0,0,0 };
+  l_region.dstSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+  l_region.dstSubresource.mipLevel = 0;
+  l_region.dstSubresource.baseArrayLayer = 0;
+  l_region.dstSubresource.layerCount = 1;
+  l_region.dstOffset = { 0,0,0 };
+  l_region.extent.width = 512;
+  l_region.extent.height = 512;
+  l_region.extent.depth = 1;
+
+  m_device_functions->vkCmdResolveImage(m_command_buffers[m_current_frame], m_texture.image, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, m_swapchain.images[a_swapchain_image_index], VK_IMAGE_LAYOUT_PRESENT_SRC_KHR, 1, &l_region);
+  // can't do this inside a renderpass either...
+  */
+
+  // Now we draw using the indices
+  m_device_functions->vkCmdDrawIndexed(m_command_buffers[m_current_frame], static_cast<uint32_t>(c_indices.size()), 1, 0, 0, 0);
+    
+  m_device_functions->vkCmdEndRenderPass(m_command_buffers[m_current_frame]);
+
+  if (m_device_functions->vkEndCommandBuffer(m_command_buffers[m_current_frame]) != VK_SUCCESS)
+  {
+    throw std::runtime_error("Vulkan: Failed to record command buffer.");
+  }
+
+  //std::cout << "Commands recorded to index = " << m_current_frame << std::endl;
+  //}
 }
 
 void sdlxvulkan::Application::Implementation::draw_frame()
@@ -675,10 +731,10 @@ void sdlxvulkan::Application::Implementation::draw_frame()
   {
     throw std::runtime_error{ "Vulkan: Failed to reset fence." };
   }
-  //std::cout << "fence done" << std::endl;
-
-  uint32_t l_image_index{0};
-  VkResult l_result = m_device_functions->vkAcquireNextImageKHR(m_device, m_swapchain.handle, std::numeric_limits<uint64_t>::max(), m_image_available_semaphores[m_current_frame], VK_NULL_HANDLE, &l_image_index);
+  
+  // Get the next swapcahin image. Swapchain could have changed.
+  uint32_t l_swapchain_image_index{0};
+  VkResult l_result = m_device_functions->vkAcquireNextImageKHR(m_device, m_swapchain.handle, std::numeric_limits<uint64_t>::max(), m_image_available_semaphores[m_current_frame], VK_NULL_HANDLE, &l_swapchain_image_index);
   if (l_result != VK_SUCCESS)
   {
     std::cout << vkresult_string(l_result) << std::endl;
@@ -687,6 +743,9 @@ void sdlxvulkan::Application::Implementation::draw_frame()
       throw std::runtime_error("Vulkan:: Failed to acquire swap chain image.");
     }
   }
+
+  write_commands(l_swapchain_image_index);
+
 
   //std::cout << "current frame = " << m_current_frame << " aquired = " << l_image_index << std::endl;
   // Submit the command quue
@@ -699,7 +758,7 @@ void sdlxvulkan::Application::Implementation::draw_frame()
 
   assert(!m_command_buffers.empty());
   VkCommandBuffer l_command_buffers[1]{};
-  l_command_buffers[0] = m_command_buffers[l_image_index];
+  l_command_buffers[0] = m_command_buffers[m_current_frame];
 
   VkSubmitInfo l_submit_info {};
   l_submit_info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
@@ -733,13 +792,14 @@ void sdlxvulkan::Application::Implementation::draw_frame()
   l_present_info.pWaitSemaphores = l_signal_semaphores.data(); // This is the part that means we wait til render is done
   l_present_info.swapchainCount = 1;
   l_present_info.pSwapchains = l_swapchains.data();
-  l_present_info.pImageIndices = &l_image_index;
+  l_present_info.pImageIndices = &l_swapchain_image_index;
   l_present_info.pResults = nullptr; // optional
 
   if (m_device_functions->vkQueuePresentKHR(m_present_queue, &l_present_info) != VK_SUCCESS)
   {
     throw std::runtime_error{ "Vulkan: Failed to present image." };
   }
+  
   //std::cout << "image presented" << std::endl;
 
   //std::cout << "frame: " << m_current_frame;
@@ -754,7 +814,7 @@ void sdlxvulkan::Application::Implementation::update_uniform_buffer()
   auto l_current_time = std::chrono::high_resolution_clock::now();
   float l_time = std::chrono::duration<float, std::chrono::seconds::period>(l_current_time - s_start_time).count();
 
-  Uniform_Buffer_Object l_ubo{};
+  Example_Uniform_Buffer_Object l_ubo{};
   l_ubo.model = glm::rotate(glm::mat4(1.0f), l_time * glm::radians(10.0f), glm::vec3(0.0f, 0.0f, 1.0f));
 
   l_ubo.view = glm::lookAt(glm::vec3(2.0f, 2.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
@@ -785,6 +845,10 @@ sdlxvulkan::Application::Application(int argc, char** argv) :
   try
   {
     m_implementation = std::make_unique<Implementation>(argc, argv);
+  }
+  catch (std::runtime_error& a_exception)
+  {
+    std::cout << a_exception.what() << std::endl;
   }
   catch (...)
   {

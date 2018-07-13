@@ -4,6 +4,8 @@
 #include <string>
 #include <vector>
 
+#include <glm/glm.hpp>
+
 namespace sdlxvulkan
 {
   std::string get_dirpath(std::string const& a_arg0);
@@ -31,6 +33,23 @@ namespace sdlxvulkan
     int channels() const noexcept       { return m_channels; }
     std::size_t size() const noexcept   { return m_size; }
     unsigned char const* data() const noexcept   { return m_data; }
+  };
+
+  struct Vertex
+  {
+    glm::vec3 pos;
+    glm::vec2 texCoord;
+  };
+  
+  class Model
+  {
+  private:
+
+  public:
+    explicit Model(std::string const& a_filepath);
+    ~Model();
+
+
   };
 
 } // namespace sdlxvulkan

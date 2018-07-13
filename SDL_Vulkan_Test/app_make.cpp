@@ -218,7 +218,8 @@ VkPhysicalDeviceFeatures sdlxvulkan::app_make_required_device_features(VkPhysica
 
 sdlxvulkan::Handle<VkDevice> sdlxvulkan::app_make_device
 (
-  Handle<VkPhysicalDevice> const& a_physical_device,
+  Handle<VkInstance> const& a_instance,
+  VkPhysicalDevice a_physical_device,
   uint32_t a_graphics_qfi,
   uint32_t a_present_qfi,
   VkPhysicalDeviceFeatures const& a_features,
@@ -277,7 +278,7 @@ sdlxvulkan::Handle<VkDevice> sdlxvulkan::app_make_device
   l_device_info.ppEnabledExtensionNames = l_device_extensions.data();
   l_device_info.pEnabledFeatures = &a_features;
 
-  return make_device(a_physical_device, l_device_info, a_allocation_callbacks);
+  return make_device(a_instance, a_physical_device, l_device_info, a_allocation_callbacks);
 }
 
 
@@ -333,13 +334,15 @@ sdlxvulkan::Handle<VkBuffer> sdlxvulkan::app_make_buffer_concurrent
 
 sdlxvulkan::Buffer_Pair sdlxvulkan::app_make_buffer_memory_exclusive_pair
 (
-  Handle<VkPhysicalDevice> const& a_physical_device,
+  Handle<VkInstance> const& a_instance,
+  VkPhysicalDevice a_physical_device,
   Handle<VkDevice> const& a_device,
   VkDeviceSize a_size,
   VkBufferUsageFlags a_usage,
   VkMemoryPropertyFlags a_properties
 )
 {
+  assert(a_instance);
   assert(a_device);
   auto l_functions = get_device_functions(a_device);
   assert(l_functions);
@@ -351,7 +354,7 @@ sdlxvulkan::Buffer_Pair sdlxvulkan::app_make_buffer_memory_exclusive_pair
   // Get its memory requirements
   VkMemoryRequirements l_mem_reqs{};
   l_functions->vkGetBufferMemoryRequirements(a_device, l_result.buffer, &l_mem_reqs);
-  uint32_t l_mem_type = get_memory_type_from_properties(get_physical_device_memory_properties(a_physical_device), l_mem_reqs.memoryTypeBits, a_properties);
+  uint32_t l_mem_type = get_memory_type_from_properties(get_physical_device_memory_properties(a_instance, a_physical_device), l_mem_reqs.memoryTypeBits, a_properties);
 
   // Make its memory
   l_result.memory = app_make_device_memory(a_device, l_mem_reqs.size, l_mem_type);
@@ -369,7 +372,7 @@ void sdlxvulkan::app_copy_buffer
 (
   Handle<VkDevice> const& a_device,
   Handle<VkCommandPool> const& a_command_pool,
-  Handle<VkQueue> const& a_queue,
+  VkQueue a_queue,
   Handle<VkBuffer> const& a_source,
   Handle<VkBuffer> const& a_dest,
   VkDeviceSize a_size
@@ -393,7 +396,7 @@ void sdlxvulkan::app_copy_buffer
   l_alloc_info.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
   l_alloc_info.commandBufferCount = 1;
 
-  Handle<VkCommandBuffer> l_command_buffer = make_command_buffer(a_command_pool, l_alloc_info);
+  Handle<VkCommandBuffer> l_command_buffer = make_command_buffer(a_device,a_command_pool, l_alloc_info);
 
   VkCommandBufferBeginInfo l_begin_info{};
   l_begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
@@ -443,6 +446,7 @@ void sdlxvulkan::app_copy_buffer
 // Destruction is independent for each so there's no batch freeing.
 std::vector<sdlxvulkan::Handle<VkCommandBuffer>> sdlxvulkan::app_make_command_buffers
 (
+  Handle<VkDevice> const& a_device,
   Handle<VkCommandPool> const& a_command_pool,
   VkCommandBufferLevel a_level,
   uint32_t a_count
@@ -455,7 +459,7 @@ std::vector<sdlxvulkan::Handle<VkCommandBuffer>> sdlxvulkan::app_make_command_bu
   l_alloc_info.level = a_level;
   l_alloc_info.commandBufferCount = a_count;
 
-  return make_command_buffers(a_command_pool, l_alloc_info);
+  return make_command_buffers(a_device, a_command_pool, l_alloc_info);
 }
 
 sdlxvulkan::Handle<VkCommandBuffer> sdlxvulkan::app_make_begin_one_time_command_buffer
@@ -476,7 +480,7 @@ sdlxvulkan::Handle<VkCommandBuffer> sdlxvulkan::app_make_begin_one_time_command_
   l_alloc_info.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
   l_alloc_info.commandBufferCount = 1;
 
-  Handle<VkCommandBuffer> l_result = make_command_buffer(a_command_pool, l_alloc_info);
+  Handle<VkCommandBuffer> l_result = make_command_buffer(a_device, a_command_pool, l_alloc_info);
 
   VkCommandBufferBeginInfo l_begin_info{};
   l_begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
@@ -493,7 +497,7 @@ void sdlxvulkan::app_end_submit_one_time_command_buffer
 (
   Handle<VkDevice> const& a_device,
   Handle<VkCommandBuffer> const& a_command_buffer,
-  Handle<VkQueue> const& a_queue
+  VkQueue a_queue
 )
 {
   assert(a_device);
@@ -608,7 +612,8 @@ sdlxvulkan::Handle<VkImage> sdlxvulkan::app_make_image
 
 sdlxvulkan::Handle<VkImageView> sdlxvulkan::app_make_image_view
 (
-  Handle<VkImage> const& a_image,
+  Handle<VkDevice> const& a_device,
+  VkImage a_image,
   VkFormat a_format,
   VkImageAspectFlags a_aspect_flags
 )
@@ -630,18 +635,20 @@ sdlxvulkan::Handle<VkImageView> sdlxvulkan::app_make_image_view
   l_image_view_info.subresourceRange.baseArrayLayer = 0;
   l_image_view_info.subresourceRange.layerCount = 1;
 
-  return make_image_view(a_image, l_image_view_info);
+  return make_image_view(a_device, a_image, l_image_view_info);
 }
 
 
 sdlxvulkan::Handle<VkDeviceMemory> sdlxvulkan::app_make_bind_image_memory
 (
-  Handle<VkPhysicalDevice> const& a_physical_device,
+  Handle<VkInstance> const& a_instance,
+  VkPhysicalDevice a_physical_device,
   Handle<VkDevice> const& a_device,
   Handle<VkImage> const& a_image,
   VkMemoryPropertyFlags a_properties
 )
 {
+  assert(a_instance);
   assert(a_physical_device);
   assert(a_device);
   auto l_functions = get_device_functions(a_device);
@@ -655,7 +662,7 @@ sdlxvulkan::Handle<VkDeviceMemory> sdlxvulkan::app_make_bind_image_memory
   VkMemoryAllocateInfo l_alloc_info = {};
   l_alloc_info.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
   l_alloc_info.allocationSize = l_mem_reqs.size;
-  l_alloc_info.memoryTypeIndex = get_memory_type_from_properties(get_physical_device_memory_properties(a_physical_device), l_mem_reqs.memoryTypeBits, a_properties);
+  l_alloc_info.memoryTypeIndex = get_memory_type_from_properties(get_physical_device_memory_properties(a_instance, a_physical_device), l_mem_reqs.memoryTypeBits, a_properties);
 
   auto l_result = make_device_memory(a_device, l_alloc_info);
 
@@ -667,7 +674,8 @@ sdlxvulkan::Handle<VkDeviceMemory> sdlxvulkan::app_make_bind_image_memory
 
 sdlxvulkan::Image_Pair sdlxvulkan::app_make_image_pair
 (
-  Handle<VkPhysicalDevice> const& a_physical_device,
+  Handle<VkInstance> const& a_instance,
+  VkPhysicalDevice a_physical_device,
   Handle<VkDevice> const& a_device,
   uint32_t a_width,
   uint32_t a_height,
@@ -683,14 +691,15 @@ sdlxvulkan::Image_Pair sdlxvulkan::app_make_image_pair
   Image_Pair l_result{};
 
   l_result.image = app_make_image(a_device, a_width, a_height, a_format, a_tiling, a_usage);
-  l_result.memory = app_make_bind_image_memory(a_physical_device, a_device, l_result.image, a_properties);
+  l_result.memory = app_make_bind_image_memory(a_instance, a_physical_device, a_device, l_result.image, a_properties);
 
   return l_result;
 }
 
 sdlxvulkan::Image_Trio sdlxvulkan::app_make_image_trio
 (
-  Handle<VkPhysicalDevice> const& a_physical_device,
+  Handle<VkInstance> const& a_instance,
+  VkPhysicalDevice a_physical_device,
   Handle<VkDevice> const& a_device,
   uint32_t a_width,
   uint32_t a_height,
@@ -707,8 +716,8 @@ sdlxvulkan::Image_Trio sdlxvulkan::app_make_image_trio
   Image_Trio l_result{};
 
   l_result.image = app_make_image(a_device, a_width, a_height, a_format, a_tiling, a_usage);
-  l_result.memory = app_make_bind_image_memory(a_physical_device, a_device, l_result.image, a_properties);
-  l_result.view = app_make_image_view(l_result.image, a_format, a_aspect_flags);
+  l_result.memory = app_make_bind_image_memory(a_instance,a_physical_device, a_device, l_result.image, a_properties);
+  l_result.view = app_make_image_view(a_device, l_result.image, a_format, a_aspect_flags);
 
   return l_result;
 }
@@ -716,10 +725,11 @@ sdlxvulkan::Image_Trio sdlxvulkan::app_make_image_trio
 
 sdlxvulkan::Image_Pair sdlxvulkan::app_make_texture_image_pair
 (
-  Handle<VkPhysicalDevice> const& a_physical_device,
+  Handle<VkInstance> const& a_instance,
+  VkPhysicalDevice a_physical_device,
   Handle<VkDevice> const& a_device,
   Handle<VkCommandPool> const& a_command_pool,
-  Handle<VkQueue> const& a_queue,
+  VkQueue a_queue,
   std::string const& a_filepath
 )
 {
@@ -734,7 +744,7 @@ sdlxvulkan::Image_Pair sdlxvulkan::app_make_texture_image_pair
   assert(l_image_data.size() != 0);
 
   // Make a staging buffer
-  Buffer_Pair l_staging_buffer = app_make_buffer_memory_exclusive_pair(a_physical_device, a_device, l_image_data.size(), VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+  Buffer_Pair l_staging_buffer = app_make_buffer_memory_exclusive_pair(a_instance, a_physical_device, a_device, l_image_data.size(), VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
 
   // Fill it with the image data in RGBA format
   void* l_data{nullptr};
@@ -747,6 +757,7 @@ sdlxvulkan::Image_Pair sdlxvulkan::app_make_texture_image_pair
 
   Image_Pair l_image = app_make_image_pair
   (
+    a_instance,
     a_physical_device, 
     a_device, 
     l_width,
@@ -772,10 +783,11 @@ sdlxvulkan::Image_Pair sdlxvulkan::app_make_texture_image_pair
 
 sdlxvulkan::Image_Trio sdlxvulkan::app_make_texture_image_trio
 (
-  Handle<VkPhysicalDevice> const& a_physical_device,
+  Handle<VkInstance> const& a_instance,
+  VkPhysicalDevice a_physical_device,
   Handle<VkDevice> const& a_device,
   Handle<VkCommandPool> const& a_command_pool,
-  Handle<VkQueue> const& a_queue,
+  VkQueue a_queue,
   std::string const& a_filepath
 )
 {
@@ -790,7 +802,7 @@ sdlxvulkan::Image_Trio sdlxvulkan::app_make_texture_image_trio
   assert(l_image_data.size() != 0);
 
   // Make a staging buffer
-  Buffer_Pair l_staging_buffer = app_make_buffer_memory_exclusive_pair(a_physical_device, a_device, l_image_data.size(), VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+  Buffer_Pair l_staging_buffer = app_make_buffer_memory_exclusive_pair(a_instance,a_physical_device, a_device, l_image_data.size(), VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
 
   // Fill it with the image data in RGBA format
   void* l_data{ nullptr };
@@ -804,7 +816,7 @@ sdlxvulkan::Image_Trio sdlxvulkan::app_make_texture_image_trio
   Image_Trio l_result{};
   
   l_result.image = app_make_image(a_device, l_width, l_height, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT);
-  l_result.memory = app_make_bind_image_memory(a_physical_device, a_device, l_result.image, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+  l_result.memory = app_make_bind_image_memory(a_instance, a_physical_device, a_device, l_result.image, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 
   // Transisiton ready for copying  
   app_transition_image_layout(a_device, a_command_pool, a_queue, l_result.image, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
@@ -815,7 +827,7 @@ sdlxvulkan::Image_Trio sdlxvulkan::app_make_texture_image_trio
   // Transition ready for use
   app_transition_image_layout(a_device, a_command_pool, a_queue, l_result.image, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
   
-  l_result.view = app_make_image_view(l_result.image, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_ASPECT_COLOR_BIT);
+  l_result.view = app_make_image_view(a_device, l_result.image, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_ASPECT_COLOR_BIT);
   
   return l_result;
 }
@@ -824,7 +836,7 @@ void sdlxvulkan::app_transition_image_layout
 (
   Handle<VkDevice> const& a_device,
   Handle<VkCommandPool> const& a_command_pool,
-  Handle<VkQueue> const& a_queue,
+  VkQueue a_queue,
   Handle<VkImage> const& a_image,
   VkFormat a_format,
   VkImageLayout a_old_layout,
@@ -922,7 +934,7 @@ void sdlxvulkan::app_copy_buffer_to_image
 (
   Handle<VkDevice> const& a_device,
   Handle<VkCommandPool> const& a_command_pool,
-  Handle<VkQueue> const& a_queue,
+  VkQueue a_queue,
   Handle<VkBuffer> const& a_buffer,
   Handle<VkImage> const& a_image,
   uint32_t a_width,
@@ -1005,17 +1017,6 @@ sdlxvulkan::Handle<VkSampler> sdlxvulkan::app_make_sampler
 }
 
 
-VkFormat sdlxvulkan::find_depth_format(Handle<VkPhysicalDevice> const& a_physical_device)
-{
-  return find_supported_format
-  (
-    a_physical_device,
-    { VK_FORMAT_D32_SFLOAT, VK_FORMAT_D32_SFLOAT_S8_UINT, VK_FORMAT_D24_UNORM_S8_UINT },
-    VK_IMAGE_TILING_OPTIMAL,
-    VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT
-  );
-}
-
 bool sdlxvulkan::has_stencil_component(VkFormat a_format)
 {
   return a_format == VK_FORMAT_D32_SFLOAT_S8_UINT || a_format == VK_FORMAT_D24_UNORM_S8_UINT;
@@ -1024,23 +1025,26 @@ bool sdlxvulkan::has_stencil_component(VkFormat a_format)
 
 sdlxvulkan::Image_Trio sdlxvulkan::app_make_depth_image_trio
 (
-  Handle<VkPhysicalDevice> const& a_physical_device,
+  Handle<VkInstance> const& a_instance,
+  VkPhysicalDevice a_physical_device,
   Handle<VkDevice> const& a_device,
   Handle<VkCommandPool> const& a_command_pool,
-  Handle<VkQueue> const& a_queue,
+  VkQueue a_queue,
   uint32_t a_width,
   uint32_t a_height
 )
 {
+  assert(a_instance);
   assert(a_physical_device);
   assert(a_device);
   auto l_functions = get_device_functions(a_device);
   assert(l_functions);
   
-  auto l_format = find_depth_format(a_physical_device);
+  auto l_format = find_depth_format(a_instance, a_physical_device);
   
   auto l_result = app_make_image_trio
   (
+    a_instance,
     a_physical_device, 
     a_device, 
     a_width, 
@@ -1149,8 +1153,8 @@ sdlxvulkan::Shader_Group sdlxvulkan::app_make_shader_group
 {
   assert(a_device);
 
-  static std::string const s_fragment_shader_file{ "shader.frag.spv" };
-  static std::string const s_vertex_shader_file{ "shader.vert.spv" };
+  static std::string const s_fragment_shader_file{ "shaders\\example.frag.spv" };
+  static std::string const s_vertex_shader_file{ "shaders\\example.vert.spv" };
 
   Shader_Group l_result{};
   l_result.fragment = app_make_shader_pair(a_device, VK_SHADER_STAGE_FRAGMENT_BIT, a_exepath, s_fragment_shader_file);
@@ -1165,11 +1169,13 @@ sdlxvulkan::Shader_Group sdlxvulkan::app_make_shader_group
 sdlxvulkan::Swapchain sdlxvulkan::app_make_swapchain
 (
   Window const& a_window,
-  Handle<VkPhysicalDevice> const& a_physical_device,
+  Handle<VkInstance> const& a_instance,
+  VkPhysicalDevice a_physical_device,
   Handle<VkDevice> const& a_device,
   Handle<VkSurfaceKHR> const& a_surface,
   uint32_t a_graphics_qfi,
   uint32_t a_present_qfi,
+  uint32_t a_frame_count,
   Swapchain const& a_old_swapchain
 )
 {
@@ -1178,9 +1184,9 @@ sdlxvulkan::Swapchain sdlxvulkan::app_make_swapchain
   // Surface Capabilities
   //-------------
 
-  l_result.surface_cababilites = get_surface_cababilites(a_physical_device, a_surface);
-  l_result.surface_formats = get_surface_formats(a_physical_device, a_surface);
-  l_result.present_modes = get_present_modes(a_physical_device, a_surface);
+  l_result.surface_cababilites = get_surface_cababilites(a_instance, a_physical_device, a_surface);
+  l_result.surface_formats = get_surface_formats(a_instance, a_physical_device, a_surface);
+  l_result.present_modes = get_present_modes(a_instance, a_physical_device, a_surface);
 
   // Select a Format
   //-------------
@@ -1264,8 +1270,17 @@ sdlxvulkan::Swapchain sdlxvulkan::app_make_swapchain
   // Asking for minImageCount images ensures that we can acquire
   // 1 presentable image as long as we present it before attempting
   // to acquire another.
-  uint32_t l_requested_image_count = l_result.surface_cababilites.minImageCount + 1;
+  uint32_t l_requested_image_count = l_result.surface_cababilites.minImageCount;// +1;
+
+  // This isn't strictly necessary...
+  while (l_requested_image_count < a_frame_count)
+  {
+    ++l_requested_image_count;
+  }
   
+  //std::cout << "swapchain: req=" << a_frame_count << " got=" << l_requested_image_count << std::endl;
+
+
   VkSurfaceTransformFlagBitsKHR l_pre_transform{};
   if ((l_result.surface_cababilites.supportedTransforms & VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR) > 0)
   {
@@ -1363,7 +1378,7 @@ sdlxvulkan::Swapchain sdlxvulkan::app_make_swapchain
   l_result.image_views.reserve(l_actual_image_count);
   for (auto const& l_image : l_result.images)
   {
-    auto l_image_view = app_make_image_view(l_image, l_result.format, VK_IMAGE_ASPECT_COLOR_BIT);
+    auto l_image_view = app_make_image_view(a_device, l_image, l_result.format, VK_IMAGE_ASPECT_COLOR_BIT);
 
     l_result.image_views.push_back(std::move(l_image_view));
   }
@@ -1508,150 +1523,6 @@ sdlxvulkan::Handle<VkPipelineLayout> sdlxvulkan::app_make_pipeline_layout
   l_pipeline_layout_info.pPushConstantRanges = nullptr;
 
   return make_pipeline_layout(a_device, l_pipeline_layout_info);
-}
-
-
-sdlxvulkan::Handle<VkPipeline> sdlxvulkan::app_make_pipeline
-(
-  Handle<VkDevice> const& a_device,
-  Handle<VkPipelineCache> const& a_pipeline_cache,
-  Handle<VkPipelineLayout> const& a_pipeline_layout,
-  Handle<VkRenderPass> const& a_render_pass,
-  Shader_Group const& a_shader_group,
-  std::vector<VkVertexInputBindingDescription> const& a_vertex_binding_descs,
-  std::vector<VkVertexInputAttributeDescription> const& a_vertex_attribute_descs,
-  std::vector<VkViewport> const& a_viewports,
-  std::vector<VkRect2D> const& a_scissors
-)
-{
-  // Describe the vertex data
-  VkPipelineVertexInputStateCreateInfo l_vertex_input_state{};
-  l_vertex_input_state.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
-  l_vertex_input_state.pNext = nullptr;
-  l_vertex_input_state.flags = 0;
-  l_vertex_input_state.vertexBindingDescriptionCount = static_cast<uint32_t>(a_vertex_binding_descs.size());
-  l_vertex_input_state.pVertexBindingDescriptions = a_vertex_binding_descs.data();
-  l_vertex_input_state.vertexAttributeDescriptionCount = static_cast<uint32_t>(a_vertex_attribute_descs.size());
-  l_vertex_input_state.pVertexAttributeDescriptions = a_vertex_attribute_descs.data();
-
-  //Input Assembly
-  VkPipelineInputAssemblyStateCreateInfo l_input_assembly_state{};
-  l_input_assembly_state.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
-  l_input_assembly_state.pNext = nullptr;
-  l_input_assembly_state.flags = 0;
-  l_input_assembly_state.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
-  l_input_assembly_state.primitiveRestartEnable = VK_FALSE;
-
-  // Viewport state
-  VkPipelineViewportStateCreateInfo l_viewport_state{};
-  l_viewport_state.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
-  l_viewport_state.pNext = nullptr;
-  l_viewport_state.flags = 0;
-  l_viewport_state.viewportCount = static_cast<uint32_t>(a_viewports.size());
-  l_viewport_state.pViewports = a_viewports.data();
-  l_viewport_state.scissorCount = static_cast<uint32_t>(a_scissors.size());
-  l_viewport_state.pScissors = a_scissors.data();
-
-  // Rasterizer
-  VkPipelineRasterizationStateCreateInfo l_rasterization_state{};
-  l_rasterization_state.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
-  l_rasterization_state.pNext = nullptr;
-  l_rasterization_state.flags = 0;
-  l_rasterization_state.depthClampEnable = VK_FALSE;
-  l_rasterization_state.rasterizerDiscardEnable = VK_FALSE;
-  l_rasterization_state.polygonMode = VK_POLYGON_MODE_FILL;
-  l_rasterization_state.cullMode = VK_CULL_MODE_BACK_BIT;
-  //l_rasterization_state.frontFace = VK_FRONT_FACE_CLOCKWISE;
-  l_rasterization_state.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
-  l_rasterization_state.depthBiasEnable = VK_FALSE; // optional
-  l_rasterization_state.depthBiasConstantFactor = 0.0f; // optional
-  l_rasterization_state.depthBiasClamp = 0.0f; // optional
-  l_rasterization_state.depthBiasSlopeFactor = 0.0f; // optional
-  l_rasterization_state.lineWidth = 1.0f;
-  
-  // Multisampling
-  VkPipelineMultisampleStateCreateInfo l_multisample_state{};
-  l_multisample_state.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
-  l_multisample_state.pNext = nullptr;
-  l_multisample_state.flags = 0;
-  l_multisample_state.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
-  l_multisample_state.sampleShadingEnable = VK_FALSE;
-  l_multisample_state.minSampleShading = 1.0f; // optional
-  l_multisample_state.pSampleMask = nullptr; // optional
-  l_multisample_state.alphaToCoverageEnable = VK_FALSE; // optional
-  l_multisample_state.alphaToOneEnable = VK_FALSE; // optional
-
-  // Depth and Stencil
-  /*
-  VkPipelineDepthStencilStateCreateInfo l_depth_stencil_state;
-  l_depth_stencil_state.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
-  l_depth_stencil_state.pNext = NULL;
-  l_depth_stencil_state.flags = 0;
-  l_depth_stencil_state.depthTestEnable = VK_TRUE;
-  l_depth_stencil_state.depthWriteEnable = VK_TRUE;
-  l_depth_stencil_state.depthCompareOp = VK_COMPARE_OP_LESS_OR_EQUAL;
-  l_depth_stencil_state.depthBoundsTestEnable = VK_FALSE;
-  l_depth_stencil_state.minDepthBounds = 0;
-  l_depth_stencil_state.maxDepthBounds = 0;
-  l_depth_stencil_state.stencilTestEnable = VK_FALSE;
-  l_depth_stencil_state.back.failOp = VK_STENCIL_OP_KEEP;
-  l_depth_stencil_state.back.passOp = VK_STENCIL_OP_KEEP;
-  l_depth_stencil_state.back.compareOp = VK_COMPARE_OP_ALWAYS;
-  l_depth_stencil_state.back.compareMask = 0;
-  l_depth_stencil_state.back.reference = 0;
-  l_depth_stencil_state.back.depthFailOp = VK_STENCIL_OP_KEEP;
-  l_depth_stencil_state.back.writeMask = 0;
-  l_depth_stencil_state.front = l_depth_stencil_state.back;
-  */
-
-  // Colour Blending
-  VkPipelineColorBlendAttachmentState l_colour_blend_attachment_state{};
-  l_colour_blend_attachment_state.blendEnable = VK_FALSE;
-  l_colour_blend_attachment_state.srcColorBlendFactor = VK_BLEND_FACTOR_ONE;
-  l_colour_blend_attachment_state.dstColorBlendFactor = VK_BLEND_FACTOR_ZERO;
-  l_colour_blend_attachment_state.colorBlendOp = VK_BLEND_OP_ADD;
-  l_colour_blend_attachment_state.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE;
-  l_colour_blend_attachment_state.dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO;
-  l_colour_blend_attachment_state.alphaBlendOp = VK_BLEND_OP_ADD;
-  l_colour_blend_attachment_state.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
-
-
-  VkPipelineColorBlendStateCreateInfo l_colour_blend_state{};
-  l_colour_blend_state.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
-  l_colour_blend_state.pNext = nullptr;
-  l_colour_blend_state.flags = 0;
-  l_colour_blend_state.logicOpEnable = VK_FALSE;
-  l_colour_blend_state.logicOp = VK_LOGIC_OP_COPY; // optional
-  l_colour_blend_state.attachmentCount = 1;
-  l_colour_blend_state.pAttachments = &l_colour_blend_attachment_state;
-  l_colour_blend_state.blendConstants[0] = 0.0f; // optional
-  l_colour_blend_state.blendConstants[1] = 0.0f; // optional
-  l_colour_blend_state.blendConstants[2] = 0.0f; // optional
-  l_colour_blend_state.blendConstants[3] = 0.0f; // optional
-
-  // Pipeline  
-  VkGraphicsPipelineCreateInfo l_pipeline_info{};
-  l_pipeline_info.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
-  l_pipeline_info.pNext = nullptr;
-  l_pipeline_info.flags = 0;
-  l_pipeline_info.stageCount = static_cast<uint32_t>(a_shader_group.pipeline_infos.size());
-  l_pipeline_info.pStages = a_shader_group.pipeline_infos.data();
-  l_pipeline_info.pVertexInputState = &l_vertex_input_state;
-  l_pipeline_info.pInputAssemblyState = &l_input_assembly_state;
-  l_pipeline_info.pTessellationState = nullptr;
-  l_pipeline_info.pViewportState = &l_viewport_state;
-  l_pipeline_info.pRasterizationState = &l_rasterization_state;
-  l_pipeline_info.pMultisampleState = &l_multisample_state;
-  l_pipeline_info.pDepthStencilState = nullptr;//&l_depth_stencil_state;
-  l_pipeline_info.pColorBlendState = &l_colour_blend_state;
-  l_pipeline_info.pDynamicState = nullptr;
-  l_pipeline_info.layout = a_pipeline_layout;
-  l_pipeline_info.renderPass = a_render_pass;
-  l_pipeline_info.subpass = 0;
-  l_pipeline_info.basePipelineHandle = VK_NULL_HANDLE; // optional
-  l_pipeline_info.basePipelineIndex = -1; // optional
-
-  return make_graphics_pipeline(a_device, a_pipeline_cache, l_pipeline_info);
 }
 
 
@@ -1848,12 +1719,14 @@ std::vector<sdlxvulkan::Handle<VkFramebuffer>> sdlxvulkan::app_make_swapchain_fr
 
 std::vector<sdlxvulkan::Buffer_Pair> sdlxvulkan::app_make_uniforms
 (
-  Handle<VkPhysicalDevice> const& a_physical_device,
+  Handle<VkInstance> const& a_instance,
+  VkPhysicalDevice a_physical_device,
   Handle<VkDevice> const& a_device,
   uint32_t a_count,
   VkDeviceSize a_size
 )
 {
+  assert(a_instance);
   assert(a_physical_device);
   assert(a_device);
   auto l_functions = get_device_functions(a_device);
@@ -1868,7 +1741,7 @@ std::vector<sdlxvulkan::Buffer_Pair> sdlxvulkan::app_make_uniforms
 
   for (uint32_t l_index = 0; l_index != a_count; ++l_index)
   {
-    l_uniforms.push_back(app_make_buffer_memory_exclusive_pair(a_physical_device, a_device, a_size, l_uniform_usage_flags, l_uniform_property_flags));
+    l_uniforms.push_back(app_make_buffer_memory_exclusive_pair(a_instance, a_physical_device, a_device, a_size, l_uniform_usage_flags, l_uniform_property_flags));
   }
   return l_uniforms;
 }
@@ -1893,23 +1766,23 @@ sdlxvulkan::Handle<VkDescriptorPool> sdlxvulkan::app_make_descriptor_pool
   l_pool_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
   l_pool_info.pNext = nullptr;
   l_pool_info.flags = 0;
-  l_pool_info.maxSets = a_count;
+  l_pool_info.maxSets = a_count;// *static_cast<uint32_t>(l_pool_sizes.size());
   l_pool_info.poolSizeCount = static_cast<uint32_t>(l_pool_sizes.size());
   l_pool_info.pPoolSizes = l_pool_sizes.data();
 
   return make_descriptor_pool(a_device, l_pool_info);
 }
 
-std::vector<sdlxvulkan::Handle<VkDescriptorSet>> sdlxvulkan::app_make_descriptor_sets
+std::vector<VkDescriptorSet> sdlxvulkan::app_make_descriptor_sets
 (
   Handle<VkDevice> const& a_device,
   Handle<VkDescriptorSetLayout> const& a_descriptor_set_layout,
   Handle<VkDescriptorPool> const& a_descriptor_pool,
-  Swapchain const& a_swapchain,
   Image_Trio const& a_texture,
   Handle<VkSampler> const& a_sampler,
   std::vector<Buffer_Pair> const& a_uniforms,
-  VkDeviceSize a_uniform_size
+  VkDeviceSize a_uniform_size,
+  uint32_t a_frame_count
 )
 {
   assert(a_device);
@@ -1917,19 +1790,19 @@ std::vector<sdlxvulkan::Handle<VkDescriptorSet>> sdlxvulkan::app_make_descriptor
   assert(l_functions);
 
   // for use in alloc, same layout for each
-  std::vector<VkDescriptorSetLayout> l_layouts{ a_swapchain.image_count, a_descriptor_set_layout };
+  std::vector<VkDescriptorSetLayout> l_layouts{ a_frame_count, a_descriptor_set_layout };
   VkDescriptorSetAllocateInfo l_alloc_info = {};
   l_alloc_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
   l_alloc_info.pNext = nullptr;
   l_alloc_info.descriptorPool = a_descriptor_pool;
-  l_alloc_info.descriptorSetCount = a_swapchain.image_count;
+  l_alloc_info.descriptorSetCount = a_frame_count;
   l_alloc_info.pSetLayouts = l_layouts.data();
 
-  auto l_descriptor_sets = make_descriptor_sets(a_descriptor_pool, l_alloc_info);
+  auto l_descriptor_sets = make_descriptor_sets(a_device, a_descriptor_pool, l_alloc_info);
 
   assert(!a_uniforms.empty());
 
-  for (uint32_t l_index = 0; l_index != a_swapchain.image_count; ++l_index)
+  for (uint32_t l_index = 0; l_index != a_frame_count; ++l_index)
   {
     VkDescriptorBufferInfo l_buffer_info{};
     l_buffer_info.buffer = a_uniforms[l_index].buffer;
@@ -1955,7 +1828,7 @@ std::vector<sdlxvulkan::Handle<VkDescriptorSet>> sdlxvulkan::app_make_descriptor
     l_descriptor_writes[0].pBufferInfo = &l_buffer_info;
     l_descriptor_writes[0].pTexelBufferView = nullptr; // optional
 
-                                                       // for the sampler
+    // for the sampler
     l_descriptor_writes[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
     l_descriptor_writes[1].pNext = nullptr;
     l_descriptor_writes[1].dstSet = l_descriptor_sets[l_index];
@@ -2018,7 +1891,8 @@ std::vector<sdlxvulkan::Handle<VkFence>> sdlxvulkan::app_make_fences
 
 sdlxvulkan::Buffer_Pair sdlxvulkan::app_make_load_staging_buffer_pair
 (
-  Handle<VkPhysicalDevice> const& a_physical_device,
+  Handle<VkInstance> const& a_instance,
+  VkPhysicalDevice a_physical_device,
   Handle<VkDevice> const& a_device,
   VkDeviceSize a_size,
   void const* a_data
@@ -2032,7 +1906,7 @@ sdlxvulkan::Buffer_Pair sdlxvulkan::app_make_load_staging_buffer_pair
   VkBufferUsageFlags l_usage_flags = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
   VkMemoryPropertyFlags l_property_flags = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
 
-  auto l_staging_pair = app_make_buffer_memory_exclusive_pair(a_physical_device, a_device, a_size, l_usage_flags, l_property_flags);
+  auto l_staging_pair = app_make_buffer_memory_exclusive_pair(a_instance, a_physical_device, a_device, a_size, l_usage_flags, l_property_flags);
 
   // Map data to it
   void *l_staging_data{ nullptr };
@@ -2053,10 +1927,11 @@ sdlxvulkan::Buffer_Pair sdlxvulkan::app_make_load_staging_buffer_pair
 
 sdlxvulkan::Buffer_Pair sdlxvulkan::app_make_vertex_buffer_pair
 (
-  Handle<VkPhysicalDevice> const& a_physical_device,
+  Handle<VkInstance> const& a_instance,
+  VkPhysicalDevice a_physical_device,
   Handle<VkDevice> const& a_device,
   Handle<VkCommandPool> const& a_command_pool,
-  Handle<VkQueue> const& a_queue,
+  VkQueue a_queue,
   VkDeviceSize a_size,
   void const* a_data
 )
@@ -2068,13 +1943,13 @@ sdlxvulkan::Buffer_Pair sdlxvulkan::app_make_vertex_buffer_pair
   auto l_functions = get_device_functions(a_device);
   assert(l_functions);
 
-  auto l_staging_pair = app_make_load_staging_buffer_pair(a_physical_device, a_device, a_size, a_data);
+  auto l_staging_pair = app_make_load_staging_buffer_pair(a_instance, a_physical_device, a_device, a_size, a_data);
   
   // Vertex buffer
   VkBufferUsageFlags l_vertex_usage_flags = VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
   VkMemoryPropertyFlags l_vertex_property_flags = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
 
-  auto l_vertex_pair = app_make_buffer_memory_exclusive_pair(a_physical_device, a_device, a_size, l_vertex_usage_flags, l_vertex_property_flags);
+  auto l_vertex_pair = app_make_buffer_memory_exclusive_pair(a_instance, a_physical_device, a_device, a_size, l_vertex_usage_flags, l_vertex_property_flags);
 
   app_copy_buffer(a_device, a_command_pool, a_queue, l_staging_pair.buffer, l_vertex_pair.buffer, a_size);
 
@@ -2083,10 +1958,11 @@ sdlxvulkan::Buffer_Pair sdlxvulkan::app_make_vertex_buffer_pair
 
 sdlxvulkan::Buffer_Pair sdlxvulkan::app_make_index_buffer_pair
 (
-  Handle<VkPhysicalDevice> const& a_physical_device,
+  Handle<VkInstance> const& a_instance,
+  VkPhysicalDevice a_physical_device,
   Handle<VkDevice> const& a_device,
   Handle<VkCommandPool> const& a_command_pool,
-  Handle<VkQueue> const& a_queue,
+  VkQueue a_queue,
   VkDeviceSize a_size,
   void const* a_data
 )
@@ -2098,12 +1974,12 @@ sdlxvulkan::Buffer_Pair sdlxvulkan::app_make_index_buffer_pair
   auto l_functions = get_device_functions(a_device);
   assert(l_functions);
 
-  auto l_staging_pair = app_make_load_staging_buffer_pair(a_physical_device, a_device, a_size, a_data);
+  auto l_staging_pair = app_make_load_staging_buffer_pair(a_instance, a_physical_device, a_device, a_size, a_data);
 
   VkBufferUsageFlags l_index_usage_flags = VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT;
   VkMemoryPropertyFlags l_index_property_flags = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
 
-  auto l_index_pair = app_make_buffer_memory_exclusive_pair(a_physical_device, a_device, a_size, l_index_usage_flags, l_index_property_flags);
+  auto l_index_pair = app_make_buffer_memory_exclusive_pair(a_instance, a_physical_device, a_device, a_size, l_index_usage_flags, l_index_property_flags);
   
   app_copy_buffer(a_device, a_command_pool, a_queue, l_staging_pair.buffer, l_index_pair.buffer, a_size);
 

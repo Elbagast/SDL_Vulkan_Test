@@ -32,7 +32,8 @@ namespace sdlxvulkan
   
   Handle<VkDevice> app_make_device
   (
-    Handle<VkPhysicalDevice> const& a_physical_device,
+    Handle<VkInstance> const& a_instance,
+    VkPhysicalDevice a_physical_device,
     uint32_t a_graphics_qfi,
     uint32_t a_present_qfi,
     VkPhysicalDeviceFeatures const& a_features,
@@ -70,7 +71,8 @@ namespace sdlxvulkan
 
   Buffer_Pair app_make_buffer_memory_exclusive_pair
   (
-    Handle<VkPhysicalDevice> const& a_physical_device,
+    Handle<VkInstance> const& a_instance,
+    VkPhysicalDevice a_physical_device,
     Handle<VkDevice> const& a_device,
     VkDeviceSize a_size, 
     VkBufferUsageFlags a_usage, 
@@ -81,7 +83,7 @@ namespace sdlxvulkan
   (
     Handle<VkDevice> const& a_device,
     Handle<VkCommandPool> const& a_command_pool,
-    Handle<VkQueue> const& a_queue,
+    VkQueue a_queue,
     Handle<VkBuffer> const& a_source,
     Handle<VkBuffer> const& a_dest,
     VkDeviceSize a_size
@@ -99,6 +101,7 @@ namespace sdlxvulkan
   // Destruction is independent for each so there's no batch freeing.
   std::vector<Handle<VkCommandBuffer>> app_make_command_buffers
   (
+    Handle<VkDevice> const& a_device,
     Handle<VkCommandPool> const& a_command_pool,
     VkCommandBufferLevel a_level,
     uint32_t a_count
@@ -114,7 +117,7 @@ namespace sdlxvulkan
   (
     Handle<VkDevice> const& a_device,
     Handle<VkCommandBuffer> const& a_command_buffer,
-    Handle<VkQueue> const& a_queue
+    VkQueue a_queue
   );
 
   Handle<VkDeviceMemory> app_make_device_memory
@@ -142,7 +145,8 @@ namespace sdlxvulkan
 
   Handle<VkDeviceMemory> app_make_bind_image_memory
   (
-    Handle<VkPhysicalDevice> const& a_physical_device,
+    Handle<VkInstance> const& a_instance,
+    VkPhysicalDevice a_physical_device,
     Handle<VkDevice> const& a_device,
     Handle<VkImage> const& a_image,
     VkMemoryPropertyFlags a_properties
@@ -150,7 +154,8 @@ namespace sdlxvulkan
 
   Handle<VkImageView> app_make_image_view
   (
-    Handle<VkImage> const& a_image,
+    Handle<VkDevice> const& a_device,
+    VkImage a_image,
     VkFormat a_format,
     VkImageAspectFlags a_aspect_flags
   );
@@ -172,7 +177,8 @@ namespace sdlxvulkan
 
   Image_Pair app_make_image_pair
   (
-    Handle<VkPhysicalDevice> const& a_physical_device,
+    Handle<VkInstance> const& a_instance,
+    VkPhysicalDevice a_physical_device,
     Handle<VkDevice> const& a_device,
     uint32_t a_width,
     uint32_t a_height,
@@ -184,7 +190,8 @@ namespace sdlxvulkan
 
   Image_Trio app_make_image_trio
   (
-    Handle<VkPhysicalDevice> const& a_physical_device,
+    Handle<VkInstance> const& a_instance,
+    VkPhysicalDevice a_physical_device,
     Handle<VkDevice> const& a_device,
     uint32_t a_width,
     uint32_t a_height,
@@ -198,20 +205,22 @@ namespace sdlxvulkan
 
   Image_Pair app_make_texture_image_pair
   (
-    Handle<VkPhysicalDevice> const& a_physical_device,
+    Handle<VkInstance> const& a_instance,
+    VkPhysicalDevice a_physical_device,
     Handle<VkDevice> const& a_device,
     Handle<VkCommandPool> const& a_command_pool,
-    Handle<VkQueue> const& a_queue,
+    VkQueue a_queue,
     std::string const& a_filepath
   );
 
 
   Image_Trio app_make_texture_image_trio
   (
-    Handle<VkPhysicalDevice> const& a_physical_device,
+    Handle<VkInstance> const& a_instance,
+    VkPhysicalDevice a_physical_device,
     Handle<VkDevice> const& a_device,
     Handle<VkCommandPool> const& a_command_pool,
-    Handle<VkQueue> const& a_queue,
+    VkQueue a_queue,
     std::string const& a_filepath
   );
 
@@ -219,7 +228,7 @@ namespace sdlxvulkan
   (    
     Handle<VkDevice> const& a_device,
     Handle<VkCommandPool> const& a_command_pool,
-    Handle<VkQueue> const& a_queue,
+    VkQueue a_queue,
     Handle<VkImage> const& a_image,
     VkFormat a_format, 
     VkImageLayout a_old_layout, 
@@ -230,7 +239,7 @@ namespace sdlxvulkan
   (
     Handle<VkDevice> const& a_device,
     Handle<VkCommandPool> const& a_command_pool,
-    Handle<VkQueue> const& a_queue,
+    VkQueue a_queue,
     Handle<VkBuffer> const& a_buffer,
     Handle<VkImage> const& a_image,
     uint32_t a_width,
@@ -245,17 +254,17 @@ namespace sdlxvulkan
   );
 
 
-  VkFormat find_depth_format(Handle<VkPhysicalDevice> const& a_physical_device);
 
   bool has_stencil_component(VkFormat a_format);
 
 
   Image_Trio app_make_depth_image_trio
   (
-    Handle<VkPhysicalDevice> const& a_physical_device,
+    Handle<VkInstance> const& a_instance,
+    VkPhysicalDevice a_physical_device,
     Handle<VkDevice> const& a_device,
     Handle<VkCommandPool> const& a_command_pool,
-    Handle<VkQueue> const& a_queue,
+    VkQueue a_queue,
     uint32_t a_width,
     uint32_t a_height
   );
@@ -315,18 +324,20 @@ namespace sdlxvulkan
     Handle<VkSwapchainKHR> handle;
 
     // Swapchain Images
-    std::vector<Handle<VkImage>> images;
+    std::vector<VkImage> images;
     std::vector<Handle<VkImageView>> image_views;
   };
 
   Swapchain app_make_swapchain
   (
     Window const& a_window,
-    Handle<VkPhysicalDevice> const& a_physical_device,
+    Handle<VkInstance> const& a_instance,
+    VkPhysicalDevice a_physical_device,
     Handle<VkDevice> const& a_device,
     Handle<VkSurfaceKHR> const& a_surface,
     uint32_t a_graphics_qfi,
     uint32_t a_present_qfi,
+    uint32_t a_frame_count,
     Swapchain const& a_old_swapchain = Swapchain{}
   );
 
@@ -348,25 +359,13 @@ namespace sdlxvulkan
     VkFormat a_depth_format
   );
 
+  // Push constant setup would need to go in here
   Handle<VkPipelineLayout> app_make_pipeline_layout
   (
     Handle<VkDevice> const& a_device,
     Handle<VkDescriptorSetLayout> const& a_descriptor_set_layout
   );
-
-  Handle<VkPipeline> app_make_pipeline
-  (
-    Handle<VkDevice> const& a_device,
-    Handle<VkPipelineCache> const& a_pipeline_cache,
-    Handle<VkPipelineLayout> const& a_pipeline_layout,
-    Handle<VkRenderPass> const& a_render_pass,
-    Shader_Group const& a_shader_group,
-    std::vector<VkVertexInputBindingDescription> const& a_vertex_binding_descs,
-    std::vector<VkVertexInputAttributeDescription> const& a_vertex_attribute_descs,
-    std::vector<VkViewport> const& a_viewports,
-    std::vector<VkRect2D> const& a_scissors
-  );
-
+  
   // Dynamic pipeline that needs to be supplied with a viewport and a scissor 
   Handle<VkPipeline> app_make_dynamic_pipeline
   (
@@ -389,7 +388,8 @@ namespace sdlxvulkan
 
   std::vector<Buffer_Pair> app_make_uniforms
   (
-    Handle<VkPhysicalDevice> const& a_physical_device,
+    Handle<VkInstance> const& a_instance,
+    VkPhysicalDevice a_physical_device,
     Handle<VkDevice> const& a_device,
     uint32_t a_count,
     VkDeviceSize a_size
@@ -402,16 +402,16 @@ namespace sdlxvulkan
     uint32_t a_count // can be Swapchain::image_count or more
   );
 
-  std::vector<Handle<VkDescriptorSet>> app_make_descriptor_sets
+  std::vector<VkDescriptorSet> app_make_descriptor_sets
   (
     Handle<VkDevice> const& a_device,
     Handle<VkDescriptorSetLayout> const& a_descriptor_set_layout,
     Handle<VkDescriptorPool> const& a_descriptor_pool,
-    Swapchain const& a_swapchain,
     Image_Trio const& a_texture,
     Handle<VkSampler> const& a_sampler,
     std::vector<Buffer_Pair> const& a_uniforms,
-    VkDeviceSize a_uniform_size
+    VkDeviceSize a_uniform_size,
+    uint32_t a_frame_count
   );
 
   std::vector<Handle<VkSemaphore>> app_make_semaphores
@@ -430,7 +430,8 @@ namespace sdlxvulkan
 
   Buffer_Pair app_make_load_staging_buffer_pair
   (
-    Handle<VkPhysicalDevice> const& a_physical_device,
+    Handle<VkInstance> const& a_instance,
+    VkPhysicalDevice a_physical_device,
     Handle<VkDevice> const& a_device,
     VkDeviceSize a_size,
     void const* a_data
@@ -439,20 +440,22 @@ namespace sdlxvulkan
 
   Buffer_Pair app_make_vertex_buffer_pair
   (
-    Handle<VkPhysicalDevice> const& a_physical_device,
+    Handle<VkInstance> const& a_instance,
+    VkPhysicalDevice a_physical_device,
     Handle<VkDevice> const& a_device,
     Handle<VkCommandPool> const& a_command_pool,
-    Handle<VkQueue> const& a_queue,
+    VkQueue a_queue,
     VkDeviceSize a_size,
     void const* a_data
   );
 
   Buffer_Pair app_make_index_buffer_pair
   (
-    Handle<VkPhysicalDevice> const& a_physical_device,
+    Handle<VkInstance> const& a_instance,
+    VkPhysicalDevice a_physical_device,
     Handle<VkDevice> const& a_device,
     Handle<VkCommandPool> const& a_command_pool,
-    Handle<VkQueue> const& a_queue,
+    VkQueue a_queue,
     VkDeviceSize a_size,
     void const* a_data
   );
