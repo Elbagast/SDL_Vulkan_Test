@@ -235,6 +235,7 @@ namespace sdlxvulkan
     Buffer_Pair m_index;
 
     std::vector<Buffer_Pair> m_uniforms;
+    Example_Uniform_Buffer_Object m_ubo;
 
     Image_Trio m_depth;
     
@@ -255,6 +256,7 @@ namespace sdlxvulkan
     
     // Command Buffer(s)
     std::vector<Handle<VkCommandBuffer>> m_command_buffers;
+    //Handle<VkCommandBuffer> m_fixed_command_buffer;
 
     // Sync Objects
     std::vector<Handle<VkSemaphore>> m_image_available_semaphores;
@@ -283,7 +285,8 @@ namespace sdlxvulkan
                 
     void resize();
             
-    void write_commands(uint32_t a_swapchain_image_index);
+    void write_fixed_commands();
+    void write_frame_commands(uint32_t a_swapchain_image_index);
     
     void draw_frame();
 
@@ -359,6 +362,7 @@ sdlxvulkan::Application::Implementation::Implementation(int argc, char** argv) :
   m_index{ app_make_index_buffer_pair(m_instance, m_physical_device, m_device, m_command_pool, m_graphics_queue, sizeof(c_indices[0]) * c_indices.size(), c_indices.data()) },
 
   m_uniforms{ app_make_uniforms(m_instance, m_physical_device, m_device, c_frames_in_flight, sizeof(Example_Uniform_Buffer_Object)) },
+  m_ubo{},
 
   m_depth{ app_make_depth_image_trio(m_instance, m_physical_device, m_device, m_command_pool, m_graphics_queue, m_swapchain.extent.width, m_swapchain.extent.height) },
 
@@ -379,6 +383,7 @@ sdlxvulkan::Application::Implementation::Implementation(int argc, char** argv) :
   m_swapchain_framebuffers{ app_make_swapchain_framebuffers(m_device, m_swapchain, m_render_pass, m_depth) },
 
   m_command_buffers{ app_make_command_buffers(m_device, m_command_pool, VK_COMMAND_BUFFER_LEVEL_PRIMARY, c_frames_in_flight) },
+  //m_fixed_command_buffer{ app_make_command_buffer(m_device, m_command_pool, VK_COMMAND_BUFFER_LEVEL_SECONDARY) },
 
   // Sync Objects
   m_image_available_semaphores{ app_make_semaphores(m_device, c_frames_in_flight) },
@@ -395,6 +400,7 @@ sdlxvulkan::Application::Implementation::Implementation(int argc, char** argv) :
   }
 
   //write_commands();
+  write_fixed_commands();
 }
 
 sdlxvulkan::Application::Implementation::~Implementation() = default;
@@ -599,22 +605,56 @@ void sdlxvulkan::Application::Implementation::resize()
   std::swap(l_new_depth, m_depth);
   std::swap(l_new_swapchain_framebuffers, m_swapchain_framebuffers);
   
+  //write_fixed_commands();
   // rebuild the commands since these don't change each frame right now.
   //write_commands();
 }
 
-
-void sdlxvulkan::Application::Implementation::write_commands(uint32_t a_swapchain_image_index)
+void sdlxvulkan::Application::Implementation::write_fixed_commands()
 {
-  // Currently just preloads the draw commands into all the command buffers.
-  //for (size_t l_index = 0; l_index != m_command_buffers.size(); l_index++)
-  //{
+  // Put all of the commands that won't change each frame in a secondary
+  // command buffer that will only be used by the frame primary command
+  // buffer.
+  // Apparently this doesn't do what I thought it does.
+  /*
+  m_device_functions->vkResetCommandBuffer(m_fixed_command_buffer, 0);
+  
+  VkCommandBufferInheritanceInfo l_inheritance_info{};
+  l_inheritance_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_INHERITANCE_INFO;
+  l_inheritance_info.pNext = nullptr;
+  l_inheritance_info.renderPass = m_render_pass; // if running inside a render pass
+  l_inheritance_info.subpass = 0;
+  l_inheritance_info.framebuffer = VK_NULL_HANDLE;
+  l_inheritance_info.occlusionQueryEnable = VK_FALSE;
+  l_inheritance_info.queryFlags =  0;
+  l_inheritance_info.pipelineStatistics = 0;
+  
+  VkCommandBufferBeginInfo l_begin_info {};
+  l_begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+  l_begin_info.flags = VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT | VK_COMMAND_BUFFER_USAGE_RENDER_PASS_CONTINUE_BIT;
+  l_begin_info.pInheritanceInfo =  &l_inheritance_info; // Required for secondary command buffers
 
+  if (m_device_functions->vkBeginCommandBuffer(m_fixed_command_buffer, &l_begin_info) != VK_SUCCESS)
+  {
+    throw std::runtime_error("Vulkan: Failed to begin recording command buffer.");
+  }
+
+  // This ended up being a failed experiment.
+
+  if (m_device_functions->vkEndCommandBuffer(m_fixed_command_buffer) != VK_SUCCESS)
+  {
+    throw std::runtime_error("Vulkan: Failed to record command buffer.");
+  }
+  */
+}
+
+void sdlxvulkan::Application::Implementation::write_frame_commands(uint32_t a_swapchain_image_index)
+{
   // Reset so we can write again
   m_device_functions->vkResetCommandBuffer(m_command_buffers[m_current_frame], 0);
-
-  
-  VkCommandBufferBeginInfo l_begin_info = {};
+    
+  // Begin the command buffer
+  VkCommandBufferBeginInfo l_begin_info {};
   l_begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
   l_begin_info.flags = VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT;
   l_begin_info.pInheritanceInfo = nullptr; // Optional
@@ -624,12 +664,7 @@ void sdlxvulkan::Application::Implementation::write_commands(uint32_t a_swapchai
     throw std::runtime_error("Vulkan: Failed to begin recording command buffer.");
   }
 
-  // got to do this every time things get drawn with a dynamic pipeline.
-  m_device_functions->vkCmdSetViewport(m_command_buffers[m_current_frame], 0, 1, &m_viewport);
-  m_device_functions->vkCmdSetScissor(m_command_buffers[m_current_frame], 0, 1, &m_scissor);
-
-    
-  std::array<VkClearValue, 2> l_clear_values = {};
+  std::array<VkClearValue, 2> l_clear_values {};
 
   // colour image
   l_clear_values[0].color = { 0.0f, 0.0f, 0.0f, 1.0f };
@@ -662,6 +697,7 @@ void sdlxvulkan::Application::Implementation::write_commands(uint32_t a_swapchai
   // Ok this isn't the way to do this for a swapchain image
   */
 
+  // Begin the render pass
   VkRenderPassBeginInfo l_render_pass_info = {};
   l_render_pass_info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
   l_render_pass_info.renderPass = m_render_pass;
@@ -673,18 +709,24 @@ void sdlxvulkan::Application::Implementation::write_commands(uint32_t a_swapchai
 
   m_device_functions->vkCmdBeginRenderPass(m_command_buffers[m_current_frame], &l_render_pass_info, VK_SUBPASS_CONTENTS_INLINE);
 
+  // Bind a graphics pipeline - have to do this inside the render pass
   m_device_functions->vkCmdBindPipeline(m_command_buffers[m_current_frame], VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipeline);
-    
+  // Got to do this every time things get drawn with a dynamic pipeline.
+  // These only do anything if a pipeline is bound in the same command buffer.
+  m_device_functions->vkCmdSetViewport(m_command_buffers[m_current_frame], 0, 1, &m_viewport);
+  m_device_functions->vkCmdSetScissor(m_command_buffers[m_current_frame], 0, 1, &m_scissor);  
+
+  // Bind vertex buffers
   std::array<VkBuffer,1> l_vertex_buffers{ m_vertex.buffer };
-  VkDeviceSize l_offsets[] = { 0 };
-  m_device_functions->vkCmdBindVertexBuffers(m_command_buffers[m_current_frame], 0, 1, l_vertex_buffers.data(), l_offsets);
+  std::array<VkDeviceSize, 1> l_offsets { 0 };
+  m_device_functions->vkCmdBindVertexBuffers(m_command_buffers[m_current_frame], 0, static_cast<uint32_t>(l_vertex_buffers.size()), l_vertex_buffers.data(), l_offsets.data());
   
   // Bind the index buffer - there can be only one
   m_device_functions->vkCmdBindIndexBuffer(m_command_buffers[m_current_frame], m_index.buffer, 0, VK_INDEX_TYPE_UINT32);
 
+  // Bind descriptor sets
   std::array<VkDescriptorSet, 1> l_descriptor_set{ m_descriptor_sets[m_current_frame] };
-
-  m_device_functions->vkCmdBindDescriptorSets(m_command_buffers[m_current_frame], VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipeline_layout, 0, 1, l_descriptor_set.data(), 0, nullptr);
+  m_device_functions->vkCmdBindDescriptorSets(m_command_buffers[m_current_frame], VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipeline_layout, 0, static_cast<uint32_t>(l_descriptor_set.size()), l_descriptor_set.data(), 0, nullptr);
 
   /*
   VkImageResolve l_region{};
@@ -706,18 +748,24 @@ void sdlxvulkan::Application::Implementation::write_commands(uint32_t a_swapchai
   // can't do this inside a renderpass either...
   */
 
+  // Test run of push constants.
+  static glm::vec4 const s_colour_mod{.5,1,.5,1};
+  m_device_functions->vkCmdPushConstants(m_command_buffers[m_current_frame], m_pipeline_layout, VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(glm::vec4), static_cast<void const*>(&s_colour_mod));
+  
+  //m_device_functions->vkCmdPushConstants(m_command_buffers[m_current_frame], m_pipeline_layout, VK_SHADER_STAGE_VERTEX_BIT, sizeof(glm::vec4), sizeof(Example_Uniform_Buffer_Object), static_cast<void const*>(&m_ubo));
+
+
   // Now we draw using the indices
   m_device_functions->vkCmdDrawIndexed(m_command_buffers[m_current_frame], static_cast<uint32_t>(c_indices.size()), 1, 0, 0, 0);
     
+  // End the renderpass 
   m_device_functions->vkCmdEndRenderPass(m_command_buffers[m_current_frame]);
 
+  // End the command buffer
   if (m_device_functions->vkEndCommandBuffer(m_command_buffers[m_current_frame]) != VK_SUCCESS)
   {
     throw std::runtime_error("Vulkan: Failed to record command buffer.");
   }
-
-  //std::cout << "Commands recorded to index = " << m_current_frame << std::endl;
-  //}
 }
 
 void sdlxvulkan::Application::Implementation::draw_frame()
@@ -744,7 +792,7 @@ void sdlxvulkan::Application::Implementation::draw_frame()
     }
   }
 
-  write_commands(l_swapchain_image_index);
+  write_frame_commands(l_swapchain_image_index);
 
 
   //std::cout << "current frame = " << m_current_frame << " aquired = " << l_image_index << std::endl;
@@ -757,7 +805,8 @@ void sdlxvulkan::Application::Implementation::draw_frame()
   std::array<VkSemaphore, 1> l_signal_semaphores { m_render_finished_semaphores[m_current_frame] };
 
   assert(!m_command_buffers.empty());
-  VkCommandBuffer l_command_buffers[1]{};
+  std::array<VkCommandBuffer,1> l_command_buffers{};
+  //l_command_buffers[0] = m_fixed_command_buffer;
   l_command_buffers[0] = m_command_buffers[m_current_frame];
 
   VkSubmitInfo l_submit_info {};
@@ -766,8 +815,8 @@ void sdlxvulkan::Application::Implementation::draw_frame()
   l_submit_info.waitSemaphoreCount = 1;
   l_submit_info.pWaitSemaphores = l_wait_semaphores.data();
   l_submit_info.pWaitDstStageMask = l_wait_stages.data();
-  l_submit_info.commandBufferCount = 1;
-  l_submit_info.pCommandBuffers = l_command_buffers;
+  l_submit_info.commandBufferCount = static_cast<uint32_t>(l_command_buffers.size());
+  l_submit_info.pCommandBuffers = l_command_buffers.data();
   l_submit_info.signalSemaphoreCount = 1;
   l_submit_info.pSignalSemaphores = l_signal_semaphores.data();
 
@@ -822,7 +871,16 @@ void sdlxvulkan::Application::Implementation::update_uniform_buffer()
   l_ubo.proj = glm::perspective(glm::radians(45.0f), m_swapchain.extent.width / static_cast<float>(m_swapchain.extent.height), 0.1f, 10.0f);
 
   l_ubo.proj[1][1] *= -1;
-  
+  /*
+  // can use this to fiddle with the shader...
+  float l_change = l_time - static_cast<int>(l_time);
+  l_ubo.color.r += l_time;
+  l_ubo.color.g += l_time;
+  l_ubo.color.b += l_time;
+  l_ubo.color.a += l_time;
+  */
+  m_ubo = l_ubo;
+
   void* l_data{};
   m_device_functions->vkMapMemory(m_device, m_uniforms[m_current_frame].memory, 0, sizeof(l_ubo), 0, &l_data);
   memcpy(l_data, &l_ubo, sizeof(l_ubo));

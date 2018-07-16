@@ -97,6 +97,13 @@ namespace sdlxvulkan
     VkAllocationCallbacks const* a_allocation_callbacks = nullptr
   );
 
+  Handle<VkCommandBuffer> app_make_command_buffer
+  (
+    Handle<VkDevice> const& a_device,
+    Handle<VkCommandPool> const& a_command_pool,
+    VkCommandBufferLevel a_level
+  );
+
   // Make a batch of self-destroying VkCommandBuffer.
   // Destruction is independent for each so there's no batch freeing.
   std::vector<Handle<VkCommandBuffer>> app_make_command_buffers

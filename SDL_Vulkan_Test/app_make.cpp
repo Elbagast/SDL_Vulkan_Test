@@ -7,6 +7,7 @@
 #include <array>
 
 #include "app_files.hpp"
+#include <glm/glm.hpp>
 
 
 sdlxvulkan::Handle<VkInstance> sdlxvulkan::app_make_instance
@@ -441,6 +442,24 @@ void sdlxvulkan::app_copy_buffer
 
   l_functions->vkQueueWaitIdle(a_queue); 
 }
+
+sdlxvulkan::Handle<VkCommandBuffer> sdlxvulkan::app_make_command_buffer
+(
+  Handle<VkDevice> const& a_device,
+  Handle<VkCommandPool> const& a_command_pool,
+  VkCommandBufferLevel a_level
+)
+{
+  VkCommandBufferAllocateInfo l_alloc_info{};
+  l_alloc_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+  l_alloc_info.pNext = nullptr;
+  l_alloc_info.commandPool = a_command_pool.get();
+  l_alloc_info.level = a_level;
+  l_alloc_info.commandBufferCount = 1;
+
+  return make_command_buffer(a_device, a_command_pool, l_alloc_info);
+}
+
 
 // Make a batch of self-destroying VkCommandBuffer.
 // Destruction is independent for each so there's no batch freeing.
@@ -1079,7 +1098,7 @@ sdlxvulkan::Handle<VkDescriptorSetLayout> sdlxvulkan::app_make_descriptor_set_la
   l_ubo_layout_binding.binding = 0;
   l_ubo_layout_binding.descriptorCount = 1;
   l_ubo_layout_binding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-  l_ubo_layout_binding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+  l_ubo_layout_binding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT; // what stages see the uniform buffer?
   l_ubo_layout_binding.pImmutableSamplers = nullptr; // not relevent here
 
   VkDescriptorSetLayoutBinding l_sampler_layout_binding{};
@@ -1513,14 +1532,30 @@ sdlxvulkan::Handle<VkPipelineLayout> sdlxvulkan::app_make_pipeline_layout
 {
   std::array<VkDescriptorSetLayout, 1> l_layouts{ a_descriptor_set_layout };
 
+  // Describe a push constant the fragment shader will use
+  VkPushConstantRange l_fragment_push_constant_range{};
+  l_fragment_push_constant_range.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+  l_fragment_push_constant_range.offset = 0;
+  l_fragment_push_constant_range.size = sizeof(glm::vec4); // multiple of 4
+  /*
+  // switching the ubo to push constants....
+  // Can't do this because it's too big for the push constant storage.
+  // That depends on VkPhysicalDevice.
+  VkPushConstantRange l_vertex_push_constant_range{};
+  l_vertex_push_constant_range.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+  l_vertex_push_constant_range.offset = sizeof(glm::vec4);
+  l_vertex_push_constant_range.size = sizeof(glm::mat4) + sizeof(glm::mat4) + sizeof(glm::mat4); // multiple of 4
+  */
+  std::array<VkPushConstantRange, 1> l_push_const_ranges{ l_fragment_push_constant_range };
+
   VkPipelineLayoutCreateInfo l_pipeline_layout_info{};
   l_pipeline_layout_info.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
   l_pipeline_layout_info.pNext = nullptr;
   l_pipeline_layout_info.flags = 0;
   l_pipeline_layout_info.setLayoutCount = static_cast<uint32_t>(l_layouts.size());
   l_pipeline_layout_info.pSetLayouts = l_layouts.data();
-  l_pipeline_layout_info.pushConstantRangeCount = 0;
-  l_pipeline_layout_info.pPushConstantRanges = nullptr;
+  l_pipeline_layout_info.pushConstantRangeCount = static_cast<uint32_t>(l_push_const_ranges.size());
+  l_pipeline_layout_info.pPushConstantRanges = l_push_const_ranges.data();
 
   return make_pipeline_layout(a_device, l_pipeline_layout_info);
 }

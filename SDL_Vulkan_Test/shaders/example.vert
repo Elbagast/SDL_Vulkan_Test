@@ -1,6 +1,12 @@
 #version 450
 #extension GL_ARB_separate_shader_objects : enable
 
+//layout(push_constant) uniform vertPushConstants {
+//    layout(offset = 16) mat4 model;
+//    mat4 view;
+//    mat4 proj;
+//} u_pushConstants;
+
 layout(binding = 0) uniform UniformBufferObject {
     mat4 model;
     mat4 view;
@@ -20,6 +26,7 @@ out gl_PerVertex {
 
 void main() {
     gl_Position = ubo.proj * ubo.view * ubo.model * vec4(inPosition, 1.0);
+    //gl_Position = u_pushConstants.proj * u_pushConstants.view * u_pushConstants.model * vec4(inPosition, 1.0);
     fragColor = inColor;
     fragTexCoord = inTexCoord;
 }
