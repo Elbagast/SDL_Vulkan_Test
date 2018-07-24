@@ -92,6 +92,9 @@
     <ClInclude Include="app_files.hpp">
       <Filter>Header Files\sdlxvulkan</Filter>
     </ClInclude>
+    <ClInclude Include="make_default.hpp">
+      <Filter>Header Files\sdlxvulkan</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <CustomBuild Include="shaders\example.frag">

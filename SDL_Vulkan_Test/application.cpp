@@ -31,6 +31,17 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
+void use(VkFlags& a_value) {}
+//void use(VkShaderStageFlags& a_value) {}
+//void use(VkSparseImageFormatFlags& a_value) {}
+
+void use_b()
+{
+  VkShaderStageFlags l_flags{};
+  use(l_flags);
+}
+
+
 namespace sdlxvulkan
 {
   namespace

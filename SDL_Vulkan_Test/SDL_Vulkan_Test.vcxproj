@@ -39,6 +39,7 @@
     <ClInclude Include="global_functions.hpp" />
     <ClInclude Include="app_make.hpp" />
     <ClInclude Include="instance_functions.hpp" />
+    <ClInclude Include="make_default.hpp" />
     <ClInclude Include="result.hpp" />
     <ClInclude Include="system.hpp" />
     <ClInclude Include="handles.hpp" />

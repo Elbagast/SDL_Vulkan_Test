@@ -28,7 +28,10 @@ namespace sdlxvulkan
     VkAllocationCallbacks const* a_allocation_callbacks = nullptr
   );
 
-  VkPhysicalDeviceFeatures app_make_required_device_features(VkPhysicalDeviceFeatures const& a_supported_features);
+  VkPhysicalDeviceFeatures app_make_required_device_features  
+  (
+    VkPhysicalDeviceFeatures const& a_supported_features
+  );
   
   Handle<VkDevice> app_make_device
   (

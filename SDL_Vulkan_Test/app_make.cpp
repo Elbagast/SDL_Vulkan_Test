@@ -3,6 +3,7 @@
 #include "system.hpp"
 #include "window.hpp"
 #include "device_functions.hpp"
+#include "make_default.hpp"
 #include <iostream>
 #include <array>
 
@@ -83,9 +84,13 @@ sdlxvulkan::Handle<VkInstance> sdlxvulkan::app_make_instance
 
   // Initialise an application info structure
   // INITIALISE EVERYTHING PROPERLY FOR VULKAN STRUCTS
-  VkApplicationInfo l_app_info{};
-  l_app_info.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
-  l_app_info.pNext = nullptr;
+
+  VkApplicationInfo l_app_info = make_default<VkApplicationInfo>();
+
+
+  //VkApplicationInfo l_app_info{};
+  //l_app_info.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
+  //l_app_info.pNext = nullptr;
   l_app_info.pApplicationName = a_application_name.c_str();
   l_app_info.applicationVersion = a_application_version;
   l_app_info.pEngineName = a_engine_name.c_str();
@@ -153,7 +158,10 @@ sdlxvulkan::Handle<VkDebugReportCallbackEXT> sdlxvulkan::app_make_debug_report_c
   return make_debug_report_callback_ext(a_instance, l_callback_info, a_allocation_callbacks);
 }
 
-VkPhysicalDeviceFeatures sdlxvulkan::app_make_required_device_features(VkPhysicalDeviceFeatures const& a_supported_features)
+VkPhysicalDeviceFeatures sdlxvulkan::app_make_required_device_features
+(
+  VkPhysicalDeviceFeatures const& a_supported_features
+)
 {
   assert(a_supported_features.samplerAnisotropy == VK_TRUE);
 
@@ -1510,7 +1518,7 @@ sdlxvulkan::Handle<VkRenderPass> sdlxvulkan::app_make_render_pass
 
   std::array<VkAttachmentDescription, 2> l_attachments { l_colour_attachment, l_depth_attachment };
 
-  VkRenderPassCreateInfo l_render_pass_info = {};
+  VkRenderPassCreateInfo l_render_pass_info{};
   l_render_pass_info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
   l_render_pass_info.pNext = nullptr;
   l_render_pass_info.flags = 0;
