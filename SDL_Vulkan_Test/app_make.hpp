@@ -100,30 +100,28 @@ namespace sdlxvulkan
     VkAllocationCallbacks const* a_allocation_callbacks = nullptr
   );
 
-  Handle<VkCommandBuffer> app_make_command_buffer
-  (
-    Handle<VkDevice> const& a_device,
-    Handle<VkCommandPool> const& a_command_pool,
-    VkCommandBufferLevel a_level
-  );
-
-  // Make a batch of self-destroying VkCommandBuffer.
-  // Destruction is independent for each so there's no batch freeing.
-  std::vector<Handle<VkCommandBuffer>> app_make_command_buffers
-  (
-    Handle<VkDevice> const& a_device,
-    Handle<VkCommandPool> const& a_command_pool,
-    VkCommandBufferLevel a_level,
-    uint32_t a_count
-  );
-
-  Handle<VkCommandBuffer> app_make_begin_one_time_command_buffer
+  Handle<VkCommandBuffer> app_make_primary_command_buffer
   (
     Handle<VkDevice> const& a_device,
     Handle<VkCommandPool> const& a_command_pool
   );
 
-  void app_end_submit_one_time_command_buffer
+  // Make a batch of self-destroying VkCommandBuffer.
+  // Destruction is independent for each so there's no batch freeing.
+  std::vector<Handle<VkCommandBuffer>> app_make_primary_command_buffers
+  (
+    Handle<VkDevice> const& a_device,
+    Handle<VkCommandPool> const& a_command_pool,
+    uint32_t a_count
+  );
+
+  Handle<VkCommandBuffer> app_make_begin_one_time_primary_command_buffer
+  (
+    Handle<VkDevice> const& a_device,
+    Handle<VkCommandPool> const& a_command_pool
+  );
+
+  void app_end_submit_one_time_primary_command_buffer
   (
     Handle<VkDevice> const& a_device,
     Handle<VkCommandBuffer> const& a_command_buffer,

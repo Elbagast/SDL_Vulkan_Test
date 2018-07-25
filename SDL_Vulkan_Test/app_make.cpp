@@ -86,8 +86,7 @@ sdlxvulkan::Handle<VkInstance> sdlxvulkan::app_make_instance
   // INITIALISE EVERYTHING PROPERLY FOR VULKAN STRUCTS
 
   VkApplicationInfo l_app_info = make_default<VkApplicationInfo>();
-
-
+  
   //VkApplicationInfo l_app_info{};
   //l_app_info.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
   //l_app_info.pNext = nullptr;
@@ -96,7 +95,7 @@ sdlxvulkan::Handle<VkInstance> sdlxvulkan::app_make_instance
   l_app_info.pEngineName = a_engine_name.c_str();
   l_app_info.engineVersion = a_engine_version;
   l_app_info.apiVersion = a_vulkan_version;
-
+  
   // need to change the type of these
   std::vector<char const*> l_final_layers{};
   l_final_layers.reserve(a_layer_names.size());
@@ -116,20 +115,10 @@ sdlxvulkan::Handle<VkInstance> sdlxvulkan::app_make_instance
 
   // Initialise a create info struct.
   // INITIALISE EVERYTHING PROPERLY FOR VULKAN STRUCTS
-  VkInstanceCreateInfo l_create_info{};
-  l_create_info.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
-  l_create_info.pNext = nullptr;
-  l_create_info.flags = 0;
+  VkInstanceCreateInfo l_create_info = make_default<VkInstanceCreateInfo>();
   l_create_info.pApplicationInfo = &l_app_info;
-  // if there are no layer names there are no layers.
-  if (a_layer_names.empty())
-  {
-    l_create_info.enabledLayerCount = 0;
-    l_create_info.ppEnabledLayerNames = nullptr;
-
-  }
-  // else there are.
-  else
+  // if there are layer names then set them.
+  if (!a_layer_names.empty())
   {
     l_create_info.enabledLayerCount = static_cast<uint32_t>(l_final_layers.size());
     l_create_info.ppEnabledLayerNames = l_final_layers.data();
@@ -148,12 +137,10 @@ sdlxvulkan::Handle<VkDebugReportCallbackEXT> sdlxvulkan::app_make_debug_report_c
   VkAllocationCallbacks const* a_allocation_callbacks
 )
 {
-  VkDebugReportCallbackCreateInfoEXT l_callback_info{};
-  l_callback_info.sType = VK_STRUCTURE_TYPE_DEBUG_REPORT_CALLBACK_CREATE_INFO_EXT;
-  l_callback_info.pNext = nullptr;
+  VkDebugReportCallbackCreateInfoEXT l_callback_info = make_default<VkDebugReportCallbackCreateInfoEXT>();
   l_callback_info.flags = a_flags;
   l_callback_info.pfnCallback = a_callback;
-  l_callback_info.pUserData = nullptr;
+  //l_callback_info.pUserData = nullptr;
 
   return make_debug_report_callback_ext(a_instance, l_callback_info, a_allocation_callbacks);
 }
@@ -238,20 +225,14 @@ sdlxvulkan::Handle<VkDevice> sdlxvulkan::app_make_device
 {
   float l_queue_priorities[1] = { 0.0 };
 
-  std::array<VkDeviceQueueCreateInfo,2> l_queue_infos{};
+  auto l_queue_infos = make_default_array<VkDeviceQueueCreateInfo,2>();
 
   // first is graphics
-  l_queue_infos[0].sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
-  l_queue_infos[0].pNext = nullptr;
-  l_queue_infos[0].flags = 0;
   l_queue_infos[0].queueFamilyIndex = a_graphics_qfi;
   l_queue_infos[0].queueCount = 1; // if we want more queues...
   l_queue_infos[0].pQueuePriorities = l_queue_priorities;
 
   // second is presenting
-  l_queue_infos[1].sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
-  l_queue_infos[1].pNext = nullptr;
-  l_queue_infos[1].flags = 0;
   l_queue_infos[1].queueFamilyIndex = a_present_qfi;
   l_queue_infos[1].queueCount = 1; // if we want more queues...
   l_queue_infos[1].pQueuePriorities = l_queue_priorities;
@@ -259,7 +240,6 @@ sdlxvulkan::Handle<VkDevice> sdlxvulkan::app_make_device
 
   std::vector<char const*> l_device_extensions{};
   uint32_t l_device_extension_count = static_cast<uint32_t>(a_extensions.size());
-  //std::vector<char const*> l_extensions{};
   l_device_extensions.reserve(a_extensions.size());
   for (auto const& l_ext : a_extensions)
   {
@@ -267,10 +247,7 @@ sdlxvulkan::Handle<VkDevice> sdlxvulkan::app_make_device
   }
 
   // Make some device info
-  VkDeviceCreateInfo l_device_info = {};
-  l_device_info.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
-  l_device_info.pNext = nullptr;
-  l_device_info.flags = 0;
+  VkDeviceCreateInfo l_device_info = make_default<VkDeviceCreateInfo>();
 
   if (a_graphics_qfi == a_present_qfi)
   {
@@ -281,8 +258,6 @@ sdlxvulkan::Handle<VkDevice> sdlxvulkan::app_make_device
     l_device_info.queueCreateInfoCount = 2;
   }
   l_device_info.pQueueCreateInfos = l_queue_infos.data();
-  l_device_info.enabledLayerCount = 0;          // Deprecated, IGNORE
-  l_device_info.ppEnabledLayerNames = nullptr;  // Deprecated, IGNORE
   l_device_info.enabledExtensionCount = l_device_extension_count;
   l_device_info.ppEnabledExtensionNames = l_device_extensions.data();
   l_device_info.pEnabledFeatures = &a_features;
@@ -300,15 +275,10 @@ sdlxvulkan::Handle<VkBuffer> sdlxvulkan::app_make_buffer_exclusive
   VkAllocationCallbacks const* a_allocation_callbacks
 )
 {
-  VkBufferCreateInfo l_buffer_info{};
-  l_buffer_info.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-  l_buffer_info.pNext = nullptr;
-  l_buffer_info.flags = 0;
+  VkBufferCreateInfo l_buffer_info = make_default<VkBufferCreateInfo>();
   l_buffer_info.size = a_size;
   l_buffer_info.usage = a_usage;
   l_buffer_info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-  l_buffer_info.queueFamilyIndexCount = 0;
-  l_buffer_info.pQueueFamilyIndices = nullptr;
 
   return make_buffer(a_device, l_buffer_info, a_allocation_callbacks);
 }
@@ -328,10 +298,7 @@ sdlxvulkan::Handle<VkBuffer> sdlxvulkan::app_make_buffer_concurrent
 {
   assert(a_queue_family_indicies.size() > 1);
 
-  VkBufferCreateInfo l_buffer_info{};
-  l_buffer_info.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-  l_buffer_info.pNext = nullptr;
-  l_buffer_info.flags = 0;
+  VkBufferCreateInfo l_buffer_info = make_default<VkBufferCreateInfo>();
   l_buffer_info.size = a_size;
   l_buffer_info.usage = a_usage;
   l_buffer_info.sharingMode = VK_SHARING_MODE_CONCURRENT;
@@ -397,72 +364,28 @@ void sdlxvulkan::app_copy_buffer
   assert(l_functions->vkEndCommandBuffer != nullptr);
   assert(l_functions->vkQueueSubmit != nullptr);
   assert(l_functions->vkQueueWaitIdle != nullptr);
-
-  VkCommandBufferAllocateInfo l_alloc_info{};
-  l_alloc_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-  l_alloc_info.pNext = nullptr;
-  l_alloc_info.commandPool = a_command_pool;
-  l_alloc_info.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-  l_alloc_info.commandBufferCount = 1;
-
-  Handle<VkCommandBuffer> l_command_buffer = make_command_buffer(a_device,a_command_pool, l_alloc_info);
-
-  VkCommandBufferBeginInfo l_begin_info{};
-  l_begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-  l_begin_info.pNext = nullptr;
-  l_begin_info.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
-  l_begin_info.pInheritanceInfo = nullptr;
-
-
-  if (l_functions->vkBeginCommandBuffer(l_command_buffer, &l_begin_info) != VK_SUCCESS)
-  {
-    throw std::runtime_error{ "Vulkan: Copying Buffer: Failed to begin command buffer." };
-  }
-  //vkBeginCommandBuffer(l_command_buffers[0], &l_begin_info);
-
-  std::array<VkBufferCopy, 1> l_copy_regions{};
-  l_copy_regions[0].srcOffset = 0; // Optional
-  l_copy_regions[0].dstOffset = 0; // Optional
+  
+  Handle<VkCommandBuffer> l_command_buffer = app_make_begin_one_time_primary_command_buffer(a_device, a_command_pool);
+  
+  auto l_copy_regions = make_default_array<VkBufferCopy,1>();
+  //l_copy_regions[0].srcOffset = 0; // Optional
+  //l_copy_regions[0].dstOffset = 0; // Optional
   l_copy_regions[0].size = a_size;
 
-  l_functions->vkCmdCopyBuffer(l_command_buffer, a_source, a_dest, 1, l_copy_regions.data());
+  l_functions->vkCmdCopyBuffer(l_command_buffer, a_source, a_dest, static_cast<uint32_t>(l_copy_regions.size()), l_copy_regions.data());
 
-  l_functions->vkEndCommandBuffer(l_command_buffer);
-
-  std::array<VkCommandBuffer, 1> l_command_buffers_temp{ l_command_buffer };
-
-  VkSubmitInfo l_submit_info = {};
-  l_submit_info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-  l_submit_info.pNext = nullptr;
-  l_submit_info.waitSemaphoreCount = 0;
-  l_submit_info.pWaitSemaphores = nullptr;
-  l_submit_info.pWaitDstStageMask = 0;
-  l_submit_info.commandBufferCount = 1;
-  l_submit_info.pCommandBuffers = l_command_buffers_temp.data();
-  l_submit_info.signalSemaphoreCount = 0;
-  l_submit_info.pSignalSemaphores = nullptr;
-
-  std::cout << "submit" << std::endl;
-  if (l_functions->vkQueueSubmit(a_queue, 1, &l_submit_info, VK_NULL_HANDLE) != VK_SUCCESS)
-  {
-    throw std::runtime_error{ "Vulkan: Copying Buffer: Failed to submit command buffer." };
-  }
-
-  l_functions->vkQueueWaitIdle(a_queue); 
+  app_end_submit_one_time_primary_command_buffer(a_device, l_command_buffer, a_queue);
 }
 
-sdlxvulkan::Handle<VkCommandBuffer> sdlxvulkan::app_make_command_buffer
+sdlxvulkan::Handle<VkCommandBuffer> sdlxvulkan::app_make_primary_command_buffer
 (
   Handle<VkDevice> const& a_device,
-  Handle<VkCommandPool> const& a_command_pool,
-  VkCommandBufferLevel a_level
+  Handle<VkCommandPool> const& a_command_pool
 )
 {
-  VkCommandBufferAllocateInfo l_alloc_info{};
-  l_alloc_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-  l_alloc_info.pNext = nullptr;
+  VkCommandBufferAllocateInfo l_alloc_info = make_default<VkCommandBufferAllocateInfo>();
   l_alloc_info.commandPool = a_command_pool.get();
-  l_alloc_info.level = a_level;
+  l_alloc_info.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
   l_alloc_info.commandBufferCount = 1;
 
   return make_command_buffer(a_device, a_command_pool, l_alloc_info);
@@ -471,25 +394,22 @@ sdlxvulkan::Handle<VkCommandBuffer> sdlxvulkan::app_make_command_buffer
 
 // Make a batch of self-destroying VkCommandBuffer.
 // Destruction is independent for each so there's no batch freeing.
-std::vector<sdlxvulkan::Handle<VkCommandBuffer>> sdlxvulkan::app_make_command_buffers
+std::vector<sdlxvulkan::Handle<VkCommandBuffer>> sdlxvulkan::app_make_primary_command_buffers
 (
   Handle<VkDevice> const& a_device,
   Handle<VkCommandPool> const& a_command_pool,
-  VkCommandBufferLevel a_level,
   uint32_t a_count
 )
 {
-  VkCommandBufferAllocateInfo l_alloc_info{};
-  l_alloc_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-  l_alloc_info.pNext = nullptr;
+  VkCommandBufferAllocateInfo l_alloc_info = make_default<VkCommandBufferAllocateInfo>();
   l_alloc_info.commandPool = a_command_pool.get();
-  l_alloc_info.level = a_level;
+  l_alloc_info.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
   l_alloc_info.commandBufferCount = a_count;
 
   return make_command_buffers(a_device, a_command_pool, l_alloc_info);
 }
 
-sdlxvulkan::Handle<VkCommandBuffer> sdlxvulkan::app_make_begin_one_time_command_buffer
+sdlxvulkan::Handle<VkCommandBuffer> sdlxvulkan::app_make_begin_one_time_primary_command_buffer
 (
   Handle<VkDevice> const& a_device,
   Handle<VkCommandPool> const& a_command_pool
@@ -499,28 +419,18 @@ sdlxvulkan::Handle<VkCommandBuffer> sdlxvulkan::app_make_begin_one_time_command_
   assert(a_command_pool);
   auto l_functions = get_device_functions(a_device);
   assert(l_functions);
+  
+  Handle<VkCommandBuffer> l_result = app_make_primary_command_buffer(a_device, a_command_pool);
 
-  VkCommandBufferAllocateInfo l_alloc_info{};
-  l_alloc_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-  l_alloc_info.pNext = nullptr;
-  l_alloc_info.commandPool = a_command_pool;
-  l_alloc_info.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-  l_alloc_info.commandBufferCount = 1;
-
-  Handle<VkCommandBuffer> l_result = make_command_buffer(a_device, a_command_pool, l_alloc_info);
-
-  VkCommandBufferBeginInfo l_begin_info{};
-  l_begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-  l_begin_info.pNext = nullptr;
+  VkCommandBufferBeginInfo l_begin_info = make_default<VkCommandBufferBeginInfo>();
   l_begin_info.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
-  l_begin_info.pInheritanceInfo = nullptr;
 
   l_functions->vkBeginCommandBuffer(l_result, &l_begin_info);
 
   return l_result;
 }
 
-void sdlxvulkan::app_end_submit_one_time_command_buffer
+void sdlxvulkan::app_end_submit_one_time_primary_command_buffer
 (
   Handle<VkDevice> const& a_device,
   Handle<VkCommandBuffer> const& a_command_buffer,
@@ -536,16 +446,14 @@ void sdlxvulkan::app_end_submit_one_time_command_buffer
   l_functions->vkEndCommandBuffer(a_command_buffer);
 
   std::array<VkCommandBuffer, 1> l_raw{ a_command_buffer.get() };
-  VkSubmitInfo l_submit_info{};
-  l_submit_info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-  l_submit_info.pNext = nullptr;
-  l_submit_info.waitSemaphoreCount = 0;
-  l_submit_info.pWaitSemaphores = nullptr;
-  l_submit_info.pWaitDstStageMask = nullptr;
-  l_submit_info.commandBufferCount = 1;
+  VkSubmitInfo l_submit_info = make_default<VkSubmitInfo>();
+  //l_submit_info.waitSemaphoreCount = 0;
+  //l_submit_info.pWaitSemaphores = nullptr;
+  //l_submit_info.pWaitDstStageMask = nullptr;
+  l_submit_info.commandBufferCount = static_cast<uint32_t>(l_raw.size());
   l_submit_info.pCommandBuffers = l_raw.data();
-  l_submit_info.signalSemaphoreCount = 0;
-  l_submit_info.pSignalSemaphores = nullptr;
+  //l_submit_info.signalSemaphoreCount = 0;
+  //l_submit_info.pSignalSemaphores = nullptr;
 
   l_functions->vkQueueSubmit(a_queue, 1, &l_submit_info, VK_NULL_HANDLE);
   l_functions->vkQueueWaitIdle(a_queue);
@@ -561,9 +469,7 @@ sdlxvulkan::Handle<VkCommandPool> sdlxvulkan::app_make_command_pool
 )
 {
   // Initialise some creation info
-  VkCommandPoolCreateInfo l_command_pool_info{};
-  l_command_pool_info.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
-  l_command_pool_info.pNext = nullptr;
+  VkCommandPoolCreateInfo l_command_pool_info = make_default<VkCommandPoolCreateInfo>();
   l_command_pool_info.flags = a_flags;
   l_command_pool_info.queueFamilyIndex = a_queue_family_index;
 
@@ -579,9 +485,7 @@ sdlxvulkan::Handle<VkDeviceMemory> sdlxvulkan::app_make_device_memory
   VkAllocationCallbacks const* a_allocation_callbacks
 )
 {
-  VkMemoryAllocateInfo l_alloc_info{};
-  l_alloc_info.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
-  l_alloc_info.pNext = nullptr;
+  VkMemoryAllocateInfo l_alloc_info = make_default<VkMemoryAllocateInfo>();
   l_alloc_info.allocationSize = a_size;
   l_alloc_info.memoryTypeIndex = a_memory_type_index;
 
@@ -594,12 +498,7 @@ sdlxvulkan::Handle<VkPipelineCache>sdlxvulkan::app_make_pipeline_cache
   Handle<VkDevice> const& a_device
 )
 {
-  VkPipelineCacheCreateInfo l_create_info{};
-  l_create_info.sType = VK_STRUCTURE_TYPE_PIPELINE_CACHE_CREATE_INFO;
-  l_create_info.pNext = nullptr;
-  l_create_info.flags = 0;
-  l_create_info.initialDataSize = 0;
-  l_create_info.pInitialData = nullptr;
+  VkPipelineCacheCreateInfo l_create_info = make_default<VkPipelineCacheCreateInfo>();
 
   return make_pipeline_cache(a_device, l_create_info);
 }
@@ -619,20 +518,21 @@ sdlxvulkan::Handle<VkImage> sdlxvulkan::app_make_image
   auto l_functions = get_device_functions(a_device);
   assert(l_functions);
 
-  VkImageCreateInfo l_image_info = {};
-  l_image_info.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
+  VkImageCreateInfo l_image_info = make_default<VkImageCreateInfo>();
   l_image_info.imageType = VK_IMAGE_TYPE_2D;
+  l_image_info.format = a_format;
   l_image_info.extent.width = a_width;
   l_image_info.extent.height = a_height;
   l_image_info.extent.depth = 1;
   l_image_info.mipLevels = 1;
   l_image_info.arrayLayers = 1;
-  l_image_info.format = a_format;
-  l_image_info.tiling = a_tiling;
-  l_image_info.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-  l_image_info.usage = a_usage;
   l_image_info.samples = VK_SAMPLE_COUNT_1_BIT;
+  l_image_info.tiling = a_tiling;
+  l_image_info.usage = a_usage;
   l_image_info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+  //l_image_info.queueFamilyIndexCount = 0;
+  //l_image_info.pQueueFamilyIndices = nullptr;
+  l_image_info.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
 
   return make_image(a_device, l_image_info);
 }
@@ -645,10 +545,7 @@ sdlxvulkan::Handle<VkImageView> sdlxvulkan::app_make_image_view
   VkImageAspectFlags a_aspect_flags
 )
 {
-  VkImageViewCreateInfo l_image_view_info{};
-  l_image_view_info.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-  l_image_view_info.pNext = nullptr;
-  l_image_view_info.flags = 0;
+  VkImageViewCreateInfo l_image_view_info = make_default<VkImageViewCreateInfo>();
   l_image_view_info.image = a_image;
   l_image_view_info.viewType = VK_IMAGE_VIEW_TYPE_2D;
   l_image_view_info.format = a_format;
@@ -683,11 +580,10 @@ sdlxvulkan::Handle<VkDeviceMemory> sdlxvulkan::app_make_bind_image_memory
   assert(l_functions->vkGetImageMemoryRequirements != nullptr);
   assert(l_functions->vkBindImageMemory != nullptr);
   
-  VkMemoryRequirements l_mem_reqs{};
+  VkMemoryRequirements l_mem_reqs = make_default<VkMemoryRequirements>();
   l_functions->vkGetImageMemoryRequirements(a_device, a_image, &l_mem_reqs);
 
-  VkMemoryAllocateInfo l_alloc_info = {};
-  l_alloc_info.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+  VkMemoryAllocateInfo l_alloc_info = make_default<VkMemoryAllocateInfo>();
   l_alloc_info.allocationSize = l_mem_reqs.size;
   l_alloc_info.memoryTypeIndex = get_memory_type_from_properties(get_physical_device_memory_properties(a_instance, a_physical_device), l_mem_reqs.memoryTypeBits, a_properties);
 
@@ -877,13 +773,11 @@ void sdlxvulkan::app_transition_image_layout
   assert(a_queue);
   assert(a_image);
 
-  auto l_command_buffer = app_make_begin_one_time_command_buffer(a_device, a_command_pool);
+  auto l_command_buffer = app_make_begin_one_time_primary_command_buffer(a_device, a_command_pool);
 
-  VkImageMemoryBarrier l_barrier{};
-  l_barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
-  l_barrier.pNext = nullptr; 
-  l_barrier.srcAccessMask = 0; // see below
-  l_barrier.dstAccessMask = 0; // see below
+  VkImageMemoryBarrier l_barrier = make_default<VkImageMemoryBarrier>();
+  //l_barrier.srcAccessMask = 0; // see below
+  //l_barrier.dstAccessMask = 0; // see below
   l_barrier.oldLayout = a_old_layout;
   l_barrier.newLayout = a_new_layout;
   l_barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
@@ -953,7 +847,7 @@ void sdlxvulkan::app_transition_image_layout
     1, &l_barrier
   );
 
-  app_end_submit_one_time_command_buffer(a_device, l_command_buffer, a_queue);
+  app_end_submit_one_time_primary_command_buffer(a_device, l_command_buffer, a_queue);
 }
 
 
@@ -976,9 +870,9 @@ void sdlxvulkan::app_copy_buffer_to_image
   assert(a_buffer);
   assert(a_image);
 
-  auto l_command_buffer = app_make_begin_one_time_command_buffer(a_device, a_command_pool);
+  auto l_command_buffer = app_make_begin_one_time_primary_command_buffer(a_device, a_command_pool);
 
-  VkBufferImageCopy l_region{};
+  VkBufferImageCopy l_region = make_default<VkBufferImageCopy>();
   l_region.bufferOffset = 0;
   l_region.bufferRowLength = 0;
   l_region.bufferImageHeight = 0;
@@ -988,8 +882,13 @@ void sdlxvulkan::app_copy_buffer_to_image
   l_region.imageSubresource.baseArrayLayer = 0;
   l_region.imageSubresource.layerCount = 1;
 
-  l_region.imageOffset = { 0, 0, 0 };
-  l_region.imageExtent = { a_width, a_height, 1 };
+  l_region.imageOffset.x = 0;
+  l_region.imageOffset.y = 0;
+  l_region.imageOffset.z = 0;
+
+  l_region.imageExtent.width = a_width;
+  l_region.imageExtent.height = a_height;
+  l_region.imageExtent.depth = 1;
 
   l_functions->vkCmdCopyBufferToImage
   (
@@ -1001,7 +900,7 @@ void sdlxvulkan::app_copy_buffer_to_image
     &l_region
   );
 
-  app_end_submit_one_time_command_buffer(a_device, l_command_buffer, a_queue);
+  app_end_submit_one_time_primary_command_buffer(a_device, l_command_buffer, a_queue);
 }
 
 
@@ -1011,10 +910,7 @@ sdlxvulkan::Handle<VkSampler> sdlxvulkan::app_make_sampler
   VkPhysicalDeviceFeatures const& a_features
 )
 {
-  VkSamplerCreateInfo l_sampler_info {};
-  l_sampler_info.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
-  l_sampler_info.pNext = nullptr;
-  l_sampler_info.flags = 0;
+  VkSamplerCreateInfo l_sampler_info = make_default<VkSamplerCreateInfo>();
   l_sampler_info.magFilter = VK_FILTER_LINEAR; // VkFilter value
   l_sampler_info.minFilter = VK_FILTER_LINEAR; // VkFilter value
   l_sampler_info.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR; // VkSamplerMipmapMode value
@@ -1102,26 +998,23 @@ sdlxvulkan::Handle<VkDescriptorSetLayout> sdlxvulkan::app_make_descriptor_set_la
   Handle<VkDevice> const& a_device
 )
 {
-  VkDescriptorSetLayoutBinding l_ubo_layout_binding{};
-  l_ubo_layout_binding.binding = 0;
-  l_ubo_layout_binding.descriptorCount = 1;
-  l_ubo_layout_binding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-  l_ubo_layout_binding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT; // what stages see the uniform buffer?
-  l_ubo_layout_binding.pImmutableSamplers = nullptr; // not relevent here
+  std::array<VkDescriptorSetLayoutBinding, 2> l_bindings = make_default_array<VkDescriptorSetLayoutBinding, 2>();
 
-  VkDescriptorSetLayoutBinding l_sampler_layout_binding{};
-  l_sampler_layout_binding.binding = 1;
-  l_sampler_layout_binding.descriptorCount = 1;
-  l_sampler_layout_binding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-  l_sampler_layout_binding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
-  l_sampler_layout_binding.pImmutableSamplers = nullptr; // not relevent here
+  // UBO binding
+  l_bindings[0].binding = 0;
+  l_bindings[0].descriptorCount = 1;
+  l_bindings[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+  l_bindings[0].stageFlags = VK_SHADER_STAGE_VERTEX_BIT; // what stages see the uniform buffer?
+  l_bindings[0].pImmutableSamplers = nullptr; // not relevent here
 
-  std::array<VkDescriptorSetLayoutBinding, 2> l_bindings{ l_ubo_layout_binding, l_sampler_layout_binding };
+  // SAmpler binding
+  l_bindings[1].binding = 1;
+  l_bindings[1].descriptorCount = 1;
+  l_bindings[1].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+  l_bindings[1].stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+  l_bindings[1].pImmutableSamplers = nullptr; // not relevent here
 
-  VkDescriptorSetLayoutCreateInfo l_layout_info{};
-  l_layout_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-  l_layout_info.pNext = nullptr;
-  l_layout_info.flags = 0;
+  VkDescriptorSetLayoutCreateInfo l_layout_info = make_default<VkDescriptorSetLayoutCreateInfo>();
   l_layout_info.bindingCount = static_cast<uint32_t>(l_bindings.size());
   l_layout_info.pBindings = l_bindings.data();
 
@@ -1138,10 +1031,7 @@ sdlxvulkan::Handle<VkShaderModule> sdlxvulkan::app_make_shader_module_from_file
   auto l_path = get_filepath(a_exepath, a_filepath);
   auto l_spv_data = get_file_bytes(l_path);
 
-  VkShaderModuleCreateInfo l_module_info;
-  l_module_info.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
-  l_module_info.pNext = nullptr;
-  l_module_info.flags = 0;
+  VkShaderModuleCreateInfo l_module_info = make_default<VkShaderModuleCreateInfo>();
   l_module_info.codeSize = l_spv_data.size();
   l_module_info.pCode = reinterpret_cast<uint32_t const*>(l_spv_data.data());
 
@@ -1161,9 +1051,7 @@ sdlxvulkan::Shader_Pair sdlxvulkan::app_make_shader_pair
   Shader_Pair l_result{};
   l_result.shader_module = app_make_shader_module_from_file(a_device, a_exepath, a_filename);
 
-  l_result.pipeline_info.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-  l_result.pipeline_info.pNext = nullptr;
-  l_result.pipeline_info.flags = 0;
+  l_result.pipeline_info = make_default<VkPipelineShaderStageCreateInfo>();
   l_result.pipeline_info.stage = a_stage; // could probably pick this based on the file extension
   l_result.pipeline_info.module = l_result.shader_module;
   l_result.pipeline_info.pName = "main";
@@ -1345,13 +1233,9 @@ sdlxvulkan::Swapchain sdlxvulkan::app_make_swapchain
   }
   */
   VkCompositeAlphaFlagBitsKHR l_composite_alpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
-
-
+  
   // Swapchain Creation
-  VkSwapchainCreateInfoKHR l_swapchain_info{};
-  l_swapchain_info.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
-  l_swapchain_info.pNext = nullptr;
-  l_swapchain_info.flags = 0;
+  VkSwapchainCreateInfoKHR l_swapchain_info = make_default<VkSwapchainCreateInfoKHR>();
   l_swapchain_info.surface = a_surface;
   l_swapchain_info.minImageCount = l_requested_image_count;
   l_swapchain_info.imageFormat = l_result.format;
@@ -1419,7 +1303,7 @@ VkViewport sdlxvulkan::app_make_viewport
   Swapchain const& a_swapchain
 )
 {
-  VkViewport l_result{};
+  VkViewport l_result = make_default<VkViewport>();
   l_result.x = 0.0f;
   l_result.y = 0.0f;
   l_result.width = static_cast<float>(a_swapchain.extent.width);
@@ -1443,9 +1327,10 @@ VkRect2D sdlxvulkan::app_make_scissor
   Swapchain const& a_swapchain
 )
 {
-  VkRect2D l_result{};
+  VkRect2D l_result = make_default<VkRect2D>();
   l_result.extent = a_swapchain.extent;
-  l_result.offset = { 0,0 };
+  l_result.offset.x = 0;
+  l_result.offset.y = 0;
 
   // Testing scissoring
   // This draws in the top left quadrant.
@@ -1463,7 +1348,7 @@ sdlxvulkan::Handle<VkRenderPass> sdlxvulkan::app_make_render_pass
   VkFormat a_depth_format
 )
 {
-  VkAttachmentDescription l_colour_attachment{};
+  VkAttachmentDescription l_colour_attachment = make_default<VkAttachmentDescription>();
   l_colour_attachment.flags = 0;
   l_colour_attachment.format = a_format;
   l_colour_attachment.samples = VK_SAMPLE_COUNT_1_BIT;
@@ -1474,12 +1359,12 @@ sdlxvulkan::Handle<VkRenderPass> sdlxvulkan::app_make_render_pass
   l_colour_attachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
   l_colour_attachment.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
 
-  VkAttachmentReference l_colour_attachment_ref{};
+  VkAttachmentReference l_colour_attachment_ref = make_default<VkAttachmentReference>();
   l_colour_attachment_ref.attachment = 0;
   l_colour_attachment_ref.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 
 
-  VkAttachmentDescription l_depth_attachment{};
+  VkAttachmentDescription l_depth_attachment = make_default<VkAttachmentDescription>();
   l_depth_attachment.flags = 0;
   l_depth_attachment.format = a_depth_format;
   l_depth_attachment.samples = VK_SAMPLE_COUNT_1_BIT;
@@ -1495,7 +1380,7 @@ sdlxvulkan::Handle<VkRenderPass> sdlxvulkan::app_make_render_pass
   l_depth_attachment_ref.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
 
 
-  VkSubpassDescription  l_subpass_desc{};
+  VkSubpassDescription  l_subpass_desc = make_default<VkSubpassDescription>();
   l_subpass_desc.flags = 0;
   l_subpass_desc.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
   l_subpass_desc.inputAttachmentCount = 0;
@@ -1507,7 +1392,7 @@ sdlxvulkan::Handle<VkRenderPass> sdlxvulkan::app_make_render_pass
   l_subpass_desc.preserveAttachmentCount = 0;
   l_subpass_desc.pPreserveAttachments = nullptr;
 
-  VkSubpassDependency l_dependency{};
+  VkSubpassDependency l_dependency = make_default<VkSubpassDependency>();
   l_dependency.srcSubpass = VK_SUBPASS_EXTERNAL;
   l_dependency.dstSubpass = 0;
   l_dependency.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
@@ -1518,10 +1403,7 @@ sdlxvulkan::Handle<VkRenderPass> sdlxvulkan::app_make_render_pass
 
   std::array<VkAttachmentDescription, 2> l_attachments { l_colour_attachment, l_depth_attachment };
 
-  VkRenderPassCreateInfo l_render_pass_info{};
-  l_render_pass_info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
-  l_render_pass_info.pNext = nullptr;
-  l_render_pass_info.flags = 0;
+  VkRenderPassCreateInfo l_render_pass_info = make_default<VkRenderPassCreateInfo>();
   l_render_pass_info.attachmentCount = static_cast<uint32_t>(l_attachments.size());
   l_render_pass_info.pAttachments = l_attachments.data();
   l_render_pass_info.subpassCount = 1;
@@ -1541,7 +1423,7 @@ sdlxvulkan::Handle<VkPipelineLayout> sdlxvulkan::app_make_pipeline_layout
   std::array<VkDescriptorSetLayout, 1> l_layouts{ a_descriptor_set_layout };
 
   // Describe a push constant the fragment shader will use
-  VkPushConstantRange l_fragment_push_constant_range{};
+  VkPushConstantRange l_fragment_push_constant_range = make_default<VkPushConstantRange>();
   l_fragment_push_constant_range.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
   l_fragment_push_constant_range.offset = 0;
   l_fragment_push_constant_range.size = sizeof(glm::vec4); // multiple of 4
@@ -1556,10 +1438,7 @@ sdlxvulkan::Handle<VkPipelineLayout> sdlxvulkan::app_make_pipeline_layout
   */
   std::array<VkPushConstantRange, 1> l_push_const_ranges{ l_fragment_push_constant_range };
 
-  VkPipelineLayoutCreateInfo l_pipeline_layout_info{};
-  l_pipeline_layout_info.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-  l_pipeline_layout_info.pNext = nullptr;
-  l_pipeline_layout_info.flags = 0;
+  VkPipelineLayoutCreateInfo l_pipeline_layout_info = make_default<VkPipelineLayoutCreateInfo>();
   l_pipeline_layout_info.setLayoutCount = static_cast<uint32_t>(l_layouts.size());
   l_pipeline_layout_info.pSetLayouts = l_layouts.data();
   l_pipeline_layout_info.pushConstantRangeCount = static_cast<uint32_t>(l_push_const_ranges.size());
@@ -1582,74 +1461,56 @@ sdlxvulkan::Handle<VkPipeline> sdlxvulkan::app_make_dynamic_pipeline
 )
 {
   // Describe the vertex data
-  VkPipelineVertexInputStateCreateInfo l_vertex_input_state{};
-  l_vertex_input_state.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
-  l_vertex_input_state.pNext = nullptr;
-  l_vertex_input_state.flags = 0;
+  VkPipelineVertexInputStateCreateInfo l_vertex_input_state = make_default<VkPipelineVertexInputStateCreateInfo>();
   l_vertex_input_state.vertexBindingDescriptionCount = static_cast<uint32_t>(a_vertex_binding_descs.size());
   l_vertex_input_state.pVertexBindingDescriptions = a_vertex_binding_descs.data();
   l_vertex_input_state.vertexAttributeDescriptionCount = static_cast<uint32_t>(a_vertex_attribute_descs.size());
   l_vertex_input_state.pVertexAttributeDescriptions = a_vertex_attribute_descs.data();
 
   //Input Assembly
-  VkPipelineInputAssemblyStateCreateInfo l_input_assembly_state{};
-  l_input_assembly_state.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
-  l_input_assembly_state.pNext = nullptr;
-  l_input_assembly_state.flags = 0;
+  VkPipelineInputAssemblyStateCreateInfo l_input_assembly_state = make_default<VkPipelineInputAssemblyStateCreateInfo>();
   l_input_assembly_state.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
   l_input_assembly_state.primitiveRestartEnable = VK_FALSE;
 
   // Viewport state
-  VkPipelineViewportStateCreateInfo l_viewport_state{};
-  l_viewport_state.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
-  l_viewport_state.pNext = nullptr;
-  l_viewport_state.flags = 0;
+  VkPipelineViewportStateCreateInfo l_viewport_state = make_default<VkPipelineViewportStateCreateInfo>();
   l_viewport_state.viewportCount = 1;
   l_viewport_state.pViewports = nullptr; // not supplied if dynamic
   l_viewport_state.scissorCount = 1;
   l_viewport_state.pScissors = nullptr; // not supplied if dynamic
 
   // Rasterizer
-  VkPipelineRasterizationStateCreateInfo l_rasterization_state{};
-  l_rasterization_state.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
-  l_rasterization_state.pNext = nullptr;
-  l_rasterization_state.flags = 0;
+  VkPipelineRasterizationStateCreateInfo l_rasterization_state = make_default<VkPipelineRasterizationStateCreateInfo>();
   l_rasterization_state.depthClampEnable = VK_FALSE;
   l_rasterization_state.rasterizerDiscardEnable = VK_FALSE;
   l_rasterization_state.polygonMode = VK_POLYGON_MODE_FILL;
   l_rasterization_state.cullMode = VK_CULL_MODE_BACK_BIT;
   //l_rasterization_state.frontFace = VK_FRONT_FACE_CLOCKWISE;
   l_rasterization_state.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
-  l_rasterization_state.depthBiasEnable = VK_FALSE; // optional
-  l_rasterization_state.depthBiasConstantFactor = 0.0f; // optional
-  l_rasterization_state.depthBiasClamp = 0.0f; // optional
-  l_rasterization_state.depthBiasSlopeFactor = 0.0f; // optional
+  //l_rasterization_state.depthBiasEnable = VK_FALSE; // optional
+  //l_rasterization_state.depthBiasConstantFactor = 0.0f; // optional
+  //l_rasterization_state.depthBiasClamp = 0.0f; // optional
+  //l_rasterization_state.depthBiasSlopeFactor = 0.0f; // optional
   l_rasterization_state.lineWidth = 1.0f;
 
   // Multisampling
-  VkPipelineMultisampleStateCreateInfo l_multisample_state{};
-  l_multisample_state.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
-  l_multisample_state.pNext = nullptr;
-  l_multisample_state.flags = 0;
+  VkPipelineMultisampleStateCreateInfo l_multisample_state = make_default<VkPipelineMultisampleStateCreateInfo>();
   l_multisample_state.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
   l_multisample_state.sampleShadingEnable = VK_FALSE;
   l_multisample_state.minSampleShading = 1.0f; // optional
-  l_multisample_state.pSampleMask = nullptr; // optional
-  l_multisample_state.alphaToCoverageEnable = VK_FALSE; // optional
-  l_multisample_state.alphaToOneEnable = VK_FALSE; // optional
+  //l_multisample_state.pSampleMask = nullptr; // optional
+  //l_multisample_state.alphaToCoverageEnable = VK_FALSE; // optional
+  //l_multisample_state.alphaToOneEnable = VK_FALSE; // optional
 
   // Depth and Stencil  
-  VkPipelineDepthStencilStateCreateInfo l_depth_stencil_state;
-  l_depth_stencil_state.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
-  l_depth_stencil_state.pNext = nullptr;
-  l_depth_stencil_state.flags = 0;
+  VkPipelineDepthStencilStateCreateInfo l_depth_stencil_state = make_default<VkPipelineDepthStencilStateCreateInfo>();
   l_depth_stencil_state.depthTestEnable = VK_TRUE;
   l_depth_stencil_state.depthWriteEnable = VK_TRUE;
   l_depth_stencil_state.depthCompareOp = VK_COMPARE_OP_LESS;
   l_depth_stencil_state.depthBoundsTestEnable = VK_FALSE;
   l_depth_stencil_state.stencilTestEnable = VK_FALSE;
-  l_depth_stencil_state.front = {};// l_depth_stencil_state.back;
-  l_depth_stencil_state.back = {};
+  //l_depth_stencil_state.front = {};// l_depth_stencil_state.back;
+  //l_depth_stencil_state.back = {};
   //l_depth_stencil_state.back.failOp = VK_STENCIL_OP_KEEP;
   //l_depth_stencil_state.back.passOp = VK_STENCIL_OP_KEEP;
   //l_depth_stencil_state.back.compareOp = VK_COMPARE_OP_ALWAYS;
@@ -1661,7 +1522,7 @@ sdlxvulkan::Handle<VkPipeline> sdlxvulkan::app_make_dynamic_pipeline
   l_depth_stencil_state.maxDepthBounds = 1.0f; // optional
   
                                                    // Colour Blending
-  VkPipelineColorBlendAttachmentState l_colour_blend_attachment_state{};
+  VkPipelineColorBlendAttachmentState l_colour_blend_attachment_state = make_default<VkPipelineColorBlendAttachmentState>();
   l_colour_blend_attachment_state.blendEnable = VK_FALSE;
   l_colour_blend_attachment_state.srcColorBlendFactor = VK_BLEND_FACTOR_ONE;
   l_colour_blend_attachment_state.dstColorBlendFactor = VK_BLEND_FACTOR_ZERO;
@@ -1672,43 +1533,35 @@ sdlxvulkan::Handle<VkPipeline> sdlxvulkan::app_make_dynamic_pipeline
   l_colour_blend_attachment_state.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
 
 
-  VkPipelineColorBlendStateCreateInfo l_colour_blend_state{};
-  l_colour_blend_state.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
-  l_colour_blend_state.pNext = nullptr;
-  l_colour_blend_state.flags = 0;
+  VkPipelineColorBlendStateCreateInfo l_colour_blend_state = make_default<VkPipelineColorBlendStateCreateInfo>();
   l_colour_blend_state.logicOpEnable = VK_FALSE;
   l_colour_blend_state.logicOp = VK_LOGIC_OP_COPY; // optional
   l_colour_blend_state.attachmentCount = 1;
   l_colour_blend_state.pAttachments = &l_colour_blend_attachment_state;
-  l_colour_blend_state.blendConstants[0] = 0.0f; // optional
-  l_colour_blend_state.blendConstants[1] = 0.0f; // optional
-  l_colour_blend_state.blendConstants[2] = 0.0f; // optional
-  l_colour_blend_state.blendConstants[3] = 0.0f; // optional
+  //l_colour_blend_state.blendConstants[0] = 0.0f; // optional
+  //l_colour_blend_state.blendConstants[1] = 0.0f; // optional
+  //l_colour_blend_state.blendConstants[2] = 0.0f; // optional
+  //l_colour_blend_state.blendConstants[3] = 0.0f; // optional
 
 
   // Dynamic State
 
   // Need to set these if we want to change the few things that can be changed, like
-  // the viewport size, without having to remake the entire pipeline
+  // the viewport size, without having to remake the entire pipeline. Probably shouldn't
+  // bother with this if the window is not resized freely.
 
-  VkDynamicState l_dynamic_states[]
+  std::array<VkDynamicState,2> l_dynamic_states
   {
     VK_DYNAMIC_STATE_VIEWPORT,
     VK_DYNAMIC_STATE_SCISSOR
   };
 
-  VkPipelineDynamicStateCreateInfo l_dynamic_state{};
-  l_dynamic_state.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
-  l_dynamic_state.pNext = nullptr;
-  l_dynamic_state.flags = 0;
-  l_dynamic_state.dynamicStateCount = 2;
-  l_dynamic_state.pDynamicStates = l_dynamic_states;
+  VkPipelineDynamicStateCreateInfo l_dynamic_state = make_default<VkPipelineDynamicStateCreateInfo>();
+  l_dynamic_state.dynamicStateCount = static_cast<uint32_t>(l_dynamic_states.size());
+  l_dynamic_state.pDynamicStates = l_dynamic_states.data();
 
   // Pipeline  
-  VkGraphicsPipelineCreateInfo l_pipeline_info{};
-  l_pipeline_info.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
-  l_pipeline_info.pNext = nullptr;
-  l_pipeline_info.flags = 0;
+  VkGraphicsPipelineCreateInfo l_pipeline_info = make_default<VkGraphicsPipelineCreateInfo>();
   l_pipeline_info.stageCount = static_cast<uint32_t>(a_shader_group.pipeline_infos.size());
   l_pipeline_info.pStages = a_shader_group.pipeline_infos.data();
   l_pipeline_info.pVertexInputState = &l_vertex_input_state;
@@ -1745,8 +1598,7 @@ std::vector<sdlxvulkan::Handle<VkFramebuffer>> sdlxvulkan::app_make_swapchain_fr
   {
     std::array<VkImageView, 2> l_attachments{ l_swapchain_image_view, a_depth_trio.view };
 
-    VkFramebufferCreateInfo l_framebuffer_info{};
-    l_framebuffer_info.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
+    VkFramebufferCreateInfo l_framebuffer_info = make_default<VkFramebufferCreateInfo>();
     l_framebuffer_info.renderPass = a_render_pass;
     l_framebuffer_info.attachmentCount = static_cast<uint32_t>(l_attachments.size());
     l_framebuffer_info.pAttachments = l_attachments.data();
@@ -1795,7 +1647,7 @@ sdlxvulkan::Handle<VkDescriptorPool> sdlxvulkan::app_make_descriptor_pool
   uint32_t a_count
 )
 {
-  std::array<VkDescriptorPoolSize, 2> l_pool_sizes{};
+  auto l_pool_sizes = make_default_array<VkDescriptorPoolSize, 2>(); 
 
   // ubo
   l_pool_sizes[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
@@ -1805,10 +1657,7 @@ sdlxvulkan::Handle<VkDescriptorPool> sdlxvulkan::app_make_descriptor_pool
   l_pool_sizes[1].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
   l_pool_sizes[1].descriptorCount = a_count;
 
-  VkDescriptorPoolCreateInfo l_pool_info{};
-  l_pool_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
-  l_pool_info.pNext = nullptr;
-  l_pool_info.flags = 0;
+  VkDescriptorPoolCreateInfo l_pool_info = make_default<VkDescriptorPoolCreateInfo>();
   l_pool_info.maxSets = a_count;// *static_cast<uint32_t>(l_pool_sizes.size());
   l_pool_info.poolSizeCount = static_cast<uint32_t>(l_pool_sizes.size());
   l_pool_info.pPoolSizes = l_pool_sizes.data();
@@ -1834,9 +1683,9 @@ std::vector<VkDescriptorSet> sdlxvulkan::app_make_descriptor_sets
 
   // for use in alloc, same layout for each
   std::vector<VkDescriptorSetLayout> l_layouts{ a_frame_count, a_descriptor_set_layout };
-  VkDescriptorSetAllocateInfo l_alloc_info = {};
-  l_alloc_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-  l_alloc_info.pNext = nullptr;
+  VkDescriptorSetAllocateInfo l_alloc_info = make_default<VkDescriptorSetAllocateInfo>();
+  //l_alloc_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+  //l_alloc_info.pNext = nullptr;
   l_alloc_info.descriptorPool = a_descriptor_pool;
   l_alloc_info.descriptorSetCount = a_frame_count;
   l_alloc_info.pSetLayouts = l_layouts.data();
@@ -1847,41 +1696,37 @@ std::vector<VkDescriptorSet> sdlxvulkan::app_make_descriptor_sets
 
   for (uint32_t l_index = 0; l_index != a_frame_count; ++l_index)
   {
-    VkDescriptorBufferInfo l_buffer_info{};
+    VkDescriptorBufferInfo l_buffer_info = make_default<VkDescriptorBufferInfo>();
     l_buffer_info.buffer = a_uniforms[l_index].buffer;
     l_buffer_info.offset = 0;
     l_buffer_info.range = a_uniform_size;
 
-    VkDescriptorImageInfo l_image_info = {};
+    VkDescriptorImageInfo l_image_info = make_default<VkDescriptorImageInfo>();
     l_image_info.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
     l_image_info.imageView = a_texture.view;
     l_image_info.sampler = a_sampler;
 
-    std::array<VkWriteDescriptorSet, 2> l_descriptor_writes{};
+    auto l_descriptor_writes = make_default_array<VkWriteDescriptorSet,2>();
 
     // for the ubo
-    l_descriptor_writes[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-    l_descriptor_writes[0].pNext = nullptr;
     l_descriptor_writes[0].dstSet = l_descriptor_sets[l_index];
     l_descriptor_writes[0].dstBinding = 0;
     l_descriptor_writes[0].dstArrayElement = 0;
     l_descriptor_writes[0].descriptorCount = 1;
     l_descriptor_writes[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-    l_descriptor_writes[0].pImageInfo = nullptr; // optional
+    //l_descriptor_writes[0].pImageInfo = nullptr; // optional
     l_descriptor_writes[0].pBufferInfo = &l_buffer_info;
-    l_descriptor_writes[0].pTexelBufferView = nullptr; // optional
+    //l_descriptor_writes[0].pTexelBufferView = nullptr; // optional
 
     // for the sampler
-    l_descriptor_writes[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-    l_descriptor_writes[1].pNext = nullptr;
     l_descriptor_writes[1].dstSet = l_descriptor_sets[l_index];
     l_descriptor_writes[1].dstBinding = 1;
     l_descriptor_writes[1].dstArrayElement = 0;
     l_descriptor_writes[1].descriptorCount = 1;
     l_descriptor_writes[1].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
     l_descriptor_writes[1].pImageInfo = &l_image_info; // optional
-    l_descriptor_writes[1].pBufferInfo = nullptr;
-    l_descriptor_writes[1].pTexelBufferView = nullptr; // optional
+    //l_descriptor_writes[1].pBufferInfo = nullptr;
+    //l_descriptor_writes[1].pTexelBufferView = nullptr; // optional
 
     l_functions->vkUpdateDescriptorSets(a_device, static_cast<uint32_t>(l_descriptor_writes.size()), l_descriptor_writes.data(), 0, nullptr);
   }
@@ -1895,10 +1740,8 @@ std::vector<sdlxvulkan::Handle<VkSemaphore>> sdlxvulkan::app_make_semaphores
   uint32_t a_count
 )
 {
-  VkSemaphoreCreateInfo l_semaphore_info{};
-  l_semaphore_info.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
-  l_semaphore_info.pNext = nullptr;
-  l_semaphore_info.flags = 0;
+  VkSemaphoreCreateInfo l_semaphore_info = make_default<VkSemaphoreCreateInfo>();
+  //l_semaphore_info.flags = 0;
 
   std::vector<Handle<VkSemaphore>> l_result{};
   l_result.resize(a_count);
@@ -1916,9 +1759,7 @@ std::vector<sdlxvulkan::Handle<VkFence>> sdlxvulkan::app_make_fences
   VkFenceCreateFlags a_flags
 )
 {
-  VkFenceCreateInfo l_fence_info{};
-  l_fence_info.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
-  l_fence_info.pNext = nullptr;
+  VkFenceCreateInfo l_fence_info = make_default<VkFenceCreateInfo>();
   l_fence_info.flags = a_flags;
 
   std::vector<Handle<VkFence>> l_result{};

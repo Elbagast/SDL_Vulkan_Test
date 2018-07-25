@@ -20,6 +20,7 @@
 #include "global_functions.hpp"
 #include "instance_functions.hpp"
 #include "device_functions.hpp"
+#include "make_default.hpp"
 #include "vulkan_io.hpp"
 
 #include <SDL.h>
@@ -30,16 +31,6 @@
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
-
-void use(VkFlags& a_value) {}
-//void use(VkShaderStageFlags& a_value) {}
-//void use(VkSparseImageFormatFlags& a_value) {}
-
-void use_b()
-{
-  VkShaderStageFlags l_flags{};
-  use(l_flags);
-}
 
 
 namespace sdlxvulkan
@@ -393,9 +384,8 @@ sdlxvulkan::Application::Implementation::Implementation(int argc, char** argv) :
 
   m_swapchain_framebuffers{ app_make_swapchain_framebuffers(m_device, m_swapchain, m_render_pass, m_depth) },
 
-  m_command_buffers{ app_make_command_buffers(m_device, m_command_pool, VK_COMMAND_BUFFER_LEVEL_PRIMARY, c_frames_in_flight) },
-  //m_fixed_command_buffer{ app_make_command_buffer(m_device, m_command_pool, VK_COMMAND_BUFFER_LEVEL_SECONDARY) },
-
+  m_command_buffers{ app_make_primary_command_buffers(m_device, m_command_pool, c_frames_in_flight) },
+ 
   // Sync Objects
   m_image_available_semaphores{ app_make_semaphores(m_device, c_frames_in_flight) },
   m_render_finished_semaphores{ app_make_semaphores(m_device, c_frames_in_flight) },
@@ -665,8 +655,8 @@ void sdlxvulkan::Application::Implementation::write_frame_commands(uint32_t a_sw
   m_device_functions->vkResetCommandBuffer(m_command_buffers[m_current_frame], 0);
     
   // Begin the command buffer
-  VkCommandBufferBeginInfo l_begin_info {};
-  l_begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+  VkCommandBufferBeginInfo l_begin_info = make_default<VkCommandBufferBeginInfo>();
+  //l_begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
   l_begin_info.flags = VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT;
   l_begin_info.pInheritanceInfo = nullptr; // Optional
 
@@ -709,11 +699,12 @@ void sdlxvulkan::Application::Implementation::write_frame_commands(uint32_t a_sw
   */
 
   // Begin the render pass
-  VkRenderPassBeginInfo l_render_pass_info = {};
-  l_render_pass_info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+  VkRenderPassBeginInfo l_render_pass_info = make_default<VkRenderPassBeginInfo>();
+  //l_render_pass_info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
   l_render_pass_info.renderPass = m_render_pass;
   l_render_pass_info.framebuffer = m_swapchain_framebuffers[a_swapchain_image_index];
-  l_render_pass_info.renderArea.offset = { 0, 0 };
+  l_render_pass_info.renderArea.offset.x = 0;
+  l_render_pass_info.renderArea.offset.y = 0;
   l_render_pass_info.renderArea.extent = m_swapchain.extent;
   l_render_pass_info.clearValueCount = static_cast<uint32_t>(l_clear_values.size());
   l_render_pass_info.pClearValues = l_clear_values.data();
@@ -786,7 +777,7 @@ void sdlxvulkan::Application::Implementation::draw_frame()
   m_device_functions->vkWaitForFences(m_device, 1, l_fences.data(), VK_TRUE, std::numeric_limits<uint64_t>::max());
   //std::cout << "waiting for fence "<< m_fences[m_current_frame] << std::endl;
   //vkResetFences(m_device, 1, &m_fences[m_current_frame]);
-  if (m_device_functions->vkResetFences(m_device, 1, l_fences.data()) != VK_SUCCESS)
+  if (m_device_functions->vkResetFences(m_device, static_cast<uint32_t>(l_fences.size()), l_fences.data()) != VK_SUCCESS)
   {
     throw std::runtime_error{ "Vulkan: Failed to reset fence." };
   }
@@ -820,9 +811,9 @@ void sdlxvulkan::Application::Implementation::draw_frame()
   //l_command_buffers[0] = m_fixed_command_buffer;
   l_command_buffers[0] = m_command_buffers[m_current_frame];
 
-  VkSubmitInfo l_submit_info {};
-  l_submit_info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-  l_submit_info.pNext = nullptr;
+  VkSubmitInfo l_submit_info = make_default<VkSubmitInfo>();
+  //l_submit_info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+  //l_submit_info.pNext = nullptr;
   l_submit_info.waitSemaphoreCount = 1;
   l_submit_info.pWaitSemaphores = l_wait_semaphores.data();
   l_submit_info.pWaitDstStageMask = l_wait_stages.data();
@@ -845,9 +836,9 @@ void sdlxvulkan::Application::Implementation::draw_frame()
   
   std::array<VkSwapchainKHR, 1> l_swapchains { m_swapchain.handle };
 
-  VkPresentInfoKHR l_present_info{};
-  l_present_info.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
-  l_present_info.pNext = nullptr;
+  VkPresentInfoKHR l_present_info = make_default<VkPresentInfoKHR>();
+  //l_present_info.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
+  //l_present_info.pNext = nullptr;
   l_present_info.waitSemaphoreCount = 1;
   l_present_info.pWaitSemaphores = l_signal_semaphores.data(); // This is the part that means we wait til render is done
   l_present_info.swapchainCount = 1;

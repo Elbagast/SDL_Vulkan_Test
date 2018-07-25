@@ -1,12 +1,25 @@
 #ifndef SDLXVULKAN_MAKE_DEFAULT_HPP
 #define SDLXVULKAN_MAKE_DEFAULT_HPP
 
+#include <array>
 #include <vulkan/vulkan.h>
 
 namespace sdlxvulkan
 {  
   template <typename T>
   T make_default() noexcept;
+
+  template <typename T, std::size_t N>
+  std::array<T, N> make_default_array() noexcept
+  {
+    std::array<T, N> l_result{};
+    // We don't use .fill because it isn't noexcept
+    for (std::size_t l_index = 0; l_index != N; ++l_index)
+    {
+      l_result[l_index] = make_default<T>();
+    }
+    return l_result;
+  }
 
   // Core Structs:
   template <> VkAllocationCallbacks make_default<VkAllocationCallbacks>() noexcept;
@@ -839,8 +852,8 @@ inline VkDeviceCreateInfo sdlxvulkan::make_default<VkDeviceCreateInfo>() noexcep
   l_result.flags = static_cast<VkDeviceCreateFlags>(0);
   l_result.queueCreateInfoCount = 0;
   l_result.pQueueCreateInfos = NULL;
-  l_result.enabledLayerCount = 0;
-  l_result.ppEnabledLayerNames = NULL;
+  l_result.enabledLayerCount = 0;       // Deprecated, IGNORE
+  l_result.ppEnabledLayerNames = NULL;  // Deprecated, IGNORE
   l_result.enabledExtensionCount = 0;
   l_result.ppEnabledExtensionNames = NULL;
   l_result.pEnabledFeatures = NULL;
