@@ -6,60 +6,28 @@
 
 namespace sdlxvulkan
 {
-#define CASE_ENUM_STRING(a_arg) case a_arg: return u8###a_arg;
+  char const* to_c_string(SDL_EventType a_event_type) noexcept;
+  char const* to_c_string(SDL_WindowEventID a_event_id) noexcept;
+  //char const* to_c_string(SDL_Keycode a_keycode) noexcept;
+  char const* to_c_string(SDL_Keymod a_keymod) noexcept;
+  char const* to_c_string(SDL_Scancode a_scancode) noexcept;
+  char const* to_c_string(SDL_GameControllerButton a_game_controller_button) noexcept;
 
-  char const* sdl_event_c_string(SDL_EventType a_event_type)
-  {
-    switch (a_event_type)
-    {
-      CASE_ENUM_STRING(SDL_QUIT)
-      CASE_ENUM_STRING(SDL_APP_TERMINATING)
-      CASE_ENUM_STRING(SDL_APP_LOWMEMORY)
-      CASE_ENUM_STRING(SDL_APP_WILLENTERBACKGROUND)
-      CASE_ENUM_STRING(SDL_APP_DIDENTERBACKGROUND)
-      CASE_ENUM_STRING(SDL_APP_WILLENTERFOREGROUND)
-      CASE_ENUM_STRING(SDL_APP_DIDENTERFOREGROUND)
-      CASE_ENUM_STRING(SDL_WINDOWEVENT)
-      CASE_ENUM_STRING(SDL_SYSWMEVENT)
+  char const* mouse_button_to_c_string(Uint8 a_button) noexcept;
+  char const* mouse_button_mask_to_c_string(Uint32 a_button) noexcept;
+  
+  std::string to_std_string(SDL_EventType a_event_type);
+  std::string to_std_string(SDL_WindowEventID a_event_id);
+  //std::string to_std_string(SDL_Keycode a_keycode);
+  std::string to_std_string(SDL_Keymod a_keymod);
+  std::string to_std_string(SDL_Scancode a_scancode);
+  std::string to_std_string(SDL_GameControllerButton a_game_controller_button);
 
-    default: return u8"Bad SDL_EventType";
-    }
-  }
-  std::string sdl_event_string(SDL_EventType a_event_type)
-  {
-    return std::string{ sdl_event_c_string(a_event_type) };
-  }
+  std::string mouse_button_to_std_string(Uint8 a_button);
 
-  char const* sdl_window_event_c_string(SDL_WindowEventID a_event_id)
-  {
-    switch (a_event_id)
-    {
-      CASE_ENUM_STRING(SDL_WINDOWEVENT_NONE)
-      CASE_ENUM_STRING(SDL_WINDOWEVENT_SHOWN)
-      CASE_ENUM_STRING(SDL_WINDOWEVENT_HIDDEN)
-      CASE_ENUM_STRING(SDL_WINDOWEVENT_EXPOSED)
-      CASE_ENUM_STRING(SDL_WINDOWEVENT_MOVED)
-      CASE_ENUM_STRING(SDL_WINDOWEVENT_RESIZED)
-      CASE_ENUM_STRING(SDL_WINDOWEVENT_SIZE_CHANGED)
-      CASE_ENUM_STRING(SDL_WINDOWEVENT_MINIMIZED)
-      CASE_ENUM_STRING(SDL_WINDOWEVENT_MAXIMIZED)
-      CASE_ENUM_STRING(SDL_WINDOWEVENT_RESTORED)
-      CASE_ENUM_STRING(SDL_WINDOWEVENT_ENTER)
-      CASE_ENUM_STRING(SDL_WINDOWEVENT_LEAVE)
-      CASE_ENUM_STRING(SDL_WINDOWEVENT_FOCUS_GAINED)
-      CASE_ENUM_STRING(SDL_WINDOWEVENT_FOCUS_LOST)
-      CASE_ENUM_STRING(SDL_WINDOWEVENT_CLOSE)
-      CASE_ENUM_STRING(SDL_WINDOWEVENT_TAKE_FOCUS)
-      CASE_ENUM_STRING(SDL_WINDOWEVENT_HIT_TEST)
-
-    default: return u8"Bad SDL_WindowEventID";
-    }
-  }
-  std::string sdl_window_event_string(SDL_WindowEventID a_event_id)
-  {
-    return std::string{ sdl_window_event_c_string(a_event_id) };
-  }
-#undef CASE_ENUM_STRING
+  std::string all_keymods(Uint16 a_keymod);
+  std::string all_mouse_buttons(Uint32 a_state);
+  
 }
 
 #endif // SDLXVULKAN_EVENT_STRING_HPP

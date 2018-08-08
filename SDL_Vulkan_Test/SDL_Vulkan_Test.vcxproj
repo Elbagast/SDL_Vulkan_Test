@@ -22,6 +22,7 @@
     <ClCompile Include="application.cpp" />
     <ClCompile Include="app_files.cpp" />
     <ClCompile Include="device_functions.cpp" />
+    <ClCompile Include="event_string.cpp" />
     <ClCompile Include="global_functions.cpp" />
     <ClCompile Include="app_make.cpp" />
     <ClCompile Include="instance_functions.cpp" />

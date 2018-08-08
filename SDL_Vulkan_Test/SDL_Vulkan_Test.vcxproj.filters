@@ -54,6 +54,9 @@
     <ClCompile Include="app_files.cpp">
       <Filter>Source Files\sdlxvulkan</Filter>
     </ClCompile>
+    <ClCompile Include="event_string.cpp">
+      <Filter>Source Files\sdlxvulkan</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="application.hpp">

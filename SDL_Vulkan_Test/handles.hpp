@@ -306,8 +306,8 @@ namespace sdlxvulkan
     Handle<VkInstance> const& a_instance,
     VkPhysicalDevice a_physical_device, 
     std::vector<VkFormat> const& a_candidates, 
-    VkImageTiling a_tiling, VkFormatFeatureFlags 
-    a_features
+    VkImageTiling a_tiling, 
+    VkFormatFeatureFlags a_features
   );
   
   // Throws std::runtime_error if physical device is null.

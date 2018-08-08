@@ -11,6 +11,38 @@
 #include <glm/glm.hpp>
 
 
+uint32_t sdlxvulkan::app_get_window_draw_width
+(
+  Window const& a_window
+) noexcept
+{
+  if (a_window)
+  {
+    return static_cast<uint32_t>(a_window.draw_width());
+  }
+  else
+  {
+    return 0;
+  }
+}
+
+uint32_t sdlxvulkan::app_get_window_draw_height
+(
+  Window const& a_window
+) noexcept
+{
+  if (a_window)
+  {
+    return static_cast<uint32_t>(a_window.draw_height());
+  }
+  else
+  {
+    return 0;
+  }
+}
+
+
+
 sdlxvulkan::Handle<VkInstance> sdlxvulkan::app_make_instance
 (
   System const& a_system,
@@ -171,7 +203,7 @@ VkPhysicalDeviceFeatures sdlxvulkan::app_make_required_device_features
   l_required.wideLines = VK_FALSE;
   l_required.largePoints = VK_FALSE;
   l_required.alphaToOne = VK_FALSE;
-  l_required.multiViewport = VK_FALSE;
+  l_required.multiViewport = VK_TRUE; // for multiple viewports OR scissors 
   l_required.samplerAnisotropy = VK_TRUE; // for the sampler
   l_required.textureCompressionETC2 = VK_FALSE;
   l_required.textureCompressionASTC_LDR = VK_FALSE;
@@ -562,7 +594,7 @@ sdlxvulkan::Handle<VkImageView> sdlxvulkan::app_make_image_view
   return make_image_view(a_device, a_image, l_image_view_info);
 }
 
-
+// needs instance for memory properties
 sdlxvulkan::Handle<VkDeviceMemory> sdlxvulkan::app_make_bind_image_memory
 (
   Handle<VkInstance> const& a_instance,
@@ -945,7 +977,7 @@ bool sdlxvulkan::has_stencil_component(VkFormat a_format)
   return a_format == VK_FORMAT_D32_SFLOAT_S8_UINT || a_format == VK_FORMAT_D24_UNORM_S8_UINT;
 }
 
-
+// needs instance to get the depth format - could cache it.
 sdlxvulkan::Image_Trio sdlxvulkan::app_make_depth_image_trio
 (
   Handle<VkInstance> const& a_instance,
@@ -1080,10 +1112,10 @@ sdlxvulkan::Shader_Group sdlxvulkan::app_make_shader_group
   return l_result;
 }
 
-
+// Does not actually need the window, only the draw size.
+// This detaches swapchain from the window type.
 sdlxvulkan::Swapchain sdlxvulkan::app_make_swapchain
 (
-  Window const& a_window,
   Handle<VkInstance> const& a_instance,
   VkPhysicalDevice a_physical_device,
   Handle<VkDevice> const& a_device,
@@ -1091,7 +1123,9 @@ sdlxvulkan::Swapchain sdlxvulkan::app_make_swapchain
   uint32_t a_graphics_qfi,
   uint32_t a_present_qfi,
   uint32_t a_frame_count,
-  Swapchain const& a_old_swapchain
+  uint32_t a_width,
+  uint32_t a_height,
+  VkSwapchainKHR a_old_swapchain
 )
 {
   Swapchain l_result{};
@@ -1152,8 +1186,8 @@ sdlxvulkan::Swapchain sdlxvulkan::app_make_swapchain
   if (l_result.surface_cababilites.currentExtent.width == 0xFFFFFFFF)
   {
     // If the surface size is undefined, the size is set to the size of the images requested.
-    l_result.extent.width = a_window.draw_width();
-    l_result.extent.height = a_window.draw_height();
+    l_result.extent.width = a_width;
+    l_result.extent.height = a_height;
 
     // If the requested sizes are smaller than the device can go, we clamp to the minimum values.
     if (l_result.extent.width < l_result.surface_cababilites.minImageExtent.width)
@@ -1267,7 +1301,7 @@ sdlxvulkan::Swapchain sdlxvulkan::app_make_swapchain
   l_swapchain_info.compositeAlpha = l_composite_alpha;
   l_swapchain_info.presentMode = l_result.present_mode;
   l_swapchain_info.clipped = VK_TRUE;
-  l_swapchain_info.oldSwapchain = a_old_swapchain.handle;
+  l_swapchain_info.oldSwapchain = a_old_swapchain;
 
   // Make a new swapchain. The making references the old one that was supplied, 
   // that is the current value of m_swapchain.
@@ -1349,7 +1383,6 @@ sdlxvulkan::Handle<VkRenderPass> sdlxvulkan::app_make_render_pass
 )
 {
   VkAttachmentDescription l_colour_attachment = make_default<VkAttachmentDescription>();
-  l_colour_attachment.flags = 0;
   l_colour_attachment.format = a_format;
   l_colour_attachment.samples = VK_SAMPLE_COUNT_1_BIT;
   l_colour_attachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
@@ -1365,7 +1398,6 @@ sdlxvulkan::Handle<VkRenderPass> sdlxvulkan::app_make_render_pass
 
 
   VkAttachmentDescription l_depth_attachment = make_default<VkAttachmentDescription>();
-  l_depth_attachment.flags = 0;
   l_depth_attachment.format = a_depth_format;
   l_depth_attachment.samples = VK_SAMPLE_COUNT_1_BIT;
   l_depth_attachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
@@ -1381,7 +1413,6 @@ sdlxvulkan::Handle<VkRenderPass> sdlxvulkan::app_make_render_pass
 
 
   VkSubpassDescription  l_subpass_desc = make_default<VkSubpassDescription>();
-  l_subpass_desc.flags = 0;
   l_subpass_desc.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
   l_subpass_desc.inputAttachmentCount = 0;
   l_subpass_desc.pInputAttachments = nullptr;
@@ -1474,9 +1505,10 @@ sdlxvulkan::Handle<VkPipeline> sdlxvulkan::app_make_dynamic_pipeline
 
   // Viewport state
   VkPipelineViewportStateCreateInfo l_viewport_state = make_default<VkPipelineViewportStateCreateInfo>();
-  l_viewport_state.viewportCount = 1;
+  // viewportCount and scissorCount must be identical
+  l_viewport_state.viewportCount = 1; // MUST BE 1 if the multiViewport feature is not enabled
   l_viewport_state.pViewports = nullptr; // not supplied if dynamic
-  l_viewport_state.scissorCount = 1;
+  l_viewport_state.scissorCount = 1; // MUST BE 1 if the multiViewport feature is not enabled
   l_viewport_state.pScissors = nullptr; // not supplied if dynamic
 
   // Rasterizer

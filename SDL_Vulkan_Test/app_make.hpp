@@ -6,6 +6,16 @@
 
 namespace sdlxvulkan
 {
+  uint32_t app_get_window_draw_width
+  (
+    Window const& a_window
+  ) noexcept;
+
+  uint32_t app_get_window_draw_height
+  (
+    Window const& a_window
+  ) noexcept;
+
   Handle<VkInstance> app_make_instance
   (
     System const& a_system,
@@ -32,6 +42,20 @@ namespace sdlxvulkan
   (
     VkPhysicalDeviceFeatures const& a_supported_features
   );
+
+  // Cache everything relating to a given physical device.
+  struct Physical_Device
+  {
+    VkPhysicalDevice handle;
+    VkPhysicalDeviceProperties properties;
+    VkPhysicalDeviceMemoryProperties memory_properties;
+    std::vector<VkQueueFamilyProperties> queue_family_properties;
+    VkPhysicalDeviceFeatures features;
+    std::vector<VkExtensionProperties> extension_properties;
+    //VkFormatProperties format_properties; //? only on a per format basis...
+    //VkFormat depth_format; //uh this is determined...
+  };
+
   
   Handle<VkDevice> app_make_device
   (
@@ -338,7 +362,6 @@ namespace sdlxvulkan
 
   Swapchain app_make_swapchain
   (
-    Window const& a_window,
     Handle<VkInstance> const& a_instance,
     VkPhysicalDevice a_physical_device,
     Handle<VkDevice> const& a_device,
@@ -346,7 +369,9 @@ namespace sdlxvulkan
     uint32_t a_graphics_qfi,
     uint32_t a_present_qfi,
     uint32_t a_frame_count,
-    Swapchain const& a_old_swapchain = Swapchain{}
+    uint32_t a_width,
+    uint32_t a_height,
+    VkSwapchainKHR a_old_swapchain = VK_NULL_HANDLE
   );
 
   VkViewport app_make_viewport
